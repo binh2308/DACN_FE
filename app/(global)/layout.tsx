@@ -8,8 +8,5 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const token = localStorage.getItem("token");
-  if (token === undefined || token === null) router.push("/login");
-  else return <div>Welcome to Homepage</div>;
+return <div>Welcome </div>;
 }
