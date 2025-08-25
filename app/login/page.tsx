@@ -59,7 +59,7 @@ export default function Home() {
                 Forgot password ?
               </a>
             </div>
-            <Button type="submit" fullWidth color="black">
+            <Button type="submit" fullWidth color="blue">
               Sign in
             </Button>
           </form>
@@ -72,18 +72,18 @@ export default function Home() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" color="black" fullWidth>
+            <Button variant="outline" color="blue" fullWidth>
               <Github className="mr-2 h-4 w-4" />
               Github
             </Button>
-            <Button variant="outline" color="black" fullWidth>
+            <Button variant="outline" color="blue" fullWidth>
               <Mail className="mr-2 h-4 w-4" />
               Google
             </Button>
           </div>
           <div className="text-center text-sm">
             Don't have an account ?{" "}
-            <a href="#" className="font-medium">
+            <a href="#" className="font-medium text-sky-400">
               Sign up
             </a>
           </div>
