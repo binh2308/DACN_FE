@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRequest } from "ahooks";
 import { Button, TextInput, PasswordInput, Checkbox } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { Github, Mail } from "lucide-react";
+import { DACN } from "@/services/DACN/typings";
+import { authLogin } from "@/services/DACN/auth";
+
 export default function Home() {
   const form = useForm({
     mode: "uncontrolled",
@@ -12,11 +14,21 @@ export default function Home() {
 
     // functions will be used to validate values at corresponding key
     validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"), // user@example.com
       password: (value) =>
-        value.length < 12 ? "Name must have at least 12 characters" : null,
+        value.length < 8 ? "Password must have at least 8 characters" : null, // password123
     },
   });
+  const { runAsync: runLogin } = useRequest(authLogin, {
+    manual: true,
+    onError: (error) => console.error(error.message),
+  });
+  const handleLogin = async (body: DACN.LoginRequestDto) => {
+    const response = await runLogin(body);
+    if (response?.data) {
+      console.log("Status code: ", response.data.statusCode);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-300 to-sky-600 flex items-center justify-center">
       <motion.div
@@ -34,7 +46,7 @@ export default function Home() {
           </div>
 
           <form
-            onSubmit={form.onSubmit(() => console.log("submit form"))}
+            onSubmit={form.onSubmit(() => handleLogin(form.getValues()))}
             className="space-y-3"
           >
             <TextInput
