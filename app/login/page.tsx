@@ -1,109 +1,129 @@
 "use client";
+
+import { useState } from "react";
+import Link from "next/link";
 import { useRequest } from "ahooks";
-import { Button, TextInput, PasswordInput, Checkbox } from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { motion } from "framer-motion";
-import { Github, Mail } from "lucide-react";
-import { DACN } from "@/services/DACN/typings";
 import { authLogin } from "@/services/DACN/auth";
+import { Checkbox, Button, Text } from "@mantine/core";
+import { useRouter } from "next/navigation";
+import { LoginInput } from "@/components/LoginInput";
 
-export default function Home() {
-  const form = useForm({
-    mode: "uncontrolled",
-    initialValues: { email: "", password: "" },
-
-    // functions will be used to validate values at corresponding key
-    validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"), // user@example.com
-      password: (value) =>
-        value.length < 8 ? "Password must have at least 8 characters" : null, // password123
-    },
-  });
-  const { runAsync: runLogin } = useRequest(authLogin, {
+export default function Login() {
+  const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [warning, setWarning] = useState<null | string>(null);
+  const route = useRouter();
+  const { loading, runAsync } = useRequest(authLogin, {
     manual: true,
-    onError: (error) => console.error(error.message),
   });
-  const handleLogin = async (body: DACN.LoginRequestDto) => {
-    const response = await runLogin(body);
-    if (response?.data) {
-      console.log("Status code: ", response.data.statusCode);
+  const handleSubmit = (e: React.FormEvent) => {
+    if (!email.trim() || !password.trim()) {
+      setWarning("Invalid email or password!");
+      return;
     }
+    runAsync({ email, password })
+      .then((data) => {
+        localStorage.setItem("token", data.data.accessToken);
+        e.preventDefault();
+        route.push("/");
+      })
+      .catch((data) => setWarning(data.message[0]));
+    // setTimeout(() => {
+
+    // }, 1500);
   };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-300 to-sky-600 flex items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6 ">
-          <div className="text-center space-y-2 ">
-            <h1 className="text-3xl font-bold tracking-tighter">LOGIN</h1>
-            <p className="text-gray-600 ">
-              Enter your credentials to access your account
+    <div className="flex h-screen bg-white overflow-hidden">
+      <div className="hidden lg:flex lg:w-2/5 relative bg-[rgba(12,175,96,0.1)] flex-shrink-0">
+        <img
+          src="https://api.builder.io/api/v1/image/assets/TEMP/9e676a3ffa77d53169dfd8011369a666481b800c?width=1440"
+          alt="Team collaboration"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 flex items-end justify-center p-4">
+          <div className="bg-[rgba(33,37,43,0.5)] rounded-lg px-3 py-4 max-w-sm backdrop-blur-sm">
+            <p className="text-[#E9EAEC] text-center text-xs font-semibold leading-[140%] tracking-[0.16px]">
+              "Welcome to Human Resource management system."
             </p>
           </div>
+        </div>
+      </div>
 
-          <form
-            onSubmit={form.onSubmit(() => handleLogin(form.getValues()))}
-            className="space-y-3"
-          >
-            <TextInput
-              mt="sm"
-              label="Email"
-              placeholder="Email"
-              {...form.getInputProps("email")}
-            />
-            <PasswordInput
-              label="Password"
-              placeholder="Password"
-              {...form.getInputProps("password")}
-            />
-            <div className="flex items-center justify-between">
-              <div>
-                <Checkbox label="Remember me" />
-              </div>
-              <a
-                href="#"
-                className="text-sm text-neutral-700 hover:text-neutral-800"
+      <div className="w-full lg:w-3/5 flex items-center justify-center px-4 py-4 bg-white lg:bg-[rgba(255,255,255,0.1)] overflow-y-auto">
+        <div className="w-full max-w-[380px]">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col items-center gap-4">
+              <h1 className="text-black text-2xl font-semibold">Login</h1>
+
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-3 w-full"
               >
-                Forgot password ?
-              </a>
-            </div>
-            <Button type="submit" fullWidth color="blue">
-              Sign in
-            </Button>
-          </form>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t"></span>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2">Or continue with</span>
+                <div className="flex flex-col gap-1.5">
+                  <LoginInput
+                    label="Email Address"
+                    value={email}
+                    setValue={setEmail}
+                    type="email"
+                    placeholder="Input your registered email"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <LoginInput
+                    label="Password"
+                    value={password}
+                    setValue={setPassword}
+                    type="password"
+                    placeholder="Password"
+                  />
+                </div>
+                {warning !== null && (
+                  <Text size="xs" c="red">
+                    {warning}
+                  </Text>
+                )}
+
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer group">
+                    <Checkbox
+                      label="Remember me"
+                      color="green"
+                      checked={rememberMe}
+                      onChange={() => setRememberMe(!rememberMe)}
+                    />
+                  </label>
+
+                  <Link
+                    href="/forgot-password"
+                    className="text-[#657081] font-medium leading-[150%] tracking-[0.07px] hover:text-primary transition-colors"
+                  >
+                    Forgot Password
+                  </Link>
+                </div>
+                <Button
+                  variant="filled"
+                  color="green"
+                  onClick={handleSubmit}
+                  loading={loading}
+                >
+                  Login
+                </Button>
+              </form>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" color="blue" fullWidth>
-              <Github className="mr-2 h-4 w-4" />
-              Github
-            </Button>
-            <Button variant="outline" color="blue" fullWidth>
-              <Mail className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-          </div>
-          <div className="text-center text-sm">
-            Don't have an account ?{" "}
-            <a href="#" className="font-medium text-sky-400">
-              Sign up
-            </a>
+
+          <div className="mt-4 lg:hidden">
+            <div className="bg-[rgba(33,37,43,0.5)] rounded-lg px-4 py-4 backdrop-blur-sm">
+              <p className="text-[#E9EAEC] text-center text-xs font-semibold leading-[140%] tracking-[0.16px]">
+                "Welcome to Human Resource management system."
+              </p>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
-/* npx shadcn@latest init
-npx shadcn@latest add button
-*/

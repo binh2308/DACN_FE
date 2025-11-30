@@ -6,9 +6,4 @@ export declare namespace DACN {
   type TokenResponse = {
     access_token: string;
   };
-  type TokenResponseDto = {
-    statusCode: number;
-    message: string;
-    data: TokenResponse;
-  };
 }
