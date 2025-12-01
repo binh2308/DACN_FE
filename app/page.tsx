@@ -10,6 +10,6 @@ export default function RootLayout({
 }) {
   const router = useRouter();
   const token = localStorage.getItem("token");
-  if (token === undefined || token === null) router.push("/login");
+  if (token === undefined || token === null) router.push("/homepage");
   else return <div>Welcome to Homepage</div>;
 }
