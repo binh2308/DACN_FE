@@ -3,14 +3,35 @@
 import { Search, Plus, Filter, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { type Employee, initialEmployees } from "@/lib/data";
-
+import CreateEmployeeModal from "@/components/CreateEmployeeModal";
+import EditEmployeeModal from "@/components/EditEmployeeModal";
 
 export default function EmployeeManage() {
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const handleDelete = (no: number) => {
     setEmployees(employees.filter((emp) => emp.no !== no));
+  };
+
+  const handleCreateEmployee = (newEmployee: Employee) => {
+    setEmployees([...employees, newEmployee]);
+    setIsModalOpen(false);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setEditingEmployee(employee);
+  };
+
+  const handleUpdateEmployee = (updatedEmployee: Employee) => {
+    setEmployees(
+      employees.map((emp) =>
+        emp.no === updatedEmployee.no ? updatedEmployee : emp
+      )
+    );
+    setEditingEmployee(null);
   };
 
   const filteredEmployees = employees.filter(
@@ -49,7 +70,8 @@ export default function EmployeeManage() {
             <span>Inactive</span>
           </button>
           <button
-            className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D]"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors"
             style={{
               fontFamily:
                 "Poppins, -apple-system, Roboto, Helvetica, sans-serif",
@@ -102,7 +124,8 @@ export default function EmployeeManage() {
               {filteredEmployees.map((employee) => (
                 <tr
                   key={employee.no}
-                  className="border-b border-[#C1C7D0] last:border-0"
+                  onClick={() => handleEditEmployee(employee)}
+                  className="border-b border-[#C1C7D0] last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
                     {employee.no}
@@ -127,7 +150,10 @@ export default function EmployeeManage() {
                   </td>
                   <td className="px-3 py-2.5 text-center border-[#C1C7D0]">
                     <button
-                      onClick={() => handleDelete(employee.no)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(employee.no);
+                      }}
                       className="inline-flex items-center justify-center hover:bg-red-50 rounded p-1 transition-colors"
                       aria-label="Delete employee"
                     >
@@ -140,6 +166,23 @@ export default function EmployeeManage() {
           </table>
         </div>
       </div>
+
+      {/* Create Modal */}
+      {isModalOpen && (
+        <CreateEmployeeModal
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleCreateEmployee}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editingEmployee && (
+        <EditEmployeeModal
+          employee={editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onSave={handleUpdateEmployee}
+        />
+      )}
     </div>
   );
 }

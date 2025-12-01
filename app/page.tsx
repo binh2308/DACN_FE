@@ -9,11 +9,6 @@ import { CustomLoader } from "@/components/CustomLoader";
 
 export default function RootLayout() {
   const router = useRouter();
-<<<<<<< HEAD
-  const token = localStorage.getItem("token");
-  if (token === undefined || token === null) router.push("/homepage");
-  else return <div>Welcome to Homepage</div>;
-=======
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -44,5 +39,4 @@ export default function RootLayout() {
   if (loading) return <CustomLoader />;
 
   return <CustomLoader />;
->>>>>>> 0e8abbea4dcd17d54847940581a0c1501887bed1
 }
