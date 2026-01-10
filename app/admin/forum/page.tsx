@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { 
   Plus, 
   Search, 
@@ -155,7 +156,12 @@ function ForumListView({ posts, onNavigateCreate }: { posts: Post[], onNavigateC
                       </span>
                     )}
                   </div>
-                  <button className="text-blue-500 text-xs hover:underline">{">> See more"}</button>
+                  <Link
+                    href={`/admin/forum/${post.id}`}
+                    className="text-blue-500 text-xs hover:underline"
+                  >
+                    {">> See more"}
+                  </Link>
                 </div>
 
                 <p className="text-xs text-gray-600 mb-3 line-clamp-2">
