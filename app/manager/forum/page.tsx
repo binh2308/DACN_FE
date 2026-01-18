@@ -74,15 +74,10 @@ export default function ForumPage() {
   const [view, setView] = useState<"list" | "create">("list");
   const [posts, setPosts] = useState<Post[]>(initialPosts);
 
-  // Hàm xử lý lưu bài viết mới
-  const handleSavePost = (newPost: Post) => {
-    setPosts((prev) => [newPost, ...prev]); // Thêm vào đầu danh sách
-    setView("list"); // Quay về trang danh sách
-  };
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
-      const raw = localStorage.getItem("forumPosts_admin");
+      const raw = localStorage.getItem("forumPosts");
       if (!raw) return;
       const parsed = JSON.parse(raw) as Post[];
       if (Array.isArray(parsed) && parsed.length > 0) setPosts(parsed);
@@ -93,12 +88,17 @@ export default function ForumPage() {
 
   useEffect(() => {
     try {
-      if (typeof window === "undefined") return;
-      localStorage.setItem("forumPosts_admin", JSON.stringify(posts));
+      localStorage.setItem("forumPosts", JSON.stringify(posts));
     } catch {
       // ignore
     }
   }, [posts]);
+
+  // Hàm xử lý lưu bài viết mới
+  const handleSavePost = (newPost: Post) => {
+    setPosts((prev) => [newPost, ...prev]); // Thêm vào đầu danh sách
+    setView("list"); // Quay về trang danh sách
+  };
 
   return (
     <div className="bg-white min-h-screen p-6 font-sans">
@@ -163,11 +163,11 @@ function ForumListView({ posts, onNavigateCreate }: { posts: Post[], onNavigateC
               key={post.id}
               role="button"
               tabIndex={0}
-              onClick={() => router.push(`/admin/forum/${post.id}`)}
+              onClick={() => router.push(`/manager/forum/${post.id}`)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  router.push(`/admin/forum/${post.id}`);
+                  router.push(`/manager/forum/${post.id}`);
                 }
               }}
               className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
@@ -191,7 +191,7 @@ function ForumListView({ posts, onNavigateCreate }: { posts: Post[], onNavigateC
                     )}
                   </div>
                   <Link
-                    href={`/admin/forum/${post.id}`}
+                    href={`/manager/forum/${post.id}`}
                     className="text-blue-500 text-xs hover:underline"
                     onClick={(e) => e.stopPropagation()}
                   >

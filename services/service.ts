@@ -1,5 +1,11 @@
 import axios, { type AxiosResponse, AxiosError } from "axios";
 
+type ApiErrorResponse = {
+  message?: string;
+  code?: string;
+  error?: unknown;
+};
+
 export const request = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_ENDPOINT,
   headers: {
@@ -27,18 +33,20 @@ export const request = axios.create({
 
 request.interceptors.response.use(
   (res: AxiosResponse) => res.data,
-  (error: AxiosError) => {
+  (error: AxiosError<ApiErrorResponse>) => {
     if (error.response?.status === 401) {
       window.location.href = "/login";
       return Promise.reject(new Error("Unauthorized"));
     }
 
-    if (error.response?.data?.message) {
-      error.message = error.response.data.message;
+    const data = error.response?.data;
+
+    if (data?.message) {
+      error.message = data.message;
     }
 
-    if (error.response?.data?.code === "INVALID_BODY") {
-      (error as any).error = error.response.data.error;
+    if (data?.code === "INVALID_BODY") {
+      (error as any).error = data.error;
     }
 
     return Promise.reject(error);

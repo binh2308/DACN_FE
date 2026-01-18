@@ -24,13 +24,13 @@ export default function RootLayout() {
 
     runAsync()
       .then((data) => {
-        if (data.data.roles === "ADMIN") {
-          router.push("/admin");
-          return;
-        } else {
-          router.push("/user");
+        const role = data.data.roles;
+        if (role === "MANAGER" || role === "ADMIN") {
+          router.push("/manager");
           return;
         }
+
+        router.push("/user");
       })
       .catch((error) => console.log(error));
   }, [token, runAsync, router]);

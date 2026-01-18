@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { notFound, useRouter } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,9 +21,20 @@ type FormState = {
 	endTime: string;
 };
 
-export default function BookRoomPage({ params }: { params: { id: string } }) {
+
+export default function BookRoomPage() {
 	const router = useRouter();
-	const room = React.useMemo(() => getRoomById(params.id), [params.id]);
+	const params = useParams<{ id: string | string[] }>();
+	const roomId = React.useMemo(() => {
+		if (!params) return null;
+		const id = params.id;
+		return Array.isArray(id) ? id[0] : id;
+	}, [params]);
+	const room = React.useMemo(
+		() => (roomId ? getRoomById(roomId) : null),
+		[roomId]
+	);
+	if (!params) return null;
 	if (!room) notFound();
 
 	const [submitted, setSubmitted] = React.useState(false);
@@ -47,7 +58,7 @@ export default function BookRoomPage({ params }: { params: { id: string } }) {
 		setSubmitted(true);
 		// Mock submit: this is UI-only for now.
 		setTimeout(() => {
-			router.push(`/admin/booking/${room.id}`);
+			router.push(`/manager/booking/${room.id}`);
 		}, 700);
 	};
 
@@ -150,7 +161,7 @@ export default function BookRoomPage({ params }: { params: { id: string } }) {
 
 							<div className="flex items-center justify-end gap-3 pt-2">
 								<Button asChild variant="outline" type="button">
-									<Link href={`/admin/booking/${room.id}`}>Back</Link>
+									<Link href={`/manager/booking/${room.id}`}>Back</Link>
 								</Button>
 								<Button
 									type="submit"

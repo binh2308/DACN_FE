@@ -27,12 +27,13 @@ const formatTimeRange = (startIso: string, endIso: string) => {
 	return { date, time: `${startTime} - ${endTime}` };
 };
 
-export default function RoomDetailPage({
+export default async function RoomDetailPage({
 	params,
 }: {
-	params: { id: string };
+	params: Promise<{ id: string }>;
 }) {
-	const room = getRoomById(params.id);
+	const { id } = await params;
+	const room = getRoomById(id);
 	if (!room) notFound();
 
 	const slots = getSlotsByRoomId(room.id);
@@ -126,10 +127,10 @@ export default function RoomDetailPage({
 							asChild
 							className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
 						>
-							<Link href={`/admin/booking/${room.id}/book`}>Book Now</Link>
+							<Link href={`/manager/booking/${room.id}/book`}>Book Now</Link>
 						</Button>
 						<Button asChild variant="outline" className="rounded-md">
-							<Link href="/admin/booking">Back</Link>
+							<Link href="/manager/booking">Back</Link>
 						</Button>
 					</div>
 				</div>

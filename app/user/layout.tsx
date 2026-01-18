@@ -1,14 +1,12 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
-import AdminDashboardSidebar from "@/components/AdminDashboardSidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  isAdmin: Boolean;
 }
 
-export default function DashboardLayout({ children, isAdmin }: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen bg-neutral-background overflow-hidden">
       <DashboardSidebar/>

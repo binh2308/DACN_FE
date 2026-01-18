@@ -144,7 +144,7 @@ export default function BookingPage() {
 											asChild
 											className="w-full rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
 										>
-											<Link href={`/admin/booking/${room.id}`}>More Info</Link>
+											<Link href={`/manager/booking/${room.id}`}>More Info</Link>
 										</Button>
 									</div>
 								</div>
