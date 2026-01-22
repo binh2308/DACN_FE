@@ -9,7 +9,7 @@ export default function DashboardHeader() {
           <input
             type="text"
             placeholder="Tìm kiếm"
-            className="w-full h-9 pl-10 pr-4 bg-neutral-background border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full h-9 pl-10 pr-4 bg-neutral-background border-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
