@@ -82,7 +82,22 @@ export default function RoomDetailPage() {
 	});
 
 	const bookings = React.useMemo(
-		() => normalizeBookingsByRoomResponse(bookingsRaw),
+		() => {
+			const list = normalizeBookingsByRoomResponse(bookingsRaw);
+			return [...list].sort((a, b) => {
+				const aStart = Date.parse(a.startTime);
+				const bStart = Date.parse(b.startTime);
+				if (Number.isFinite(aStart) && Number.isFinite(bStart) && aStart !== bStart) {
+					return aStart - bStart;
+				}
+				const aEnd = Date.parse(a.endTime);
+				const bEnd = Date.parse(b.endTime);
+				if (Number.isFinite(aEnd) && Number.isFinite(bEnd) && aEnd !== bEnd) {
+					return aEnd - bEnd;
+				}
+				return String(a.id).localeCompare(String(b.id));
+			});
+		},
 		[bookingsRaw],
 	);
 

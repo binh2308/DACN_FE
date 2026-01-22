@@ -14,6 +14,12 @@ export type BookingsByRoomResponse = {
 	data: BookingByRoom[];
 };
 
+export type BookingsByEmployeeResponse = {
+	statusCode: number;
+	message: string;
+	data: BookingByRoom[];
+};
+
 export type RecurringPattern = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
 
 export type CreateBookingRequest = {
@@ -45,6 +51,38 @@ export async function getBookingsByRoomId(
 		},
 		...(options || {}),
 	});
+}
+
+export async function getBookingsByEmployee(options?: { [key: string]: any }) {
+	return request<BookingsByEmployeeResponse>("/bookings/by-employee", {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		...(options || {}),
+	});
+}
+
+export type DeleteBookingResponse = {
+	success?: boolean;
+	message?: string;
+	data?: unknown;
+};
+
+export async function deleteBooking(
+	bookingId: string,
+	options?: { [key: string]: any },
+) {
+	return request<DeleteBookingResponse>(
+		`/bookings/${bookingId}`.replace(/\/+/, "/"),
+		{
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			...(options || {}),
+		},
+	);
 }
 
 export async function createBooking(
