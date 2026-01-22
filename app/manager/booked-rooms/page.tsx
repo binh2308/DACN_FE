@@ -22,7 +22,7 @@ import {
 } from "@/services/DACN/Booking";
 import { getRooms, type Room } from "@/services/DACN/Rooms";
 
-// ... (Giữ nguyên các hàm helper và types: normalizeKey, formatTimeRange, BookingSlot, isPast, normalize functions...)
+// --- Helper Functions ---
 type StatusFilter = "all" | "upcoming" | "past";
 
 const normalizeKey = (value: string) =>
@@ -137,6 +137,14 @@ export default function BookedRoomsPage() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            {/* Sử dụng Router Back thay vì Link */}
+            <Button 
+                variant="outline" 
+                onClick={() => router.back()}
+                className="w-full sm:w-auto"
+            >
+                Back
+            </Button>
             <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
                 <SelectTrigger className="w-full bg-white sm:w-[160px]">
                 <SelectValue placeholder="Status" />
@@ -159,13 +167,14 @@ export default function BookedRoomsPage() {
             No rooms found matching your filters.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        // Sử dụng Grid với items-start để thẻ không bị kéo giãn chiều cao
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-start">
           {roomsWithBookings.map(({ room, roomId, roomName, slots }) => (
             <div
               key={roomId}
               className="group flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
             >
-              {/* Image Section */}
+              {/* Image Section (Tỉ lệ 16/9 cố định) */}
               <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
                 {room?.imageUrl ? (
                   <img
@@ -182,23 +191,25 @@ export default function BookedRoomsPage() {
               </div>
 
               {/* Content Section */}
-              <div className="flex flex-1 flex-col p-4">
-                {/* --- PHẦN THAY ĐỔI --- */}
-                {/* Room Info & Capacity & Actions nằm chung 1 khối */}
+              <div className="flex flex-col p-4">
+                
+                {/* --- PHẦN THÔNG TIN --- */}
                 <div className="mb-5">
                   <div className="flex items-start justify-between">
-                    {/* Bên trái: Tên & Location */}
-                    <div className="min-w-0 pr-2">
+                    
+                    {/* Cột Trái: Tên, Location, Nút Detail */}
+                    {/* pt-1.5 để đẩy nội dung xuống thấp 1 chút cho cân đối */}
+                    <div className="min-w-0 pr-3 pt-1.5 flex flex-col gap-1">
                         <h3 className="font-bold text-lg leading-tight tracking-tight truncate" title={room?.name ?? roomName}>
                             {room?.name ?? roomName}
                         </h3>
-                        <div className="mt-1.5 flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{room?.location || "Unknown"}</span>
                         </div>
                     </div>
 
-                    {/* Bên phải: Capacity & Nút Re-book */}
+                    {/* Cột Phải: Capacity, Nút Re-book */}
                     <div className="flex flex-col items-end gap-3 shrink-0">
                         {/* Capacity */}
                         <div className="text-right">
@@ -208,83 +219,65 @@ export default function BookedRoomsPage() {
                             <span className="text-[10px] text-muted-foreground uppercase">capacity</span>
                         </div>
                         
-                        {/* Nút Re-book (Được đưa qua phải, dưới capacity) */}
-                        {room?.id && (
-                             <Button asChild size="lg" className="h-8 px-3 text-xs bg-[#4F7D7B] hover:bg-[#436d6b]">
-                                <Link href={`/manager/booking/${room.id}/book`}>Re-book</Link>
-                            </Button>
-                        )}
+                        {/* Nút Re-book nằm dưới Capacity */}
+                        <Button 
+                            asChild 
+                            size="sm" 
+                            className="h-8 px-4 text-xs bg-[#4F7D7B] hover:bg-[#436d6b] shadow-sm"
+                            disabled={!room?.id}
+                        >
+                            <Link href={`/manager/booking/${room?.id ?? '#'}/book`}>Re-book</Link>
+                        </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* Schedules Section */}
-                <div className="mt-auto border-t pt-3">
-                  <div className="mb-2 text-xs font-semibold text-muted-foreground">
-                    Next Schedules:
+                {/* --- PHẦN SCHEDULES --- */}
+                {/* Clean List Design */}
+                <div className="border-t pt-3">
+                  <div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> Next Schedules
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    {slots.slice(0, 2).map((slot) => {
-                      const { date, time } = formatTimeRange(
-                        slot.start,
-                        slot.end
-                      );
+                  <div className="flex flex-col">
+                    {slots.slice(0, 2).map((slot, index) => {
+                      const { date, time } = formatTimeRange(slot.start, slot.end);
                       const past = isPast(slot, now!);
                       return (
-                        // Slot hiển thị gọn gàng dạng block nhỏ
-                        <div
-                          key={slot.id}
-                          className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-100"
+                        <div 
+                            key={slot.id} 
+                            className={`group/slot relative flex items-start justify-between py-2 ${index !== slots.length -1 && index !== 1 ? 'border-b border-border/50' : ''}`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="truncate text-sm font-medium text-foreground">
-                                  {slot.roomName}
-                                </span>
-                                <Badge
-                                  variant={past ? "secondary" : "default"}
-                                  className="h-5 px-1.5 text-[10px]"
-                                >
-                                  {past ? "Past" : "Up"}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 shrink-0"
-                              onClick={() => onDelete(slot.id)}
-                              disabled={deletingId === slot.id}
-                              aria-label="Delete booking"
-                              title="Delete booking"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          <div className="min-w-0 pr-2">
+                             <div className="text-sm font-medium text-foreground truncate">
+                                {slot.organizer}
+                             </div>
+                             <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                <span className={past ? "line-through opacity-70" : ""}>{date}</span>
+                                <span className="text-[10px]">•</span> 
+                                <span className={past ? "opacity-70" : "text-[#4F7D7B] font-medium"}>{time}</span>
+                             </div>
                           </div>
                           
-                          <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                                <CalendarClock className="h-3 w-3" />
-                                <span>{date}</span>
-                            </div>
-                            <span className="font-medium text-foreground/80">{time}</span>
-                          </div>
-                          <div className="mt-1 text-[10px] text-muted-foreground">
-                             by {slot.organizer}
-                          </div>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover/slot:opacity-100 transition-opacity"
+                            onClick={() => onDelete(slot.id)}
+                            disabled={deletingId === slot.id}
+                          >
+                             <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       );
                     })}
-
-                    {slots.length > 2 ? (
-                      <div className="text-xs text-muted-foreground">
-                        +{slots.length - 2} more
-                      </div>
-                    ) : null}
+                    
+                    {slots.length > 2 && (
+                        <div className="mt-1 text-center">
+                            <span className="text-[10px] px-2 py-0.5 bg-secondary rounded-full text-muted-foreground font-medium">
+                                +{slots.length - 2} more
+                            </span>
+                        </div>
+                    )}
                   </div>
                 </div>
               </div>
