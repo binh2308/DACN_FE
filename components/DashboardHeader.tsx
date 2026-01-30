@@ -1,5 +1,5 @@
 import { Search, Mail, Bell } from "lucide-react";
-
+import ProfileDropdown from "./ProfileDropdown";
 export default function DashboardHeader() {
   return (
     <header className="h-12 bg-white border-b border-grey-50 flex items-center justify-between px-4">
@@ -21,13 +21,7 @@ export default function DashboardHeader() {
         <button className="relative p-2 hover:bg-neutral-background rounded-lg transition-colors">
           <Bell className="w-5 h-5 text-grey-900" />
         </button>
-        <button className="w-8 h-8 rounded-full bg-grey-900 overflow-hidden">
-          <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=user"
-            alt="User"
-            className="w-full h-full object-cover"
-          />
-        </button>
+        <ProfileDropdown />
       </div>
     </header>
   );
