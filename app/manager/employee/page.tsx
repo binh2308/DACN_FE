@@ -1,37 +1,38 @@
 "use client";
 
-import { Search, Plus, Filter, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Search, Plus, Filter, Trash2, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { type Employee, initialEmployees } from "@/lib/data";
-import CreateEmployeeModal from "@/components/CreateEmployeeModal";
-import EditEmployeeModal from "@/components/EditEmployeeModal";
 
 export default function EmployeeManage() {
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const raw = localStorage.getItem("employees_manager");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Employee[];
+      if (Array.isArray(parsed) && parsed.length > 0) setEmployees(parsed);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      localStorage.setItem("employees_manager", JSON.stringify(employees));
+    } catch {
+      // ignore
+    }
+  }, [employees]);
 
   const handleDelete = (no: number) => {
     setEmployees(employees.filter((emp) => emp.no !== no));
-  };
-
-  const handleCreateEmployee = (newEmployee: Employee) => {
-    setEmployees([...employees, newEmployee]);
-    setIsModalOpen(false);
-  };
-
-  const handleEditEmployee = (employee: Employee) => {
-    setEditingEmployee(employee);
-  };
-
-  const handleUpdateEmployee = (updatedEmployee: Employee) => {
-    setEmployees(
-      employees.map((emp) =>
-        emp.no === updatedEmployee.no ? updatedEmployee : emp
-      )
-    );
-    setEditingEmployee(null);
   };
 
   const filteredEmployees = employees.filter(
@@ -70,7 +71,7 @@ export default function EmployeeManage() {
             <span>Inactive</span>
           </button>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => router.push("/manager/employee/create")}
             className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors"
             style={{
               fontFamily:
@@ -124,7 +125,15 @@ export default function EmployeeManage() {
               {filteredEmployees.map((employee) => (
                 <tr
                   key={employee.no}
-                  onClick={() => handleEditEmployee(employee)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/manager/employee/${encodeURIComponent(employee.id)}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/manager/employee/${encodeURIComponent(employee.id)}`);
+                    }
+                  }}
                   className="border-b border-[#C1C7D0] last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
@@ -156,6 +165,7 @@ export default function EmployeeManage() {
                       }}
                       className="inline-flex items-center justify-center hover:bg-red-50 rounded p-1 transition-colors"
                       aria-label="Delete employee"
+                      title="Delete"
                     >
                       <Trash2 className="w-5 h-5 text-red-600" />
                     </button>
@@ -166,23 +176,6 @@ export default function EmployeeManage() {
           </table>
         </div>
       </div>
-
-      {/* Create Modal */}
-      {isModalOpen && (
-        <CreateEmployeeModal
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleCreateEmployee}
-        />
-      )}
-
-      {/* Edit Modal */}
-      {editingEmployee && (
-        <EditEmployeeModal
-          employee={editingEmployee}
-          onClose={() => setEditingEmployee(null)}
-          onSave={handleUpdateEmployee}
-        />
-      )}
     </div>
   );
 }
