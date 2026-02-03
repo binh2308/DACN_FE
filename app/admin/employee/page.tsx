@@ -2,24 +2,15 @@
 
 import { Search, Plus, Filter, Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useRequest } from "ahooks";
-import { getEmployees } from "@/services/DACN/employee"; // Đảm bảo đường dẫn import đúng
+import { type Employee, initialEmployees } from "@/lib/data";
 
-// Định nghĩa kiểu dữ liệu hiển thị trên bảng
-interface Employee {
-  no: number;
-  id: string;
-  fullname: string;
-  role: string;
-  phone: string;
-  email: string;
-  signDay: string;
-}
 
 export default function EmployeePage() {
   // 1. Khởi tạo state rỗng (tránh hiện dữ liệu giả)
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   // 2. Gọi API lấy danh sách
   const { loading, error, run: refreshData } = useRequest(getEmployees, {
@@ -57,6 +48,24 @@ export default function EmployeePage() {
     }
   };
 
+  const handleCreateEmployee = (newEmployee: Employee) => {
+    setEmployees([...employees, newEmployee]);
+    setIsModalOpen(false);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setEditingEmployee(employee);
+  };
+
+  const handleUpdateEmployee = (updatedEmployee: Employee) => {
+    setEmployees(
+      employees.map((emp) =>
+        emp.no === updatedEmployee.no ? updatedEmployee : emp
+      )
+    );
+    setEditingEmployee(null);
+  };
+
   // 4. Logic lọc tìm kiếm
   const filteredEmployees = employees.filter(
     (emp) =>
@@ -86,7 +95,13 @@ export default function EmployeePage() {
             <Filter className="w-4 h-4" />
             <span>Filter</span>
           </button>
-          <button className="flex items-center gap-2 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+          <button
+            className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D]"
+            style={{
+              fontFamily:
+                "Poppins, -apple-system, Roboto, Helvetica, sans-serif",
+            }}
+          >
             <Plus className="w-4 h-4" />
             <span>Add Employee</span>
           </button>
@@ -109,15 +124,14 @@ export default function EmployeePage() {
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {/* Trạng thái Loading */}
-              {loading && (
-                <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                      <span>Đang tải dữ liệu...</span>
-                    </div>
+            <tbody>
+              {filteredEmployees.map((employee) => (
+                <tr
+                  key={employee.no}
+                  className="border-b border-[#C1C7D0] last:border-0"
+                >
+                  <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.no}
                   </td>
                 </tr>
               )}
@@ -161,8 +175,8 @@ export default function EmployeePage() {
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => handleDelete(employee.no)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
-                      title="Xóa"
+                      className="inline-flex items-center justify-center hover:bg-red-50 rounded p-1 transition-colors"
+                      aria-label="Delete employee"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -176,6 +190,23 @@ export default function EmployeePage() {
           Hiển thị {filteredEmployees.length} kết quả
         </div>
       </div>
+
+      {/* Create Modal */}
+      {isModalOpen && (
+        <CreateEmployeeModal
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleCreateEmployee}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editingEmployee && (
+        <EditEmployeeModal
+          employee={editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onSave={handleUpdateEmployee}
+        />
+      )}
     </div>
   );
 }
