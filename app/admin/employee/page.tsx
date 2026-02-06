@@ -1,100 +1,65 @@
 "use client";
 
-import { Search, Plus, Filter, Trash2, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Search, Plus, Filter, Trash2, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { type Employee, initialEmployees } from "@/lib/data";
 
-
-export default function EmployeePage() {
-  // 1. Khởi tạo state rỗng (tránh hiện dữ liệu giả)
-  const [employees, setEmployees] = useState<Employee[]>([]);
+export default function EmployeeManage() {
+  const router = useRouter();
+  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  // 2. Gọi API lấy danh sách
-  const { loading, error, run: refreshData } = useRequest(getEmployees, {
-    manual: false, // Tự động chạy khi vào trang
-    onSuccess: (res: any) => {
-      // Kiểm tra cấu trúc response (res.data hoặc res)
-      const dataList = Array.isArray(res) ? res : res?.data || [];
-
-      // Map dữ liệu từ Backend sang format của Frontend
-      const mappedData = dataList.map((item: any, index: number) => ({
-        no: index + 1,
-        // Map _id thành id hiển thị
-        id: item._id ? item._id.slice(-6).toUpperCase() : `EMP${index}`,
-        // Xử lý họ tên (nếu backend tách rời)
-        fullname: item.fullname || `${item.lastName || ""} ${item.middleName || ""} ${item.firstName || ""}`.trim(),
-        // Lấy role đầu tiên hoặc mặc định
-        role: item.roles && item.roles.length > 0 ? item.roles[0] : "Employee",
-        phone: item.phone || "N/A",
-        email: item.email || "",
-        // Format ngày tháng
-        signDay: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "N/A",
-      }));
-
-      setEmployees(mappedData);
-    },
-    onError: (err) => {
-      console.error("Lỗi khi tải danh sách nhân viên:", err);
-    },
-  });
-
-  // 3. Xử lý xóa (Frontend only - cần gắn thêm API xóa nếu muốn)
-  const handleDelete = (no: number) => {
-    if (confirm("Bạn có chắc muốn xóa dòng này không?")) {
-      setEmployees(employees.filter((emp) => emp.no !== no));
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const raw = localStorage.getItem("employees_admin");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Employee[];
+      if (Array.isArray(parsed) && parsed.length > 0) setEmployees(parsed);
+    } catch {
+      // ignore
     }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      localStorage.setItem("employees_admin", JSON.stringify(employees));
+    } catch {
+      // ignore
+    }
+  }, [employees]);
+
+  const handleDelete = (no: number) => {
+    setEmployees(employees.filter((emp) => emp.no !== no));
   };
 
-  const handleCreateEmployee = (newEmployee: Employee) => {
-    setEmployees([...employees, newEmployee]);
-    setIsModalOpen(false);
-  };
-
-  const handleEditEmployee = (employee: Employee) => {
-    setEditingEmployee(employee);
-  };
-
-  const handleUpdateEmployee = (updatedEmployee: Employee) => {
-    setEmployees(
-      employees.map((emp) =>
-        emp.no === updatedEmployee.no ? updatedEmployee : emp
-      )
-    );
-    setEditingEmployee(null);
-  };
-
-  // 4. Logic lọc tìm kiếm
   const filteredEmployees = employees.filter(
     (emp) =>
       emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+      emp.fullname.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="p-6 bg-white h-full min-h-screen">
+    <div className="p-6 bg-white">
       <div className="flex items-center justify-between mb-4">
-        {/* Ô tìm kiếm */}
-        <div className="relative w-64">
+        <div className="relative w-52">
           <input
             type="text"
-            placeholder="Search by ID, Name, Email..."
+            placeholder="Search by ID, Name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-9 pl-9 pr-4 text-sm text-gray-700 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            className="w-full h-8 pl-3 pr-8 text-xs italic text-[#A2A2A2] border border-[#B6B6B6] rounded focus:outline-none focus:ring-1 focus:ring-primary"
+            style={{
+              fontFamily:
+                "Poppins, -apple-system, Roboto, Helvetica, sans-serif",
+            }}
           />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A2A2A2]" />
         </div>
 
-        {/* Các nút chức năng */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 h-9 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors">
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </button>
           <button
             className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D]"
             style={{
@@ -102,83 +67,118 @@ export default function EmployeePage() {
                 "Poppins, -apple-system, Roboto, Helvetica, sans-serif",
             }}
           >
+            <Filter className="w-4 h-4" />
+            <span>Inactive</span>
+          </button>
+          <button
+            onClick={() => router.push("/admin/employee/create")}
+            className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors"
+            style={{
+              fontFamily:
+                "Poppins, -apple-system, Roboto, Helvetica, sans-serif",
+            }}
+          >
             <Plus className="w-4 h-4" />
-            <span>Add Employee</span>
+            <span>Create Account</span>
           </button>
         </div>
       </div>
 
-      {/* Bảng dữ liệu */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="border border-[#C1C7D0] rounded overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-center">No.</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fullname</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Sign Day</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
+          <table
+            className="w-full"
+            style={{
+              fontFamily:
+                "Poppins, -apple-system, Roboto, Helvetica, sans-serif",
+            }}
+          >
+            <thead>
+              <tr className="border-b border-[#C1C7D0]">
+                <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-16">
+                  No.
+                </th>
+                <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">
+                  ID
+                </th>
+                <th className="px-10 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-48">
+                  Fullname
+                </th>
+                <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">
+                  Role
+                </th>
+                <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">
+                  Phone
+                </th>
+                <th className="px-9 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-44">
+                  Email
+                </th>
+                <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-36">
+                  Sign Day
+                </th>
+                <th className="px-3 py-2.5 text-center text-sm font-normal text-black w-32">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredEmployees.map((employee) => (
                 <tr
                   key={employee.no}
-                  className="border-b border-[#C1C7D0] last:border-0"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/admin/employee/${encodeURIComponent(employee.id)}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/admin/employee/${encodeURIComponent(employee.id)}`);
+                    }
+                  }}
+                  className="border-b border-[#C1C7D0] last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
                     {employee.no}
                   </td>
-                </tr>
-              )}
-
-              {/* Trạng thái Lỗi */}
-              {error && !loading && (
-                <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-red-500 bg-red-50">
-                    Không thể tải dữ liệu. Vui lòng kiểm tra kết nối hoặc đăng nhập lại.
-                    <br />
-                    <button onClick={refreshData} className="mt-2 text-blue-600 underline text-sm">Thử lại</button>
+                  <td className="px-5 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.id}
                   </td>
-                </tr>
-              )}
-
-              {/* Trạng thái Rỗng */}
-              {!loading && !error && filteredEmployees.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-gray-500 italic">
-                    Không tìm thấy nhân viên nào.
+                  <td className="px-10 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.fullname}
                   </td>
-                </tr>
-              )}
-
-              {/* Dữ liệu */}
-              {!loading && !error && filteredEmployees.map((employee) => (
-                <tr key={employee.no} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-center text-gray-900">{employee.no}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{employee.id}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    <div className="font-medium">{employee.fullname}</div>
+                  <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.role}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {employee.role}
-                    </span>
+                  <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.phone}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{employee.phone}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{employee.email}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{employee.signDay}</td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-9 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.email}
+                  </td>
+                  <td className="px-5 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                    {employee.signDay}
+                  </td>
+                  <td className="px-3 py-2.5 text-center border-[#C1C7D0]">
                     <button
-                      onClick={() => handleDelete(employee.no)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/admin/employee/${encodeURIComponent(employee.id)}/edit`);
+                      }}
+                      className="inline-flex items-center justify-center hover:bg-gray-100 rounded p-1 transition-colors mr-1"
+                      aria-label="Edit employee"
+                      title="Edit"
+                    >
+                      <Pencil className="w-5 h-5 text-gray-700" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(employee.no);
+                      }}
                       className="inline-flex items-center justify-center hover:bg-red-50 rounded p-1 transition-colors"
                       aria-label="Delete employee"
+                      title="Delete"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5 text-red-600" />
                     </button>
                   </td>
                 </tr>
@@ -186,27 +186,7 @@ export default function EmployeePage() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
-          Hiển thị {filteredEmployees.length} kết quả
-        </div>
       </div>
-
-      {/* Create Modal */}
-      {isModalOpen && (
-        <CreateEmployeeModal
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleCreateEmployee}
-        />
-      )}
-
-      {/* Edit Modal */}
-      {editingEmployee && (
-        <EditEmployeeModal
-          employee={editingEmployee}
-          onClose={() => setEditingEmployee(null)}
-          onSave={handleUpdateEmployee}
-        />
-      )}
     </div>
   );
 }
