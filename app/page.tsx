@@ -25,8 +25,13 @@ export default function RootLayout() {
     runAsync()
       .then((data) => {
         const role = data.data.roles;
-        if (role === "MANAGER" || role === "ADMIN") {
+        if (role === "MANAGER") {
           router.push("/manager");
+          return;
+        }
+
+        if (role === "ADMIN") {
+          router.push("/admin");
           return;
         }
 

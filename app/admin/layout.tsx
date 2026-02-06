@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
-import ManagerDashboardSidebar from "@/components/ManagerDashboardSidebar";
+import AdminDashboardSidebar from "@/components/AdminDashboardSidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen bg-neutral-background overflow-hidden">
-      <ManagerDashboardSidebar />
+      <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
