@@ -1,48 +1,146 @@
 "use client";
 
-import { Search, Plus, Filter, Trash2, Pencil } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Search, Plus, Filter, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Employee, initialEmployees } from "@/lib/data";
+import { getEmployees, type EmployeeDto, type GetEmployeesResponse } from "@/services/DACN/employee";
+import { getUserProfile } from "@/services/DACN/auth";
+
+type ApiDepartment = { id: string; name: string };
+
+type ApiProfileResponse = {
+  statusCode: number;
+  message?: string;
+  data: {
+    department?: ApiDepartment | null;
+  } & Record<string, unknown>;
+};
+
+function fullNameFromApi(e: EmployeeDto) {
+  return [e.lastName, e.middleName ?? "", e.firstName]
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function ymdFromIso(iso?: string | null) {
+  if (!iso) return "";
+  return iso.length >= 10 ? iso.slice(0, 10) : iso;
+}
 
 export default function EmployeeManage() {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [departmentName, setDepartmentName] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
+    // quick cache hydration (optional)
     try {
-      if (typeof window === "undefined") return;
-      const raw = localStorage.getItem("employees_manager");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Employee[];
-      if (Array.isArray(parsed) && parsed.length > 0) setEmployees(parsed);
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("employees_manager");
+        if (raw) {
+          const parsed = JSON.parse(raw) as Employee[];
+          if (Array.isArray(parsed) && parsed.length > 0) setEmployees(parsed);
+        }
+      }
     } catch {
       // ignore
     }
+
+    const run = async () => {
+      setLoading(true);
+      setErrorMsg(null);
+
+      try {
+        const profileRes = (await getUserProfile()) as unknown as ApiProfileResponse;
+        const myDept = profileRes?.data?.department ?? null;
+        if (!mounted) return;
+        setDepartmentId(myDept?.id ?? null);
+        setDepartmentName(myDept?.name ?? "");
+
+        const employeesRes = (await getEmployees()) as unknown as GetEmployeesResponse;
+        const all = employeesRes?.data?.items ?? [];
+
+        const filtered = all.filter((e) => {
+          if (e.roles !== "EMPLOYEE") return false;
+          if (myDept?.id) return e.department?.id === myDept.id;
+          return e.department == null;
+        });
+
+        const mapped: Employee[] = filtered.map((e, idx) => ({
+          no: idx + 1,
+          id: e.id,
+          fullname: fullNameFromApi(e) || e.email,
+          role: e.roles || "--",
+          phone: e.phone ?? "N/A",
+          email: e.email,
+          signDay: ymdFromIso(e.signDate) || "",
+        }));
+
+        if (!mounted) return;
+        setEmployees(mapped);
+
+        try {
+          localStorage.setItem("employees_manager", JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } catch (err) {
+        if (!mounted) return;
+        const message = err instanceof Error ? err.message : "Không thể tải danh sách nhân viên";
+        setErrorMsg(message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    if (typeof window !== "undefined") run();
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-      localStorage.setItem("employees_manager", JSON.stringify(employees));
-    } catch {
-      // ignore
-    }
-  }, [employees]);
 
   const handleDelete = (no: number) => {
     setEmployees(employees.filter((emp) => emp.no !== no));
   };
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.fullname.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEmployees = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return employees;
+    return employees.filter(
+      (emp) =>
+        emp.id.toLowerCase().includes(q) ||
+        emp.fullname.toLowerCase().includes(q) ||
+        emp.email.toLowerCase().includes(q)
+    );
+  }, [employees, searchQuery]);
 
   return (
     <div className="p-6 bg-white">
+      {departmentId || departmentName ? (
+        <div className="mb-3 text-xs text-muted-foreground">
+          Phòng ban hiện tại:{" "}
+          <span className="font-semibold text-foreground">
+            {departmentName || departmentId}
+          </span>
+        </div>
+      ) : null}
+
+      {errorMsg ? (
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {errorMsg}
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between mb-4">
         <div className="relative w-52">
           <input
@@ -122,6 +220,22 @@ export default function EmployeeManage() {
               </tr>
             </thead>
             <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Đang tải danh sách nhân viên…
+                  </td>
+                </tr>
+              ) : null}
+
+              {!loading && filteredEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Không có nhân viên trong phòng ban này.
+                  </td>
+                </tr>
+              ) : null}
+
               {filteredEmployees.map((employee) => (
                 <tr
                   key={employee.no}
