@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
   },
   {
     label: "Quản lý phòng họp",
-    href: "/admin/booking",
+    href: "/admin/booking-room",
     icon: <Home className="w-5 h-5" />,
   },
   {
