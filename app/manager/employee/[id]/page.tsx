@@ -440,6 +440,8 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
+            <div className="h-5"></div>
+
             {/* ROW 2: Other Info (5/12) & Banking/University (7/12) */}
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
@@ -562,8 +564,6 @@ export default function EmployeeDetailPage() {
             </div>
 
             </fieldset>
-
-            <div className="h-8" />
 
             <div className="flex items-center justify-center pb-8">
               <button
