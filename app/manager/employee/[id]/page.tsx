@@ -3,69 +3,38 @@
 import * as React from "react";
 import { Upload, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { type Employee, initialEmployees } from "@/lib/data";
+import {
+  getEmployeeDetail,
+  type EmployeeDto,
+  type GetEmployeeDetailResponse,
+} from "@/services/DACN/employee";
+import { getUserProfile } from "@/services/DACN/auth";
 
-type EmployeeRecord = Employee & {
-  password?: string;
-  permissionTemplate?: string;
-  emailCompany?: string;
-  avatar?: unknown;
+type ApiDepartment = { id: string; name: string };
 
-  shortname?: string;
-  gender?: string;
-  dateOfBirth?: string;
-  address?: string;
-  quitDay?: string;
-
-  idCard?: string;
-  taxNumber?: string;
-  socialInsurance?: string;
-  married?: boolean;
-  children?: number | string;
-  childrenDescription?: string;
-
-  uniSchool?: string;
-  uniDegree?: string;
-  uniModeOfStudy?: string;
-  uniGraduationYear?: string;
-  uniDescription?: string;
-
-  contractName?: string;
-  contractNumber?: string;
-  contractType?: string;
-  salaryGross?: string;
-  salaryBasic?: string;
-  salaryCapacity?: string;
-  branch?: string;
-  department?: string;
-  staffType?: string;
-  paymentMethod?: string;
-  endDay?: string;
-  note?: string;
+type ApiProfileResponse = {
+  statusCode: number;
+  message?: string;
+  data: {
+    department?: ApiDepartment | null;
+  } & Record<string, unknown>;
 };
 
-function readEmployees(): EmployeeRecord[] {
-  if (typeof window === "undefined") return initialEmployees;
-  try {
-    const raw = localStorage.getItem("employees_manager");
-    if (!raw) return initialEmployees;
-    const parsed = JSON.parse(raw) as EmployeeRecord[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialEmployees;
-  } catch {
-    return initialEmployees;
-  }
+function fullNameFromApi(e: EmployeeDto) {
+  return [e.lastName, e.middleName ?? "", e.firstName]
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function writeEmployees(employees: EmployeeRecord[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem("employees_manager", JSON.stringify(employees));
-  } catch {
-    // ignore
-  }
+function ymdFromIso(iso?: string | null) {
+  if (!iso) return "";
+  return iso.length >= 10 ? iso.slice(0, 10) : iso;
 }
 
-export default function EditEmployeePage() {
+export default function EmployeeDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string | string[] }>();
 
@@ -75,31 +44,21 @@ export default function EditEmployeePage() {
     return (idStr ?? "").trim() || null;
   }, [params]);
 
-  const [employees, setEmployees] = React.useState<EmployeeRecord[]>(initialEmployees);
-  const [isHydrated, setIsHydrated] = React.useState(false);
-
-  React.useEffect(() => {
-    setEmployees(readEmployees());
-    setIsHydrated(true);
-  }, []);
-
-  const employee = React.useMemo<EmployeeRecord | null>(() => {
-    if (!employeeId) return null;
-    return employees.find((e) => e.id === employeeId) ?? null;
-  }, [employeeId, employees]);
+  const [loading, setLoading] = React.useState(true);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [employee, setEmployee] = React.useState<EmployeeDto | null>(null);
+  const [departmentName, setDepartmentName] = React.useState<string>("");
 
   const [form, setForm] = React.useState({
     // Account Info
     id: "",
     password: "",
-    role: "Member",
+    role: "",
     permissionTemplate: "Member",
-    emailCompany: "",
     avatar: null as unknown,
 
     // Main Info
     fullname: "",
-    shortname: "",
     gender: "Male",
     dateOfBirth: "",
     email: "",
@@ -109,8 +68,6 @@ export default function EditEmployeePage() {
 
     // Other Info
     idCard: "",
-    taxNumber: "",
-    socialInsurance: "",
     married: false,
     children: 0,
     childrenDescription: "",
@@ -140,56 +97,83 @@ export default function EditEmployeePage() {
   });
 
   React.useEffect(() => {
-    if (!employee) return;
-    setForm({
-      id: employee.id,
-      password: employee.password ?? "",
-      role: employee.role ?? "Member",
-      permissionTemplate: employee.permissionTemplate ?? "Member",
-      emailCompany: employee.emailCompany ?? "",
-      avatar: employee.avatar ?? null,
+    let mounted = true;
 
-      fullname: employee.fullname ?? "",
-      shortname: employee.shortname ?? "",
-      gender: employee.gender ?? "Male",
-      dateOfBirth: employee.dateOfBirth ?? "",
-      email: employee.email ?? "",
-      address: employee.address ?? "",
-      signDay: employee.signDay ?? "",
-      quitDay: employee.quitDay ?? "",
+    const run = async () => {
+      if (!employeeId) {
+        setLoading(false);
+        setEmployee(null);
+        return;
+      }
 
-      idCard: employee.idCard ?? "",
-      taxNumber: employee.taxNumber ?? "",
-      socialInsurance: employee.socialInsurance ?? "",
-      married: employee.married ?? false,
-      children:
-        typeof employee.children === "number"
-          ? employee.children
-          : Number(employee.children ?? 0) || 0,
-      childrenDescription: employee.childrenDescription ?? "",
+      setLoading(true);
+      setErrorMsg(null);
+      try {
+        const profileRes = (await getUserProfile()) as unknown as ApiProfileResponse;
+        const myDept = profileRes?.data?.department ?? null;
+        if (!mounted) return;
+        setDepartmentName(myDept?.name ?? "");
 
-      uniSchool: employee.uniSchool ?? "",
-      uniDegree: employee.uniDegree ?? "",
-      uniModeOfStudy: employee.uniModeOfStudy ?? "",
-      uniGraduationYear: employee.uniGraduationYear ?? "",
-      uniDescription: employee.uniDescription ?? "",
+        const employeeRes = (await getEmployeeDetail(employeeId)) as unknown as GetEmployeeDetailResponse;
+        const found = (employeeRes?.data as unknown as EmployeeDto) ?? null;
 
-      contractName: employee.contractName ?? "",
-      contractNumber: employee.contractNumber ?? "",
-      contractType: employee.contractType ?? "",
-      salaryGross: employee.salaryGross ?? "",
-      salaryBasic: employee.salaryBasic ?? "",
-      salaryCapacity: employee.salaryCapacity ?? "",
-      branch: employee.branch ?? "",
-      department: employee.department ?? "",
-      staffType: employee.staffType ?? "",
-      paymentMethod: employee.paymentMethod ?? "",
-      endDay: employee.endDay ?? "",
-      note: employee.note ?? "",
+        if (!mounted) return;
 
-      phone: employee.phone === "N/A" ? "" : employee.phone,
-    });
-  }, [employee]);
+        if (!found) {
+          setEmployee(null);
+          return;
+        }
+
+        setEmployee(found);
+        setForm((prev) => ({
+          ...prev,
+          id: found.id,
+          role: found.roles || "",
+          avatar: found.avatarUrl ?? null,
+
+          fullname: fullNameFromApi(found) || found.email,
+          gender: found.gender ?? prev.gender,
+          dateOfBirth: ymdFromIso(found.dateOfBirth),
+          email: found.email ?? "",
+          address: found.address ?? "",
+          signDay: ymdFromIso(found.signDate),
+          quitDay: ymdFromIso(found.quitDate),
+
+          idCard: found.idCard ?? "",
+          married: Boolean(found.marriedStatus),
+          children: Number(found.numberOfChildren ?? 0) || 0,
+          childrenDescription: found.childrenDescription ?? "",
+
+          contractName: "",
+          contractNumber: "",
+          contractType: "",
+          salaryGross: found.grossSalary != null ? String(found.grossSalary) : "",
+          salaryBasic: found.basicSalary != null ? String(found.basicSalary) : "",
+          salaryCapacity: "",
+          branch: "",
+          department: found.department?.name ?? "",
+          staffType: "",
+          paymentMethod: "",
+          endDay: "",
+          note: "",
+
+          phone: found.phone ?? "",
+        }));
+      } catch (err) {
+        if (!mounted) return;
+        const message = err instanceof Error ? err.message : "Không thể tải thông tin nhân viên";
+        setErrorMsg(message);
+        setEmployee(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
 
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -201,82 +185,9 @@ export default function EditEmployeePage() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employee) return;
-
-    const nextId = String(form.id).trim();
-    const fullname = String(form.fullname).trim();
-
-    if (!nextId || !fullname) {
-      alert("Vui lòng nhập ID và Fullname");
-      return;
-    }
-
-    const idChanged = nextId !== employee.id;
-    if (idChanged) {
-      const existed = employees.some((emp) => emp.id === nextId);
-      if (existed) {
-        alert("ID đã tồn tại. Vui lòng chọn ID khác.");
-        return;
-      }
-    }
-
-    const updated: EmployeeRecord = {
-      no: employee.no,
-      id: nextId,
-      fullname,
-      role: form.role || "Member",
-      phone: String(form.phone).trim() || "N/A",
-      email: String(form.email).trim(),
-      signDay: String(form.signDay).trim(),
-
-      password: String(form.password ?? ""),
-      permissionTemplate: String(form.permissionTemplate ?? "Member"),
-      emailCompany: String(form.emailCompany ?? ""),
-      avatar: form.avatar ?? null,
-
-      shortname: String(form.shortname ?? ""),
-      gender: String(form.gender ?? "Male"),
-      dateOfBirth: String(form.dateOfBirth ?? ""),
-      address: String(form.address ?? ""),
-      quitDay: String(form.quitDay ?? ""),
-
-      idCard: String(form.idCard ?? ""),
-      taxNumber: String(form.taxNumber ?? ""),
-      socialInsurance: String(form.socialInsurance ?? ""),
-      married: Boolean(form.married),
-      children: form.children,
-      childrenDescription: String(form.childrenDescription ?? ""),
-
-      uniSchool: String(form.uniSchool ?? ""),
-      uniDegree: String(form.uniDegree ?? ""),
-      uniModeOfStudy: String(form.uniModeOfStudy ?? ""),
-      uniGraduationYear: String(form.uniGraduationYear ?? ""),
-      uniDescription: String(form.uniDescription ?? ""),
-
-      contractName: String(form.contractName ?? ""),
-      contractNumber: String(form.contractNumber ?? ""),
-      contractType: String(form.contractType ?? ""),
-      salaryGross: String(form.salaryGross ?? ""),
-      salaryBasic: String(form.salaryBasic ?? ""),
-      salaryCapacity: String(form.salaryCapacity ?? ""),
-      branch: String(form.branch ?? ""),
-      department: String(form.department ?? ""),
-      staffType: String(form.staffType ?? ""),
-      paymentMethod: String(form.paymentMethod ?? ""),
-      endDay: String(form.endDay ?? ""),
-      note: String(form.note ?? ""),
-    };
-
-    const nextEmployees = employees.map((emp) =>
-      emp.no === employee.no ? updated : emp
-    );
-    setEmployees(nextEmployees);
-    writeEmployees(nextEmployees);
-
-    router.push(`/manager/employee/${encodeURIComponent(updated.id)}`);
   };
 
-  if (!employee && !isHydrated && employeeId) {
+  if (loading && employeeId) {
     return (
       <div className="bg-white min-h-screen p-6">
         <div className="max-w-[900px] mx-auto">
@@ -302,14 +213,25 @@ export default function EditEmployeePage() {
               ←
             </button>
             <div>
-              <div className="text-sm font-semibold text-gray-900">Edit Employee</div>
-              <div className="text-xs text-gray-500">Không tìm thấy nhân viên</div>
+              <div className="text-sm font-semibold text-gray-900">Employee Detail</div>
+              <div className="text-xs text-gray-500">
+                {departmentName ? `Phòng ban: ${departmentName}` : errorMsg ? "Có lỗi" : ""}
+              </div>
             </div>
           </div>
 
           <div className="rounded-xl border border-gray-200 p-6">
-            <div className="text-sm text-gray-800 font-medium mb-1">Không tìm thấy nhân viên</div>
-            <div className="text-sm text-gray-600">Vui lòng quay lại danh sách và chọn nhân viên khác.</div>
+            {errorMsg ? (
+              <>
+                <div className="text-sm text-red-700 font-medium mb-1">Có lỗi xảy ra</div>
+                <div className="text-sm text-red-700">{errorMsg}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm text-gray-800 font-medium mb-1">Không tìm thấy nhân viên</div>
+                <div className="text-sm text-gray-600">Vui lòng quay lại danh sách và chọn nhân viên khác.</div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -363,6 +285,7 @@ export default function EditEmployeePage() {
             onSubmit={onSubmit}
             className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px] mx-auto w-full"
           >
+            <fieldset disabled>
             {/* ROW 1: Account Info (5/12) & Main Info (7/12) */}
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
@@ -373,7 +296,7 @@ export default function EditEmployeePage() {
                   <div className="flex flex-col items-center gap-2 w-1/3">
                     <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center overflow-hidden border-2 border-green-500">
                       <img
-                        src="https://i.pravatar.cc/150?u=emp"
+                        src={(employee.avatarUrl as string | undefined | null) || "https://i.pravatar.cc/150?u=emp"}
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />
@@ -392,7 +315,6 @@ export default function EditEmployeePage() {
                         type="text"
                         name="id"
                         value={String(form.id)}
-                        onChange={onChange}
                         className={inputClass}
                         placeholder="account43"
                       />
@@ -403,48 +325,29 @@ export default function EditEmployeePage() {
                         type="password"
                         name="password"
                         value={String(form.password)}
-                        onChange={onChange}
                         className={inputClass}
                         placeholder="••••••••"
                       />
                     </FormRow>
 
                     <FormRow label="Roles">
-                      <select
+                      <input
+                        type="text"
                         name="role"
                         value={String(form.role)}
-                        onChange={onChange}
                         className={inputClass}
-                      >
-                        <option value="Member">Member</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Developer">Developer</option>
-                        <option value="HR">HR</option>
-                        <option value="Sale">Sale</option>
-                      </select>
-                    </FormRow>
-
-                    <FormRow label="Permission Template">
-                      <select
-                        name="permissionTemplate"
-                        value={String(form.permissionTemplate)}
-                        onChange={onChange}
-                        className={inputClass}
-                      >
-                        <option value="Member">Member</option>
-                      </select>
-                    </FormRow>
-
-                    <FormRow label="Email Company">
-                      <input
-                        type="email"
-                        name="emailCompany"
-                        value={String(form.emailCompany)}
-                        onChange={onChange}
-                        className={inputClass}
-                        placeholder="name@company.co"
+                        placeholder="account43"
                       />
                     </FormRow>
+
+                   <FormRow label="Email">
+                    <input
+                      type="email"
+                      name="email"
+                      value={String(form.email)}
+                      className={inputClass}
+                    />
+                  </FormRow>
                   </div>
                 </div>
               </div>
@@ -459,17 +362,6 @@ export default function EditEmployeePage() {
                       type="text"
                       name="fullname"
                       value={String(form.fullname)}
-                      onChange={onChange}
-                      className={inputClass}
-                    />
-                  </FormRow>
-
-                  <FormRow label="Shortname">
-                    <input
-                      type="text"
-                      name="shortname"
-                      value={String(form.shortname)}
-                      onChange={onChange}
                       className={inputClass}
                     />
                   </FormRow>
@@ -483,7 +375,6 @@ export default function EditEmployeePage() {
                         <select
                           name="gender"
                           value={String(form.gender)}
-                          onChange={onChange}
                           className={inputClass}
                         >
                           <option value="Male">Male</option>
@@ -500,7 +391,6 @@ export default function EditEmployeePage() {
                             type="date"
                             name="dateOfBirth"
                             value={String(form.dateOfBirth)}
-                            onChange={onChange}
                             className={dateClass}
                           />
                         </div>
@@ -508,22 +398,11 @@ export default function EditEmployeePage() {
                     </div>
                   </div>
 
-                  <FormRow label="Email Personal">
-                    <input
-                      type="email"
-                      name="email"
-                      value={String(form.email)}
-                      onChange={onChange}
-                      className={inputClass}
-                    />
-                  </FormRow>
-
                   <FormRow label="Address">
                     <input
                       type="text"
                       name="address"
                       value={String(form.address)}
-                      onChange={onChange}
                       className={inputClass}
                     />
                   </FormRow>
@@ -538,7 +417,6 @@ export default function EditEmployeePage() {
                           type="date"
                           name="signDay"
                           value={String(form.signDay)}
-                          onChange={onChange}
                           className={dateClass}
                         />
                       </div>
@@ -552,7 +430,6 @@ export default function EditEmployeePage() {
                             type="date"
                             name="quitDay"
                             value={String(form.quitDay)}
-                            onChange={onChange}
                             className={dateClass}
                           />
                         </div>
@@ -575,24 +452,6 @@ export default function EditEmployeePage() {
                       type="text"
                       name="idCard"
                       value={String(form.idCard)}
-                      onChange={onChange}
-                      className={inputClass}
-                    />
-                  </FormRow>
-                  <FormRow label="Tax Number">
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={String(form.taxNumber)}
-                      onChange={onChange}
-                      className={inputClass}
-                    />
-                  </FormRow>
-                  <FormRow label="ID Social Insurance">
-                    <input
-                      type="text"
-                      name="socialInsurance"
-                      value={String(form.socialInsurance)}
                       onChange={onChange}
                       className={inputClass}
                     />
@@ -628,7 +487,7 @@ export default function EditEmployeePage() {
                       name="childrenDescription"
                       value={String(form.childrenDescription)}
                       onChange={onChange}
-                      rows={3}
+                      rows={1}
                       className={inputClass}
                       placeholder="Are you sure ?"
                     />
@@ -701,6 +560,8 @@ export default function EditEmployeePage() {
                 </div>
               </div>
             </div>
+
+            </fieldset>
 
             <div className="h-8" />
 

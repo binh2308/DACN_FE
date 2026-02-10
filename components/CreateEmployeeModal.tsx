@@ -2,11 +2,11 @@
 
 import { X, Calendar, Upload } from "lucide-react";
 import { useState } from "react";
-import { type Employee } from "@/lib/data";
+import type { EmployeeUI } from "@/lib/employee-ui";
 
 interface CreateEmployeeModalProps {
   onClose: () => void;
-  onSave: (employee: Employee) => void;
+  onSave: (employee: EmployeeUI) => void;
 }
 
 export default function CreateEmployeeModal({
@@ -88,7 +88,7 @@ export default function CreateEmployeeModal({
       return;
     }
 
-    const newEmployee: Employee = {
+    const newEmployee: EmployeeUI = {
       no: Date.now(),
       id: formData.id,
       fullname: formData.fullname,

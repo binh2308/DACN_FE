@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
-import { type Employee, initialEmployees } from "@/lib/data";
+import { getEmployees } from "@/services/DACN/employee";
+import { employeeDtoToUI, extractEmployeesFromResponseData, type EmployeeUI } from "@/lib/employee-ui";
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -15,21 +16,27 @@ export default function EmployeeDetailPage() {
     return (idStr ?? "").trim() || null;
   }, [params]);
 
-  const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees);
+  const [employees, setEmployees] = React.useState<EmployeeUI[]>([]);
   const [isHydrated, setIsHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-      const raw = localStorage.getItem("employees_admin");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Employee[];
-      if (Array.isArray(parsed) && parsed.length > 0) setEmployees(parsed);
-    } catch {
-      // ignore
-    } finally {
-      setIsHydrated(true);
-    }
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await getEmployees({ url: "/employee/all" });
+        const list = extractEmployeesFromResponseData(res?.data);
+        if (!cancelled) setEmployees(list.map((dto, idx) => employeeDtoToUI(dto, idx)));
+      } catch {
+        if (!cancelled) setEmployees([]);
+      } finally {
+        if (!cancelled) setIsHydrated(true);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const employee = React.useMemo(() => {

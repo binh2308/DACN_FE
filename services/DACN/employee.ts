@@ -28,20 +28,43 @@ export type EmployeeDto = {
   avatarUrl?: string | null;
 };
 
+export type DegreeDto = {
+  id: string;
+  school: string;
+  degree: string;
+  fieldOfStudy?: string | null;
+  graduationYear?: number | null;
+  description?: string | null;
+};
+
+export type EmployeeDetailDto = EmployeeDto & {
+  degrees?: DegreeDto[];
+};
+
 export type GetEmployeesResponse = {
   statusCode: number;
   message?: string;
-  data: {
-    items: EmployeeDto[];
-    total: number;
-    page: number;
-    pageSize: number;
-  };
+  // Some endpoints return paged shape { items, total, page, pageSize }
+  // while others (e.g. /employee/department) return EmployeeDto[] directly.
+  data:
+    | {
+        items: EmployeeDto[];
+        total?: number;
+        page?: number;
+        pageSize?: number;
+      }
+    | EmployeeDto[];
 };
 
-// Lấy danh sách tất cả nhân viên
+export type GetEmployeeDetailResponse = {
+  statusCode: number;
+  message?: string;
+  data: EmployeeDetailDto;
+};
+
+// Lấy danh sách nhân viên cùng phòng ban với user hiện tại
 export async function getEmployees(options?: { [key: string]: any }) {
-  return request<GetEmployeesResponse>("/employee/all", {
+  return request<GetEmployeesResponse>("/employee/department", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -52,8 +75,19 @@ export async function getEmployees(options?: { [key: string]: any }) {
 
 // Lấy chi tiết 1 nhân viên
 export async function getEmployeeDetail(id: string, options?: { [key: string]: any }) {
-  return request<any>(`/employee/${id}`, {
+  return request<GetEmployeeDetailResponse>(`/employee/${id}`, {
     method: "GET",
+    ...(options || {}),
+  });
+}
+
+// Admin/HR use-case: lấy tất cả nhân viên (backend có thể trả paged hoặc array)
+export async function getAllEmployees(options?: { [key: string]: any }) {
+  return request<GetEmployeesResponse>("/employee/all", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
     ...(options || {}),
   });
 }

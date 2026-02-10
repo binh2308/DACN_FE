@@ -2,12 +2,12 @@
 
 import { X, Upload } from "lucide-react";
 import { useState } from "react";
-import { type Employee } from "@/lib/data";
+import type { EmployeeUI } from "@/lib/employee-ui";
 
 interface EditEmployeeModalProps {
-  employee: Employee;
+  employee: EmployeeUI;
   onClose: () => void;
-  onSave: (employee: Employee) => void;
+  onSave: (employee: EmployeeUI) => void;
 }
 
 export default function EditEmployeeModal({
@@ -72,7 +72,7 @@ export default function EditEmployeeModal({
       return;
     }
 
-    const updatedEmployee: Employee = {
+    const updatedEmployee: EmployeeUI = {
       no: employee.no,
       id: id,
       fullname: fullname,

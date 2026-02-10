@@ -3,27 +3,8 @@
 import * as React from "react";
 import { Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type Employee, initialEmployees } from "@/lib/data";
-
-// Logic quản lý dữ liệu từ page.tsx gốc
-function readEmployees(): Employee[] {
-  if (typeof window === "undefined") return initialEmployees;
-  try {
-    const raw = localStorage.getItem("employees_admin");
-    if (!raw) return initialEmployees;
-    const parsed = JSON.parse(raw) as Employee[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialEmployees;
-  } catch {
-    return initialEmployees;
-  }
-}
-
-function writeEmployees(employees: Employee[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem("employees_admin", JSON.stringify(employees));
-  } catch { /* ignore */ }
-}
+import { createEmployee } from "@/services/DACN/employee";
+import { uiFormToEmployeePayload } from "@/lib/employee-ui";
 
 export default function CreateEmployeePage() {
   const router = useRouter();
@@ -103,25 +84,18 @@ export default function CreateEmployeePage() {
       return;
     }
 
-    const employees = readEmployees();
-    if (employees.some((emp) => emp.id === form.id)) {
-      alert("ID đã tồn tại. Vui lòng chọn ID khác.");
-      return;
-    }
-
-    // Tạo nhân viên mới theo cấu trúc của page.tsx
-    const newEmployee: Employee = {
-      no: Date.now(),
-      id: form.id,
-      fullname: form.fullname,
-      role: form.role,
-      phone: form.phone || "N/A",
-      email: form.email,
-      signDay: form.signDay,
+    const run = async () => {
+      try {
+        const payload = uiFormToEmployeePayload(form);
+        await createEmployee(payload);
+        router.push("/admin/employee");
+      } catch (error) {
+        console.error("Failed to create employee", error);
+        alert("Tạo nhân viên thất bại. Vui lòng thử lại.");
+      }
     };
 
-    writeEmployees([newEmployee, ...employees]);
-    router.push("/admin/employee");
+    void run();
   };
 
   // Thành phần dòng của Form để đảm bảo căn lề chính xác như Modal

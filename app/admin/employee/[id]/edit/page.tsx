@@ -3,9 +3,10 @@
 import * as React from "react";
 import { Upload, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { type Employee, initialEmployees } from "@/lib/data";
+import { getEmployees, updateEmployee } from "@/services/DACN/employee";
+import { extractEmployeesFromResponseData, type EmployeeUI, uiFormToEmployeePayload, employeeDtoToUI } from "@/lib/employee-ui";
 
-type EmployeeRecord = Employee & {
+type EmployeeRecord = EmployeeUI & {
   password?: string;
   permissionTemplate?: string;
   emailCompany?: string;
@@ -50,27 +51,6 @@ type EmployeeRecord = Employee & {
   note?: string;
 };
 
-function readEmployees(): EmployeeRecord[] {
-  if (typeof window === "undefined") return initialEmployees;
-  try {
-    const raw = localStorage.getItem("employees_admin");
-    if (!raw) return initialEmployees;
-    const parsed = JSON.parse(raw) as EmployeeRecord[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialEmployees;
-  } catch {
-    return initialEmployees;
-  }
-}
-
-function writeEmployees(employees: EmployeeRecord[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem("employees_admin", JSON.stringify(employees));
-  } catch {
-    // ignore
-  }
-}
-
 export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams<{ id: string | string[] }>();
@@ -81,12 +61,29 @@ export default function EditEmployeePage() {
     return (idStr ?? "").trim() || null;
   }, [params]);
 
-  const [employees, setEmployees] = React.useState<EmployeeRecord[]>(initialEmployees);
+  const [employees, setEmployees] = React.useState<EmployeeRecord[]>([]);
   const [isHydrated, setIsHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    setEmployees(readEmployees());
-    setIsHydrated(true);
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await getEmployees({ url: "/employee/all" });
+        const list = extractEmployeesFromResponseData(res?.data);
+        if (!cancelled) {
+          setEmployees(list.map((dto, idx) => employeeDtoToUI(dto, idx)) as EmployeeRecord[]);
+        }
+      } catch {
+        if (!cancelled) setEmployees([]);
+      } finally {
+        if (!cancelled) setIsHydrated(true);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const employee = React.useMemo<EmployeeRecord | null>(() => {
@@ -230,75 +227,25 @@ export default function EditEmployeePage() {
       return;
     }
 
-    const idChanged = nextId !== employee.id;
-    if (idChanged) {
-      const existed = employees.some((emp) => emp.id === nextId);
-      if (existed) {
-        alert("ID đã tồn tại. Vui lòng chọn ID khác.");
-        return;
-      }
+    // Backend update typically does not allow changing primary key id.
+    if (nextId !== employee.id) {
+      alert("Không thể đổi Employee ID khi cập nhật (theo API hiện tại).");
+      return;
     }
 
-    const updated: EmployeeRecord = {
-      no: employee.no,
-      id: nextId,
-      fullname,
-      role: form.role || "Member",
-      phone: String(form.phone).trim() || "N/A",
-      email: String(form.email).trim(),
-      signDay: String(form.signDay).trim(),
+    const payload = uiFormToEmployeePayload({ ...form, fullname });
 
-      password: String(form.password ?? ""),
-      permissionTemplate: String(form.permissionTemplate ?? "Member"),
-      emailCompany: String(form.emailCompany ?? ""),
-      avatar: form.avatar ?? null,
-
-      shortname: String(form.shortname ?? ""),
-      gender: String(form.gender ?? "Male"),
-      dateOfBirth: String(form.dateOfBirth ?? ""),
-      address: String(form.address ?? ""),
-      quitDay: String(form.quitDay ?? ""),
-
-      idCard: String(form.idCard ?? ""),
-      taxNumber: String(form.taxNumber ?? ""),
-      socialInsurance: String(form.socialInsurance ?? ""),
-      married: Boolean(form.married),
-      children: form.children,
-      childrenDescription: String(form.childrenDescription ?? ""),
-
-      bankingAddress: String(form.bankingAddress ?? ""),
-      bankingAccountName: String(form.bankingAccountName ?? ""),
-      bankingAccountNumber: String(form.bankingAccountNumber ?? ""),
-      bankingStatus: String(form.bankingStatus ?? ""),
-      bankingNote: String(form.bankingNote ?? ""),
-
-      uniSchool: String(form.uniSchool ?? ""),
-      uniDegree: String(form.uniDegree ?? ""),
-      uniModeOfStudy: String(form.uniModeOfStudy ?? ""),
-      uniGraduationYear: String(form.uniGraduationYear ?? ""),
-      uniDescription: String(form.uniDescription ?? ""),
-
-      contractName: String(form.contractName ?? ""),
-      contractNumber: String(form.contractNumber ?? ""),
-      contractType: String(form.contractType ?? ""),
-      salaryGross: String(form.salaryGross ?? ""),
-      salaryBasic: String(form.salaryBasic ?? ""),
-      salaryCapacity: String(form.salaryCapacity ?? ""),
-      branch: String(form.branch ?? ""),
-      department: String(form.department ?? ""),
-      staffType: String(form.staffType ?? ""),
-      paymentMethod: String(form.paymentMethod ?? ""),
-      endDay: String(form.endDay ?? ""),
-      note: String(form.note ?? ""),
+    const run = async () => {
+      try {
+        await updateEmployee(employee.id, payload);
+        router.push(`/admin/employee/${encodeURIComponent(employee.id)}`);
+      } catch (error) {
+        console.error("Failed to update employee", error);
+        alert("Cập nhật nhân viên thất bại. Vui lòng thử lại.");
+      }
     };
 
-    const nextEmployees = employees.map((emp) =>
-      emp.no === employee.no ? updated : emp
-    );
-    setEmployees(nextEmployees);
-    writeEmployees(nextEmployees);
-
-    router.push(`/admin/employee/${encodeURIComponent(updated.id)}`);
+    void run();
   };
 
   if (!employee && !isHydrated && employeeId) {
