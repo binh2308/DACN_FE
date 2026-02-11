@@ -1,11 +1,15 @@
 "use client";
 
-import { Search, Plus, Filter, Trash2, Pencil } from "lucide-react";
+import { Search, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequest } from "ahooks";
 
-import { getEmployees, deleteEmployee, type GetEmployeesResponse } from "@/services/DACN/employee";
+import {
+  deleteEmployee,
+  getEmployees,
+  type GetEmployeesResponse,
+} from "@/services/DACN/employee";
 import { getUserProfile } from "@/services/DACN/auth";
 import { employeeDtoToUI, extractEmployeesFromResponseData, type EmployeeUI } from "@/lib/employee-ui";
 
@@ -129,6 +133,7 @@ export default function EmployeeManage() {
       emp.fullname.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+
   return (
     <div className="p-6 bg-white min-h-screen">
       {/* Header Search & Buttons */}
@@ -146,7 +151,10 @@ export default function EmployeeManage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/manager/employee/create")} className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors">
+          <button
+            onClick={() => router.push("/manager/employee/create")}
+            className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>Create Account</span>
           </button>

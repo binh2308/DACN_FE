@@ -41,6 +41,37 @@ export type EmployeeDetailDto = EmployeeDto & {
   degrees?: DegreeDto[];
 };
 
+export type CreateEmployeePayload = {
+  id?: string;
+  password?: string;
+  lastName: string;
+  firstName: string;
+  middleName?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  email: string;
+  roles: string;
+  phone?: string | null;
+  basicSalary?: number | null;
+  grossSalary?: number | null;
+  signDate?: string | null;
+  quitDate?: string | null;
+  idCard?: string | null;
+  address?: string | null;
+  marriedStatus?: boolean | null;
+  numberOfChildren?: number | null;
+  childrenDescription?: string | null;
+  department?: DepartmentDto | null;
+  degrees?: DegreeDto[];
+  avatarUrl?: string | null;
+};
+
+export type CreateEmployeeResponse = {
+  statusCode: number;
+  message?: string;
+  data: EmployeeDetailDto;
+};
+
 export type GetEmployeesResponse = {
   statusCode: number;
   message?: string;
@@ -93,8 +124,8 @@ export async function getAllEmployees(options?: { [key: string]: any }) {
 }
 
 // Tạo nhân viên mới
-export async function createEmployee(body: any, options?: { [key: string]: any }) {
-  return request<any>("/employee/create", {
+export async function createEmployee(body: CreateEmployeePayload, options?: { [key: string]: any }) {
+  return request<CreateEmployeeResponse>("/auth/signup", {
     method: "POST",
     data: body,
     ...(options || {}),
