@@ -1,5 +1,5 @@
 import axios, { type AxiosResponse, AxiosError } from "axios";
-
+import { cookies } from "next/headers";
 type ApiErrorResponse = {
   message?: string;
   code?: string;
@@ -34,10 +34,10 @@ export const request = axios.create({
 request.interceptors.response.use(
   (res: AxiosResponse) => res.data,
   (error: AxiosError<ApiErrorResponse>) => {
-    if (error.response?.status === 401) {
-      window.location.href = "/login";
-      return Promise.reject(new Error("Unauthorized"));
-    }
+    // if (error.response?.status === 401) {
+    //   window.location.href = "/login";
+    //   return Promise.reject(new Error("Unauthorized"));
+    // }
 
     const data = error.response?.data;
 
