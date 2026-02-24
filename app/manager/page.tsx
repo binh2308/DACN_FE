@@ -1,14 +1,102 @@
+"use client";
+
 import {
   EllipsisVertical,
   Donut,
 } from "lucide-react";
 import { DonutChart } from "@mantine/charts";
 import { StatCard } from "@/components/StatCard";
-import {stats, employees} from "../../lib/data"
 import { EmployeeRow } from "@/components/EmployeeRow";
+import { useMemo } from "react";
+import { useRequest } from "ahooks";
+
+import { getEmployees, type GetEmployeesResponse, type EmployeeDto } from "@/services/DACN/employee";
+import { extractEmployeesFromResponseData } from "@/lib/employee-ui";
+
+function fullNameFromApi(e: EmployeeDto) {
+  return [e.lastName, e.middleName ?? "", e.firstName]
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatMoney(v?: number | null): string {
+  if (v == null) return "0";
+  try {
+    return v.toLocaleString("vi-VN");
+  } catch {
+    return String(v);
+  }
+}
 
 
 export default function ManagerIndex() {
+  const { data, loading } = useRequest(async () => {
+    const resRaw = await getEmployees();
+    const res = resRaw as unknown as GetEmployeesResponse;
+    return extractEmployeesFromResponseData(res?.data);
+  });
+
+  const employees = useMemo(() => (data ?? []) as EmployeeDto[], [data]);
+
+  const genderCounts = useMemo(() => {
+    let male = 0;
+    let female = 0;
+    for (const e of employees) {
+      const g = (e.gender || "").toLowerCase();
+      if (g === "male") male += 1;
+      else if (g === "female") female += 1;
+    }
+    return { male, female, total: employees.length };
+  }, [employees]);
+
+  const stats = useMemo(
+    () => [
+      {
+        title: "Tổng nhân viên",
+        value: genderCounts.total,
+        change: "0%",
+        isPositive: true,
+      },
+      {
+        title: "Nhân viên mới",
+        value: 0,
+        change: "0%",
+        isPositive: true,
+      },
+      {
+        title: "Nhân viên đã nghỉ",
+        value: 0,
+        change: "0%",
+        isPositive: false,
+      },
+      {
+        title: "Ứng viên trong tháng",
+        value: 0,
+        change: "0%",
+        isPositive: true,
+      },
+    ],
+    [genderCounts.total]
+  );
+
+  const employeeRows = useMemo(() => {
+    return employees.map((e) => {
+      const salaryNumber = e.grossSalary ?? e.basicSalary ?? 0;
+      const status: "Đã đóng" | "Chưa đóng" = salaryNumber > 0 ? "Đã đóng" : "Chưa đóng";
+      return {
+        name: fullNameFromApi(e) || e.email,
+        email: e.email,
+        avatar: e.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=emp",
+        daysOff: 0,
+        salary: formatMoney(salaryNumber),
+        status,
+      };
+    });
+  }, [employees]);
+
   return (
     <div className="p-4 space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -39,13 +127,13 @@ export default function ManagerIndex() {
                 size={140}
                 thickness={22}
                 data={[
-                  { name: "Nam", value: 350, color: "green" },
-                  { name: "Nữ", value: 700, color: "violet" },
+                  { name: "Nam", value: genderCounts.male, color: "green" },
+                  { name: "Nữ", value: genderCounts.female, color: "violet" },
                 ]}
               />
 
               <div className="absolute inset-0 flex flex-col items-center justify-center leading-none text-center">
-                <div className="font-bold text-xl">500</div>
+                <div className="font-bold text-xl">{genderCounts.total}</div>
                 <div className="text-sm">Tổng số</div>
               </div>
             </div>
@@ -60,10 +148,12 @@ export default function ManagerIndex() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-[#21252B] leading-[150%] tracking-[0.07px]">
-                    350
+                    {genderCounts.female}
                   </span>
                   <span className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-                    70%
+                    {genderCounts.total > 0
+                      ? `${Math.round((genderCounts.female / genderCounts.total) * 100)}%`
+                      : "0%"}
                   </span>
                 </div>
               </div>
@@ -76,10 +166,12 @@ export default function ManagerIndex() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-[#21252B] leading-[150%] tracking-[0.07px]">
-                    150
+                    {genderCounts.male}
                   </span>
                   <span className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-                    30%
+                    {genderCounts.total > 0
+                      ? `${Math.round((genderCounts.male / genderCounts.total) * 100)}%`
+                      : "0%"}
                   </span>
                 </div>
               </div>
@@ -153,9 +245,15 @@ export default function ManagerIndex() {
           </div>
 
           <div className="space-y-0 max-h-[400px] overflow-y-auto">
-            {employees.map((employee, index) => (
-              <EmployeeRow key={index} {...employee} />
-            ))}
+            {loading ? (
+              <div className="py-6 text-center text-xs text-[#B8BDC5]">Đang tải nhân viên…</div>
+            ) : employeeRows.length === 0 ? (
+              <div className="py-6 text-center text-xs text-[#B8BDC5]">Chưa có dữ liệu nhân viên</div>
+            ) : (
+              employeeRows.map((employee, index) => (
+                <EmployeeRow key={index} {...employee} />
+              ))
+            )}
           </div>
         </div>
       </div>

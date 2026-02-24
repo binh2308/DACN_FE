@@ -8,7 +8,6 @@ import { MapPin, Monitor, PenLine, Users, Wind } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { getBookingsByRoomId, type BookingByRoom } from "@/services/DACN/Booking";
 import { getRoomById, type Room } from "@/services/DACN/Rooms";
 
@@ -31,6 +30,22 @@ const formatTimeRange = (startIso: string, endIso: string) => {
 	});
 	return { date, time: `${startTime} - ${endTime}` };
 };
+
+const formatTimeOnly = (iso: string) => {
+	const d = new Date(iso);
+	return d.toLocaleTimeString("vi-VN", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+};
+
+function toLocalYmdKey(iso: string) {
+	const d = new Date(iso);
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${y}-${m}-${day}`;
+}
 
 function normalizeRoomResponse(data: unknown): Room | null {
 	if (!data || typeof data !== "object") return null;
@@ -100,6 +115,59 @@ export default function RoomDetailPage() {
 		},
 		[bookingsRaw],
 	);
+
+	const bookingsByDay = React.useMemo(() => {
+		const groups = new Map<
+			string,
+			{
+				key: string;
+				label: string;
+				sortKey: number;
+				items: BookingByRoom[];
+			}
+		>();
+
+		for (const b of bookings) {
+			const key = toLocalYmdKey(b.startTime);
+			let g = groups.get(key);
+			if (!g) {
+				const d = new Date(b.startTime);
+				const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+				g = {
+					key,
+					label: d.toLocaleDateString("vi-VN", {
+						weekday: "short",
+						year: "numeric",
+						month: "short",
+						day: "2-digit",
+					}),
+					sortKey: dayStart.getTime(),
+					items: [],
+				};
+				groups.set(key, g);
+			}
+			g.items.push(b);
+		}
+
+		const dayGroups = [...groups.values()].sort((a, b) => a.sortKey - b.sortKey);
+		for (const g of dayGroups) {
+			g.items.sort((a, b) => {
+				const aStart = Date.parse(a.startTime);
+				const bStart = Date.parse(b.startTime);
+				if (Number.isFinite(aStart) && Number.isFinite(bStart) && aStart !== bStart) {
+					return aStart - bStart;
+				}
+				const aEnd = Date.parse(a.endTime);
+				const bEnd = Date.parse(b.endTime);
+				if (Number.isFinite(aEnd) && Number.isFinite(bEnd) && aEnd !== bEnd) {
+					return aEnd - bEnd;
+				}
+				return String(a.id).localeCompare(String(b.id));
+			});
+		}
+
+		return dayGroups;
+	}, [bookings]);
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-6 py-6">
@@ -231,24 +299,49 @@ export default function RoomDetailPage() {
 						No booked slots yet.
 					</div>
 				) : (
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-						{bookings.map((b) => {
-							const { date, time } = formatTimeRange(b.startTime, b.endTime);
-							return (
-								<Card key={b.id} className="shadow-sm">
-									<CardContent className="p-4">
-										<div className="text-sm font-semibold text-foreground truncate">
-											{b.roomName || room?.name || "Room"}
+					<div className="rounded-xl bg-white shadow-sm ring-1 ring-border">
+						<div className="p-6">
+							<div className="space-y-6">
+								{bookingsByDay.map((g) => (
+									<div key={g.key} className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_1fr]">
+										<div className="text-sm font-semibold text-foreground">
+											{g.label}
+											<div className="mt-1 text-xs font-normal text-muted-foreground">
+												{g.items.length} slot{g.items.length > 1 ? "s" : ""}
 										</div>
-										<div className="mt-1 text-xs text-muted-foreground">
-											Organizer: {b.name}
 										</div>
-										<div className="mt-2 text-xs text-muted-foreground">{date}</div>
-										<div className="text-xs font-semibold text-foreground">{time}</div>
-									</CardContent>
-								</Card>
-							);
-						})}
+
+										<div className="space-y-0">
+											{g.items.map((b, idx) => {
+												const time = `${formatTimeOnly(b.startTime)} - ${formatTimeOnly(b.endTime)}`;
+												const isLast = idx === g.items.length - 1;
+												return (
+													<div key={b.id} className="relative pl-8 pb-4">
+														<span className="absolute left-[11px] top-[6px] h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-white" />
+														{!isLast ? (
+															<span className="absolute left-[16px] top-[18px] bottom-0 w-px bg-border" />
+														) : null}
+
+														<div className="rounded-lg border border-border bg-muted/20 p-4">
+															<div className="flex flex-wrap items-center justify-between gap-2">
+																<div className="text-sm font-semibold text-foreground">{time}</div>
+																<div className="text-xs text-muted-foreground">
+																	Organizer: <span className="font-medium text-foreground">{b.name}</span>
+																</div>
+															</div>
+
+															<div className="mt-1 text-xs text-muted-foreground">
+																{b.roomName || room?.name || "Room"}
+															</div>
+														</div>
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
 					</div>
 				)}
 			</div>

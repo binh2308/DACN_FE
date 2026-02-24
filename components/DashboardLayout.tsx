@@ -2,19 +2,22 @@ import { ReactNode } from "react";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardHeader from "./DashboardHeader";
 import ManagerDashboardSidebar from "./ManagerDashboardSidebar";
+import AdminDashboardSidebar from "./AdminDashboardSidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
   isManager?: boolean;
+  isAdmin?: boolean;
 }
 
 export default function DashboardLayout({
 	children,
 	isManager = false,
+	isAdmin = false,
 }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen bg-neutral-background overflow-hidden">
-      {(isManager && <ManagerDashboardSidebar />) || (!isManager && <DashboardSidebar />)}
+      {(isAdmin && <AdminDashboardSidebar />) || (isManager && <ManagerDashboardSidebar />) || (!isManager && !isAdmin && <DashboardSidebar />)}
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
