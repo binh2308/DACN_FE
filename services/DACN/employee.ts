@@ -93,6 +93,16 @@ export type GetEmployeeDetailResponse = {
   data: EmployeeDetailDto;
 };
 
+export type UpdateEmployeeByAdminPayload = Partial<
+  Omit<CreateEmployeePayload, "id" | "password">
+>;
+
+export type UpdateEmployeeByAdminResponse = {
+  statusCode: number;
+  message?: string;
+  data: EmployeeDetailDto;
+};
+
 // Lấy danh sách nhân viên cùng phòng ban với user hiện tại
 export async function getEmployees(options?: { [key: string]: any }) {
   return request<GetEmployeesResponse>("/employee/department", {
@@ -139,6 +149,21 @@ export async function updateEmployee(id: string, body: any, options?: { [key: st
     data: body,
     ...(options || {}),
   });
+}
+
+// Manager/Admin use-case: cập nhật nhân viên theo quyền admin
+export async function updateEmployeeByAdmin(
+  id: string,
+  body: UpdateEmployeeByAdminPayload,
+  options?: { [key: string]: any }
+) {
+  return request<UpdateEmployeeByAdminResponse>(`/employee/by-admin/${id}`,
+    {
+      method: "PATCH",
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 // Xóa nhân viên

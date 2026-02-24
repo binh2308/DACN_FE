@@ -5,8 +5,10 @@ import { Upload, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getEmployeeDetail,
-  type EmployeeDto,
+  type DegreeDto,
+  type EmployeeDetailDto,
   type GetEmployeeDetailResponse,
+  updateEmployeeByAdmin,
 } from "@/services/DACN/employee";
 import { getUserProfile } from "@/services/DACN/auth";
 
@@ -20,7 +22,7 @@ type ApiProfileResponse = {
   } & Record<string, unknown>;
 };
 
-function fullNameFromApi(e: EmployeeDto) {
+function fullNameFromApi(e: Pick<EmployeeDetailDto, "lastName" | "middleName" | "firstName">) {
   return [e.lastName, e.middleName ?? "", e.firstName]
     .map((x) => String(x || "").trim())
     .filter(Boolean)
@@ -32,6 +34,44 @@ function fullNameFromApi(e: EmployeeDto) {
 function ymdFromIso(iso?: string | null) {
   if (!iso) return "";
   return iso.length >= 10 ? iso.slice(0, 10) : iso;
+}
+
+function toIsoUtcFromYmd(ymd: string): string | null {
+  const d = String(ymd || "").trim();
+  if (!d) return null;
+  if (d.includes("T")) return d;
+  return `${d}T00:00:00.000Z`;
+}
+
+function toOptionalNumber(value: unknown): number | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+const inputBase =
+  "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
+const inputClass = `${inputBase} w-full`;
+const dateClass = `${inputBase} w-full pr-8`;
+
+function FormRow({
+  label,
+  children,
+  required = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-2">
+      <label className="w-32 shrink-0 text-xs font-medium text-gray-600">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
 }
 
 export default function EmployeeDetailPage() {
@@ -46,8 +86,9 @@ export default function EmployeeDetailPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [employee, setEmployee] = React.useState<EmployeeDto | null>(null);
+  const [employee, setEmployee] = React.useState<EmployeeDetailDto | null>(null);
   const [departmentName, setDepartmentName] = React.useState<string>("");
+  const [isSaving, setIsSaving] = React.useState(false);
 
   const [form, setForm] = React.useState({
     // Account Info
@@ -56,21 +97,39 @@ export default function EmployeeDetailPage() {
     role: "",
     permissionTemplate: "Member",
     avatar: null as unknown,
+    avatarUrl: "",
+
+    // Identity (API)
+    lastName: "",
+    firstName: "",
+    middleName: "",
 
     // Main Info
     fullname: "",
     gender: "Male",
     dateOfBirth: "",
     email: "",
+    phone: "",
     address: "",
     signDay: "",
     quitDay: "",
+
+    // Salary (API)
+    basicSalary: "",
+    grossSalary: "",
+
+    // Department (API)
+    departmentId: "",
+    departmentEmployeeName: "",
 
     // Other Info
     idCard: "",
     married: false,
     children: 0,
     childrenDescription: "",
+
+    // Degrees (API)
+    degrees: [] as DegreeDto[],
 
     // University
     uniSchool: "",
@@ -92,8 +151,6 @@ export default function EmployeeDetailPage() {
     paymentMethod: "",
     endDay: "",
     note: "",
-
-    phone: "",
   });
 
   React.useEffect(() => {
@@ -115,7 +172,7 @@ export default function EmployeeDetailPage() {
         setDepartmentName(myDept?.name ?? "");
 
         const employeeRes = (await getEmployeeDetail(employeeId)) as unknown as GetEmployeeDetailResponse;
-        const found = (employeeRes?.data as unknown as EmployeeDto) ?? null;
+        const found = employeeRes?.data ?? null;
 
         if (!mounted) return;
 
@@ -130,19 +187,33 @@ export default function EmployeeDetailPage() {
           id: found.id,
           role: found.roles || "",
           avatar: found.avatarUrl ?? null,
+          avatarUrl: found.avatarUrl ?? "",
+
+          lastName: found.lastName ?? "",
+          firstName: found.firstName ?? "",
+          middleName: found.middleName ?? "",
 
           fullname: fullNameFromApi(found) || found.email,
           gender: found.gender ?? prev.gender,
           dateOfBirth: ymdFromIso(found.dateOfBirth),
           email: found.email ?? "",
+          phone: found.phone ?? "",
           address: found.address ?? "",
           signDay: ymdFromIso(found.signDate),
           quitDay: ymdFromIso(found.quitDate),
+
+          basicSalary: found.basicSalary != null ? String(found.basicSalary) : "",
+          grossSalary: found.grossSalary != null ? String(found.grossSalary) : "",
+
+          departmentId: found.department?.id ?? "",
+          departmentEmployeeName: found.department?.name ?? "",
 
           idCard: found.idCard ?? "",
           married: Boolean(found.marriedStatus),
           children: Number(found.numberOfChildren ?? 0) || 0,
           childrenDescription: found.childrenDescription ?? "",
+
+          degrees: Array.isArray(found.degrees) ? found.degrees : [],
 
           contractName: "",
           contractNumber: "",
@@ -156,8 +227,6 @@ export default function EmployeeDetailPage() {
           paymentMethod: "",
           endDay: "",
           note: "",
-
-          phone: found.phone ?? "",
         }));
       } catch (err) {
         if (!mounted) return;
@@ -178,13 +247,108 @@ export default function EmployeeDetailPage() {
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type } = e.target;
-    const val = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+    const el = e.currentTarget;
+    const name = el.name;
+    const val = el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : el.value;
     setForm((prev) => ({ ...prev, [name]: val }));
   };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!employeeId || isSaving) return;
+
+    const run = async () => {
+      setIsSaving(true);
+      setErrorMsg(null);
+      try {
+        const deptId = String(form.departmentId || "").trim();
+        const deptName = String(form.departmentEmployeeName || "").trim();
+
+        const hasAnyDepartment = !!(deptId || deptName);
+        const hasFullDepartment = !!(deptId && deptName);
+        if (hasAnyDepartment && !hasFullDepartment) {
+          alert("Vui lòng nhập đầy đủ Department ID và Department Name (hoặc để trống cả hai). ");
+          return;
+        }
+
+        const department =
+          deptId || deptName
+            ? {
+                id: deptId,
+                name: deptName,
+              }
+            : null;
+
+        const payload = {
+          lastName: String(form.lastName || "").trim(),
+          firstName: String(form.firstName || "").trim(),
+          middleName: String(form.middleName || "").trim() || null,
+          gender: String(form.gender || "").trim() || null,
+          dateOfBirth: toIsoUtcFromYmd(String(form.dateOfBirth || "")),
+          email: String(form.email || "").trim(),
+          roles: String(form.role || "").trim(),
+          phone: String(form.phone || "").trim() || null,
+          basicSalary: toOptionalNumber(form.basicSalary),
+          grossSalary: toOptionalNumber(form.grossSalary),
+          signDate: toIsoUtcFromYmd(String(form.signDay || "")),
+          quitDate: toIsoUtcFromYmd(String(form.quitDay || "")),
+          idCard: String(form.idCard || "").trim() || null,
+          address: String(form.address || "").trim() || null,
+          marriedStatus: Boolean(form.married),
+          numberOfChildren: Number(form.children ?? 0) || 0,
+          childrenDescription: String(form.childrenDescription || "").trim() || null,
+          department,
+          degrees: Array.isArray(form.degrees) && form.degrees.length ? form.degrees : undefined,
+          avatarUrl: String(form.avatarUrl || "").trim() || null,
+        };
+
+        await updateEmployeeByAdmin(employeeId, payload);
+
+        // Re-fetch to sync UI with backend
+        const employeeRes = (await getEmployeeDetail(employeeId)) as unknown as GetEmployeeDetailResponse;
+        const found = employeeRes?.data ?? null;
+        if (found) {
+          setEmployee(found);
+          setForm((prev) => ({
+            ...prev,
+            id: found.id,
+            role: found.roles || "",
+            avatar: found.avatarUrl ?? null,
+            avatarUrl: found.avatarUrl ?? "",
+            lastName: found.lastName ?? "",
+            firstName: found.firstName ?? "",
+            middleName: found.middleName ?? "",
+            fullname: fullNameFromApi(found) || found.email,
+            gender: found.gender ?? prev.gender,
+            dateOfBirth: ymdFromIso(found.dateOfBirth),
+            email: found.email ?? "",
+            phone: found.phone ?? "",
+            address: found.address ?? "",
+            signDay: ymdFromIso(found.signDate),
+            quitDay: ymdFromIso(found.quitDate),
+            basicSalary: found.basicSalary != null ? String(found.basicSalary) : "",
+            grossSalary: found.grossSalary != null ? String(found.grossSalary) : "",
+            departmentId: found.department?.id ?? "",
+            departmentEmployeeName: found.department?.name ?? "",
+            idCard: found.idCard ?? "",
+            married: Boolean(found.marriedStatus),
+            children: Number(found.numberOfChildren ?? 0) || 0,
+            childrenDescription: found.childrenDescription ?? "",
+            degrees: Array.isArray(found.degrees) ? found.degrees : [],
+          }));
+        }
+
+        alert("Cập nhật nhân viên thành công!");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Cập nhật thất bại";
+        setErrorMsg(message);
+        alert(message);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    void run();
   };
 
   if (loading && employeeId) {
@@ -257,35 +421,11 @@ export default function EmployeeDetailPage() {
         </button>
       </div>
 
-      {(() => {
-        const inputBase =
-          "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
-        const inputClass = `${inputBase} w-full`;
-        const dateClass = `${inputBase} w-full pr-8`;
-
-        const FormRow = ({
-          label,
-          children,
-          required = false,
-        }: {
-          label: string;
-          children: React.ReactNode;
-          required?: boolean;
-        }) => (
-          <div className="flex items-center gap-3 mb-2">
-            <label className="w-32 shrink-0 text-xs font-medium text-gray-600">
-              {label} {required && <span className="text-red-500">*</span>}
-            </label>
-            <div className="flex-1 min-w-0">{children}</div>
-          </div>
-        );
-
-        return (
-          <form
-            onSubmit={onSubmit}
-            className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px] mx-auto w-full"
-          >
-            <fieldset disabled>
+      <form
+        onSubmit={onSubmit}
+        className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px] mx-auto w-full"
+      >
+            <fieldset disabled={isSaving}>
             {/* ROW 1: Account Info (5/12) & Main Info (7/12) */}
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
@@ -335,6 +475,7 @@ export default function EmployeeDetailPage() {
                         type="text"
                         name="role"
                         value={String(form.role)}
+                        onChange={onChange}
                         className={inputClass}
                         placeholder="account43"
                       />
@@ -345,6 +486,17 @@ export default function EmployeeDetailPage() {
                       type="email"
                       name="email"
                       value={String(form.email)}
+                      onChange={onChange}
+                      className={inputClass}
+                    />
+                  </FormRow>
+
+                  <FormRow label="Avatar URL">
+                    <input
+                      type="text"
+                      name="avatarUrl"
+                      value={String(form.avatarUrl)}
+                      onChange={onChange}
                       className={inputClass}
                     />
                   </FormRow>
@@ -357,13 +509,16 @@ export default function EmployeeDetailPage() {
                   Main Info
                 </h3>
                 <div className="space-y-1">
-                  <FormRow label="Fullname" required>
-                    <input
-                      type="text"
-                      name="fullname"
-                      value={String(form.fullname)}
-                      className={inputClass}
-                    />
+                  <FormRow label="Last Name" required>
+                    <input type="text" name="lastName" value={String(form.lastName)} onChange={onChange} className={inputClass} />
+                  </FormRow>
+
+                  <FormRow label="Middle Name">
+                    <input type="text" name="middleName" value={String(form.middleName)} onChange={onChange} className={inputClass} />
+                  </FormRow>
+
+                  <FormRow label="First Name" required>
+                    <input type="text" name="firstName" value={String(form.firstName)} onChange={onChange} className={inputClass} />
                   </FormRow>
 
                   <div className="flex items-center gap-3 mb-2">
@@ -375,6 +530,7 @@ export default function EmployeeDetailPage() {
                         <select
                           name="gender"
                           value={String(form.gender)}
+                          onChange={onChange}
                           className={inputClass}
                         >
                           <option value="Male">Male</option>
@@ -391,6 +547,7 @@ export default function EmployeeDetailPage() {
                             type="date"
                             name="dateOfBirth"
                             value={String(form.dateOfBirth)}
+                            onChange={onChange}
                             className={dateClass}
                           />
                         </div>
@@ -403,8 +560,13 @@ export default function EmployeeDetailPage() {
                       type="text"
                       name="address"
                       value={String(form.address)}
+                      onChange={onChange}
                       className={inputClass}
                     />
+                  </FormRow>
+
+                  <FormRow label="Phone">
+                    <input type="text" name="phone" value={String(form.phone)} onChange={onChange} className={inputClass} />
                   </FormRow>
 
                   <div className="flex items-center gap-3 mb-2">
@@ -417,6 +579,7 @@ export default function EmployeeDetailPage() {
                           type="date"
                           name="signDay"
                           value={String(form.signDay)}
+                          onChange={onChange}
                           className={dateClass}
                         />
                       </div>
@@ -430,8 +593,27 @@ export default function EmployeeDetailPage() {
                             type="date"
                             name="quitDay"
                             value={String(form.quitDay)}
+                            onChange={onChange}
                             className={dateClass}
                           />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-2">
+                    <label className="w-32 shrink-0 text-xs font-medium text-gray-600">Salary</label>
+                    <div className="flex-1 min-w-0 flex items-center gap-4">
+                      <div className="flex items-center gap-2 min-w-[260px]">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase whitespace-nowrap">Basic</span>
+                        <div className="w-[190px]">
+                            <input type="text" name="basicSalary" value={String(form.basicSalary)} onChange={onChange} className={inputClass} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 min-w-[260px]">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase whitespace-nowrap">Gross</span>
+                        <div className="w-[190px]">
+                          <input type="text" name="grossSalary" value={String(form.grossSalary)} onChange={onChange} className={inputClass} />
                         </div>
                       </div>
                     </div>
@@ -494,6 +676,14 @@ export default function EmployeeDetailPage() {
                       placeholder="Are you sure ?"
                     />
                   </FormRow>
+
+                  <FormRow label="Department ID">
+                    <input type="text" name="departmentId" value={String(form.departmentId)} onChange={onChange} className={inputClass} />
+                  </FormRow>
+
+                  <FormRow label="Department Name">
+                    <input type="text" name="departmentEmployeeName" value={String(form.departmentEmployeeName)} onChange={onChange} className={inputClass} />
+                  </FormRow>
                 </div>
               </div>
 
@@ -506,56 +696,41 @@ export default function EmployeeDetailPage() {
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="text-left text-gray-500 uppercase border-b border-gray-100">
-                          <th className="pb-2 font-bold w-1/5">Schools</th>
+                          <th className="pb-2 font-bold w-1/5">School</th>
                           <th className="pb-2 font-bold w-1/6">Degree</th>
-                          <th className="pb-2 font-bold w-1/5">Mode of study</th>
-                          <th className="pb-2 font-bold w-1/5">Graduation Year</th>
+                          <th className="pb-2 font-bold w-1/5">Field</th>
+                          <th className="pb-2 font-bold w-1/6">Grad Year</th>
                           <th className="pb-2 font-bold">Description</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr>
-                          <td className="py-2 pr-1">
-                            <input
-                              name="uniSchool"
-                              value={String(form.uniSchool)}
-                              onChange={onChange}
-                              className={inputClass}
-                            />
-                          </td>
-                          <td className="py-2 pr-1">
-                            <input
-                              name="uniDegree"
-                              value={String(form.uniDegree)}
-                              onChange={onChange}
-                              className={inputClass}
-                            />
-                          </td>
-                          <td className="py-2 pr-1">
-                            <input
-                              name="uniModeOfStudy"
-                              value={String(form.uniModeOfStudy)}
-                              onChange={onChange}
-                              className={inputClass}
-                            />
-                          </td>
-                          <td className="py-2 pr-1">
-                            <input
-                              name="uniGraduationYear"
-                              value={String(form.uniGraduationYear)}
-                              onChange={onChange}
-                              className={inputClass}
-                            />
-                          </td>
-                          <td className="py-2">
-                            <input
-                              name="uniDescription"
-                              value={String(form.uniDescription)}
-                              onChange={onChange}
-                              className={inputClass}
-                            />
-                          </td>
-                        </tr>
+                        {(form.degrees?.length ? form.degrees : []).map((d) => (
+                          <tr key={d.id}>
+                            <td className="py-2 pr-1">
+                              <input value={d.school ?? ""} readOnly className={inputClass} />
+                            </td>
+                            <td className="py-2 pr-1">
+                              <input value={d.degree ?? ""} readOnly className={inputClass} />
+                            </td>
+                            <td className="py-2 pr-1">
+                              <input value={d.fieldOfStudy ?? ""} readOnly className={inputClass} />
+                            </td>
+                            <td className="py-2 pr-1">
+                              <input value={d.graduationYear != null ? String(d.graduationYear) : ""} readOnly className={inputClass} />
+                            </td>
+                            <td className="py-2">
+                              <input value={d.description ?? ""} readOnly className={inputClass} />
+                            </td>
+                          </tr>
+                        ))}
+
+                        {!form.degrees?.length && (
+                          <tr>
+                            <td className="py-4 text-gray-400 italic" colSpan={5}>
+                              No degrees
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -565,17 +740,22 @@ export default function EmployeeDetailPage() {
 
             </fieldset>
 
+            {errorMsg && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorMsg}
+              </div>
+            )}
+
             <div className="flex items-center justify-center pb-8">
               <button
                 type="submit"
-                className="px-12 py-2 text-sm font-bold text-white bg-emerald-500 rounded shadow-md hover:bg-emerald-600 transition-all uppercase tracking-wider"
+                disabled={isSaving}
+                className="px-12 py-2 text-sm font-bold text-white bg-emerald-500 rounded shadow-md hover:bg-emerald-600 transition-all uppercase tracking-wider disabled:opacity-60"
               >
-                SAVE
+                {isSaving ? "SAVING..." : "SAVE"}
               </button>
             </div>
-          </form>
-        );
-      })()}
+      </form>
     </div>
   );
 }
