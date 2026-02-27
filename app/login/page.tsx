@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRequest } from "ahooks";
-import { authLogin } from "@/services/DACN/auth";
+//import { useRequest } from "ahooks";
+
 import { Checkbox, Button, Text } from "@mantine/core";
 import { useRouter } from "next/navigation";
 import { LoginInput } from "@/components/LoginInput";
@@ -13,27 +13,39 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [warning, setWarning] = useState<null | string>(null);
+  const [loading, setLoading] = useState(false);
   const route = useRouter();
-  const { loading, runAsync } = useRequest(authLogin, {
-    manual: true,
-  });
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     if (!email.trim() || !password.trim()) {
       setWarning("Invalid email or password!");
       return;
     }
-    runAsync({ email, password })
-      .then((data) => {
-        localStorage.setItem("token", data.data.accessToken);
-        e.preventDefault();
-        route.push("/");
-      })
-      .catch((data) => setWarning(data.message[0]));
-    // setTimeout(() => {
 
-    // }, 1500);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setWarning("Invalid email or password!");
+        setLoading(false);
+        return;
+      }
+
+      const json = await res.json();
+      localStorage.setItem("token", json.accessToken);
+      setLoading(false);
+      route.push(json.redirectTo ?? "/");
+    } catch (err) {
+      setWarning("Invalid email or password!");
+      setLoading(false);
+    }
   };
-
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       <div className="hidden lg:flex lg:w-2/5 relative bg-[rgba(12,175,96,0.1)] flex-shrink-0">

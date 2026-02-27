@@ -1,47 +1,41 @@
-"use client";
-
-import type React from "react";
-import { useRouter } from "next/navigation";
-import { useRequest } from "ahooks";
-import { getUserProfile } from "@/services/DACN/auth";
-import { useEffect, useState } from "react";
-import { CustomLoader } from "@/components/CustomLoader";
+//import type React from "react";
+import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { decodeJwt } from "jose";
+//import { CustomLoader } from "@/components/CustomLoader";
 
 export default function RootLayout() {
-  const router = useRouter();
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  const { loading, runAsync } = useRequest(getUserProfile, {
-    manual: true,
-  });
-
-  useEffect(() => {
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    runAsync()
-      .then((data) => {
-        const role = data.data.roles;
-        if (role === "MANAGER") {
-          router.push("/manager");
-          return;
-        }
-
-        if (role === "ADMIN") {
-          router.push("/admin");
-          return;
-        }
-
-        router.push("/user");
-      })
-      .catch((error) => console.log(error));
-  }, [token, runAsync, router]);
-
-  if (!token) return null;
-  if (loading) return <CustomLoader />;
-
-  return <CustomLoader />;
+  const token = cookies().get("access_token")?.value;
+  if (!token) {
+    return redirect("/login");
+  }
+  const payload = decodeJwt(token) as any;
+  const roles = payload?.roles;
+  // const router = useRouter();
+  // const token =
+  //   typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  //   if (!token) {
+  //     router.push("/login");
+  //     return;
+  //   }
+  //   const payload = token?.split(".")[1];
+  //   const parsed = JSON.parse(decodeBase64Url(payload as string));
+  //   const role = parsed?.roles;
+  //   if (role === "USER") {
+  //     router.push("/user");
+  //     return;
+  //   } else if (role === "ADMIN") {
+  //     router.push("/admin");
+  //     return;
+  //   } else {
+  //     router.push("/manager");
+  //     return;
+  //   }
+  if (roles === "USER") {
+    redirect("/user");
+  } else if (roles === "ADMIN") {
+    redirect("/admin");
+  } else if (roles === "MANAGER") {
+    redirect("/manager");
+  } else return redirect("/login");
 }
