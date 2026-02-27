@@ -297,9 +297,9 @@ export default function EmployeeDetailPage() {
           marriedStatus: Boolean(form.married),
           numberOfChildren: Number(form.children ?? 0) || 0,
           childrenDescription: String(form.childrenDescription || "").trim() || null,
-          department,
+          // department,
           degrees: Array.isArray(form.degrees) && form.degrees.length ? form.degrees : undefined,
-          avatarUrl: String(form.avatarUrl || "").trim() || null,
+          // avatarUrl: String(form.avatarUrl || "").trim() || null,
         };
 
         await updateEmployeeByAdmin(employeeId, payload);
