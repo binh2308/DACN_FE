@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const { email, password, rememberMe } = await req.json();
 
     //const data = await authLogin({ email, password });
-    const res = await fetch("http://16.176.153.209:3000/auth/login", {
+    const res = await fetch("http://34.30.235.71:3000/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
