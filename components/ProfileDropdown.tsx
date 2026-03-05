@@ -18,8 +18,9 @@ export default function ProfileDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem("token");
+    await fetch("/api/logout", { method: "POST" });
     router.push("/login");
   };
 

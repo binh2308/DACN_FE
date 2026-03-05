@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { decodeJwt } from "jose";
-import { authLogin } from "@/services/DACN/auth"; // gọi backend thật
+//import { authLogin } from "@/services/DACN/auth"; // gọi backend thật
 
 function pickHomeByRoles(roles: unknown) {
   //const arr = Array.isArray(roles) ? roles : [];
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const { email, password, rememberMe } = await req.json();
 
     //const data = await authLogin({ email, password });
-    const res = await fetch("http://16.176.153.209:3000/auth/login", {
+    const res = await fetch("http://34.30.235.71:3000/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
