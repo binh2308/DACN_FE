@@ -16,7 +16,7 @@ function getAllowedPrefixFromRoles(roles: unknown): string | null {
 
   if (roles === "ADMIN") return ROLE_ROUTE_PREFIX.ADMIN;
   if (roles === "MANAGER") return ROLE_ROUTE_PREFIX.MANAGER;
-  if (roles === "USER") return ROLE_ROUTE_PREFIX.USER;
+  if (roles === "EMPLOYEE") return ROLE_ROUTE_PREFIX.USER;
 
   return null;
 }

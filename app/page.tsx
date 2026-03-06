@@ -31,7 +31,7 @@ export default function RootLayout() {
   //     router.push("/manager");
   //     return;
   //   }
-  if (roles === "USER") {
+  if (roles === "EMPLOYEE") {
     redirect("/user");
   } else if (roles === "ADMIN") {
     redirect("/admin");
