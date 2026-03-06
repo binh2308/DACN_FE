@@ -37,6 +37,15 @@ export type DegreeDto = {
   description?: string | null;
 };
 
+// Payload used for create/update requests. Backend examples don't include `id`.
+export type DegreePayload = {
+  school: string;
+  degree: string;
+  fieldOfStudy?: string | null;
+  graduationYear?: number | null;
+  description?: string | null;
+};
+
 export type EmployeeDetailDto = EmployeeDto & {
   degrees?: DegreeDto[];
 };
@@ -58,11 +67,12 @@ export type CreateEmployeePayload = {
   quitDate?: string | null;
   idCard?: string | null;
   address?: string | null;
+  // Backend update/create examples use departmentName rather than a nested department object
+  departmentName?: string | null;
   marriedStatus?: boolean | null;
   numberOfChildren?: number | null;
   childrenDescription?: string | null;
-  department?: DepartmentDto | null;
-  degrees?: DegreeDto[];
+  degrees?: DegreePayload[];
   avatarUrl?: string | null;
 };
 

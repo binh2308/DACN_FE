@@ -215,8 +215,6 @@ export default function CreateEmployeePage() {
                 <FormRow label="Roles">
                   <select name="role" value={form.role} onChange={onChange} className={inputClass}>
                     <option value="EMPLOYEE">EMPLOYEE</option>
-                    <option value="MANAGER">MANAGER</option>
-                    <option value="ADMIN">ADMIN</option>
                   </select>
                 </FormRow>
 

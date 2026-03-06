@@ -50,6 +50,25 @@ function toOptionalNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function newTempId() {
+  try {
+    return `tmp-${crypto.randomUUID()}`;
+  } catch {
+    return `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+function newDegreeRow(): DegreeDto {
+  return {
+    id: newTempId(),
+    school: "",
+    degree: "",
+    fieldOfStudy: null,
+    graduationYear: null,
+    description: null,
+  };
+}
+
 const inputBase =
   "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
 const inputClass = `${inputBase} w-full`;
@@ -152,6 +171,32 @@ export default function EmployeeDetailPage() {
     endDay: "",
     note: "",
   });
+
+  const addDegree = React.useCallback(() => {
+    setForm((prev) => ({
+      ...prev,
+      degrees: [...(Array.isArray(prev.degrees) ? prev.degrees : []), newDegreeRow()],
+    }));
+  }, []);
+
+  const removeDegree = React.useCallback((degreeId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      degrees: (Array.isArray(prev.degrees) ? prev.degrees : []).filter((d) => d.id !== degreeId),
+    }));
+  }, []);
+
+  const updateDegree = React.useCallback(
+    <K extends keyof DegreeDto>(degreeId: string, key: K, value: DegreeDto[K]) => {
+      setForm((prev) => ({
+        ...prev,
+        degrees: (Array.isArray(prev.degrees) ? prev.degrees : []).map((d) =>
+          d.id === degreeId ? { ...d, [key]: value } : d
+        ),
+      }));
+    },
+    []
+  );
 
   React.useEffect(() => {
     let mounted = true;
@@ -264,20 +309,29 @@ export default function EmployeeDetailPage() {
         const deptId = String(form.departmentId || "").trim();
         const deptName = String(form.departmentEmployeeName || "").trim();
 
-        const hasAnyDepartment = !!(deptId || deptName);
-        const hasFullDepartment = !!(deptId && deptName);
-        if (hasAnyDepartment && !hasFullDepartment) {
-          alert("Vui lòng nhập đầy đủ Department ID và Department Name (hoặc để trống cả hai). ");
+        if (deptId && !deptName) {
+          alert("Vui lòng nhập Department Name (hoặc để trống Department ID). ");
           return;
         }
 
-        const department =
-          deptId || deptName
-            ? {
-                id: deptId,
-                name: deptName,
-              }
-            : null;
+        const degreesPayload = (Array.isArray(form.degrees) ? form.degrees : [])
+          .map((d) => {
+            const school = String(d.school ?? "").trim();
+            const degree = String(d.degree ?? "").trim();
+            const fieldOfStudy = String(d.fieldOfStudy ?? "").trim() || null;
+            const description = String(d.description ?? "").trim() || null;
+            const graduationYear = d.graduationYear != null ? Number(d.graduationYear) : null;
+            return { school, degree, fieldOfStudy, graduationYear, description };
+          })
+          .filter((d) => {
+            return Boolean(
+              d.school ||
+                d.degree ||
+                d.fieldOfStudy ||
+                d.description ||
+                d.graduationYear != null
+            );
+          });
 
         const payload = {
           lastName: String(form.lastName || "").trim(),
@@ -294,11 +348,11 @@ export default function EmployeeDetailPage() {
           quitDate: toIsoUtcFromYmd(String(form.quitDay || "")),
           idCard: String(form.idCard || "").trim() || null,
           address: String(form.address || "").trim() || null,
+          departmentName: deptName || null,
           marriedStatus: Boolean(form.married),
           numberOfChildren: Number(form.children ?? 0) || 0,
           childrenDescription: String(form.childrenDescription || "").trim() || null,
-          // department,
-          degrees: Array.isArray(form.degrees) && form.degrees.length ? form.degrees : undefined,
+          degrees: degreesPayload.length ? degreesPayload : undefined,
           // avatarUrl: String(form.avatarUrl || "").trim() || null,
         };
 
@@ -455,6 +509,7 @@ export default function EmployeeDetailPage() {
                         type="text"
                         name="id"
                         value={String(form.id)}
+                        readOnly
                         className={inputClass}
                         placeholder="account43"
                       />
@@ -465,6 +520,7 @@ export default function EmployeeDetailPage() {
                         type="password"
                         name="password"
                         value={String(form.password)}
+                        readOnly
                         className={inputClass}
                         placeholder="••••••••"
                       />
@@ -689,9 +745,18 @@ export default function EmployeeDetailPage() {
 
               <div className="col-span-12 lg:col-span-7 space-y-6">
                 <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                  <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">
-                    University
-                  </h3>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      University
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={addDegree}
+                      className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded hover:bg-emerald-100"
+                    >
+                      + Add degree
+                    </button>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-[11px]">
                       <thead>
@@ -701,25 +766,64 @@ export default function EmployeeDetailPage() {
                           <th className="pb-2 font-bold w-1/5">Field</th>
                           <th className="pb-2 font-bold w-1/6">Grad Year</th>
                           <th className="pb-2 font-bold">Description</th>
+                          <th className="pb-2 font-bold w-12"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {(form.degrees?.length ? form.degrees : []).map((d) => (
                           <tr key={d.id}>
                             <td className="py-2 pr-1">
-                              <input value={d.school ?? ""} readOnly className={inputClass} />
+                              <input
+                                value={d.school ?? ""}
+                                onChange={(e) => updateDegree(d.id, "school", e.currentTarget.value)}
+                                className={inputClass}
+                              />
                             </td>
                             <td className="py-2 pr-1">
-                              <input value={d.degree ?? ""} readOnly className={inputClass} />
+                              <input
+                                value={d.degree ?? ""}
+                                onChange={(e) => updateDegree(d.id, "degree", e.currentTarget.value)}
+                                className={inputClass}
+                              />
                             </td>
                             <td className="py-2 pr-1">
-                              <input value={d.fieldOfStudy ?? ""} readOnly className={inputClass} />
+                              <input
+                                value={d.fieldOfStudy ?? ""}
+                                onChange={(e) => updateDegree(d.id, "fieldOfStudy", e.currentTarget.value)}
+                                className={inputClass}
+                              />
                             </td>
                             <td className="py-2 pr-1">
-                              <input value={d.graduationYear != null ? String(d.graduationYear) : ""} readOnly className={inputClass} />
+                              <input
+                                value={d.graduationYear != null ? String(d.graduationYear) : ""}
+                                onChange={(e) =>
+                                  updateDegree(
+                                    d.id,
+                                    "graduationYear",
+                                    toOptionalNumber(e.currentTarget.value)
+                                  )
+                                }
+                                inputMode="numeric"
+                                className={inputClass}
+                              />
                             </td>
                             <td className="py-2">
-                              <input value={d.description ?? ""} readOnly className={inputClass} />
+                              <input
+                                value={d.description ?? ""}
+                                onChange={(e) => updateDegree(d.id, "description", e.currentTarget.value)}
+                                className={inputClass}
+                              />
+                            </td>
+                            <td className="py-2 pl-2">
+                              <button
+                                type="button"
+                                onClick={() => removeDegree(d.id)}
+                                className="text-[10px] font-bold text-red-700 hover:text-red-800"
+                                aria-label="Remove degree"
+                                title="Remove"
+                              >
+                                Remove
+                              </button>
                             </td>
                           </tr>
                         ))}
