@@ -1,9 +1,10 @@
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Check, ChevronRight } from "lucide-react";
 
 export default function Index() {
-  return (
+    return (
       <div className="p-4 space-y-5">
         <section>
           <h2 className="text-base font-semibold text-grey-900 mb-2">
@@ -269,5 +270,5 @@ export default function Index() {
           </div>
         </div>
       </div>
-  );
+    );
 }

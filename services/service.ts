@@ -1,5 +1,4 @@
 import axios, { type AxiosResponse, AxiosError } from "axios";
-import { cookies } from "next/headers";
 type ApiErrorResponse = {
   message?: string;
   code?: string;
@@ -50,11 +49,11 @@ request.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 request.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = localStorage.getItem("token");
     if (token && config.headers)
       config.headers["Authorization"] = `Bearer ${token}`;
@@ -62,5 +61,5 @@ request.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );

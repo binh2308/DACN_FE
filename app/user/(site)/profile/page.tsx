@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Calendar, Eye, EyeOff } from "lucide-react";
+import { getUserProfile } from "@/services/DACN/auth";
 
 type TabType = "personal" | "contract";
 
@@ -11,6 +12,7 @@ interface PersonalData {
   gender: string;
   birthDay: string;
   emailPersonal: string;
+  role: string;
   address: string;
   idCard: string;
   taxNumber: string;
@@ -19,23 +21,53 @@ interface PersonalData {
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<TabType>("personal");
-  const [personalData, setPersonalData] = useState<PersonalData>({
+  const [personalData, setPersonalData] = useState<PersonalData | null>({
     fullname: "Nguyen Thanh Nam",
     shortname: "NamNT",
     gender: "Male",
     birthDay: "2000/07/23",
     emailPersonal: "namdepa@911.com",
+    role: "Member",
     address: "xom 4, thon Luong Dien, Dong Da, Tam Nai",
     idCard: "044678821654",
     taxNumber: "2902166920",
     idSocialInsurance: "2902166920",
   });
+useEffect(() => {
+  const fetchData = async () => {
+    const data = await getUserProfile();
+    if (data) {
+      const userData = data.data; // Giả sử response có cấu trúc { data: { ... } }
+      setPersonalData({
+        fullname:
+          userData.firstName +
+          " " +
+          userData.middleName +
+          " " +
+          userData.lastName,
+        shortname: userData.firstName,
+        gender: userData.gender,
+        birthDay: userData.dateOfBirth,
+        emailPersonal: userData.email,
+        role: userData.roles,
+        address: userData.address,
+        idCard: userData.idCard,
+        taxNumber: "2902166920",
+        idSocialInsurance: "2902166920",
+      });
+    }
+  };
+  fetchData();
+}, []);
 
   const handlePersonalChange = (field: keyof PersonalData, value: string) => {
-    setPersonalData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setPersonalData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
   };
 
   return (
@@ -68,7 +100,10 @@ export default function Profile() {
         {/* Tab Content */}
         <div className="p-6">
           {activeTab === "personal" ? (
-            <PersonalTab data={personalData} onChange={handlePersonalChange} />
+            <PersonalTab
+              data={personalData as PersonalData}
+              onChange={handlePersonalChange}
+            />
           ) : (
             <ContractTab />
           )}
@@ -112,7 +147,7 @@ function PersonalTab({ data, onChange }: PersonalTabProps) {
                     </label>
                     <input
                       type="text"
-                      defaultValue="account43"
+                      defaultValue={data.idCard}
                       disabled
                       className="w-full px-3 py-2 text-sm bg-[#FAFAFA] border border-[#E9EAEC] rounded"
                     />
@@ -149,7 +184,7 @@ function PersonalTab({ data, onChange }: PersonalTabProps) {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Member"
+                      defaultValue={data.role}
                       disabled
                       className="w-full px-3 py-2 text-sm bg-[#FAFAFA] border border-[#E9EAEC] rounded"
                     />
@@ -160,7 +195,7 @@ function PersonalTab({ data, onChange }: PersonalTabProps) {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Member"
+                      defaultValue={data.role}
                       disabled
                       className="w-full px-3 py-2 text-sm bg-[#FAFAFA] border border-[#E9EAEC] rounded"
                     />
@@ -173,7 +208,7 @@ function PersonalTab({ data, onChange }: PersonalTabProps) {
                   </label>
                   <input
                     type="email"
-                    defaultValue="namnt46@pl.co"
+                    defaultValue={data.emailPersonal}
                     disabled
                     className="w-full px-3 py-2 text-sm bg-[#FAFAFA] border border-[#E9EAEC] rounded"
                   />
