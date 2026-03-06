@@ -135,17 +135,8 @@ export async function getAllEmployees(options?: { [key: string]: any }) {
 
 // Tạo nhân viên mới
 export async function createEmployee(body: CreateEmployeePayload, options?: { [key: string]: any }) {
-  return request<CreateEmployeeResponse>("/auth/signup", {
+  return request<CreateEmployeeResponse>("/employee/by-admin", {
     method: "POST",
-    data: body,
-    ...(options || {}),
-  });
-}
-
-// Cập nhật thông tin nhân viên
-export async function updateEmployee(id: string, body: any, options?: { [key: string]: any }) {
-  return request<any>(`/employee/${id}`, {
-    method: "PUT",
     data: body,
     ...(options || {}),
   });
