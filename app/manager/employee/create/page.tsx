@@ -5,7 +5,43 @@ import { Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createEmployee } from "@/services/DACN/employee";
 
-// --- KHAI BÁO BIẾN & COMPONENT TĨNH Ở NGOÀI ĐỂ TRÁNH MẤT FOCUS ---
+// --- CÁC HÀM HELPER NẰM NGOÀI ĐỂ TRÁNH RENDER LẠI FORM (GIỮ FOCUS) ---
+
+type DegreeFormItem = {
+  school: string;
+  degree: string;
+  fieldOfStudy: string;
+  graduationYear: string;
+  description: string;
+};
+
+function emptyDegree(): DegreeFormItem {
+  return {
+    school: "",
+    degree: "",
+    fieldOfStudy: "",
+    graduationYear: "",
+    description: "",
+  };
+}
+
+function toOptionalNumber(value: string): number | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+const splitFullname = (fullname: string) => {
+  const parts = fullname.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { lastName: "", firstName: "", middleName: "" };
+  if (parts.length === 1) return { lastName: parts[0], firstName: "", middleName: "" };
+  const lastName = parts[0];
+  const firstName = parts[parts.length - 1];
+  const middleName = parts.slice(1, -1).join(" ");
+  return { lastName, firstName, middleName };
+};
+
 const inputBase = "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
 const inputClass = `${inputBase} w-full`;
 const dateClass = `${inputBase} w-full pr-8`;
@@ -32,7 +68,7 @@ export default function CreateEmployeePage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // State quản lý form tạo mới nhân viên (Đã bổ sung đầy đủ trường)
+  // State quản lý form tạo mới nhân viên (Sử dụng mảng degrees)
   const [form, setForm] = React.useState({
     role: "EMPLOYEE",
     fullname: "",
@@ -45,38 +81,49 @@ export default function CreateEmployeePage() {
     quitDay: "",
     idCard: "",
     married: false,
-    children: 0,
+    children: "",
     childrenDescription: "",
     salaryGross: "",
     salaryBasic: "",
     phone: "",
-    departmentName: "", // Bổ sung Department
+    departmentName: "",
     
-    // Bổ sung University
-    uniSchool: "",
-    uniDegree: "",
-    uniModeOfStudy: "",
-    uniGraduationYear: "",
-    uniDescription: "",
+    // Khởi tạo mảng bằng cấp với 1 dòng rỗng mặc định
+    degrees: [emptyDegree()] as DegreeFormItem[],
   });
 
+  // Xử lý thay đổi các input cơ bản
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-
     if (type === "checkbox") {
       setForm((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
       return;
     }
-
-    if (type === "number") {
-      const n = Number(value);
-      setForm((prev) => ({ ...prev, [name]: Number.isNaN(n) ? 0 : n }));
-      return;
-    }
-
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // --- CÁC HÀM XỬ LÝ MẢNG DEGREES ---
+  const handleDegreeChange = (index: number, field: keyof DegreeFormItem, value: string) => {
+    setForm((prev) => {
+      const newDegrees = [...(prev.degrees || [])];
+      if (!newDegrees[index]) newDegrees[index] = emptyDegree();
+      newDegrees[index] = { ...newDegrees[index], [field]: value };
+      return { ...prev, degrees: newDegrees };
+    });
+  };
+
+  const handleAddDegree = () => {
+    setForm((prev) => ({ ...prev, degrees: [...(prev.degrees || []), emptyDegree()] }));
+  };
+
+  const handleRemoveDegree = (index: number) => {
+    setForm((prev) => {
+      const newDegrees = (prev.degrees || []).filter((_, i) => i !== index);
+      // Giữ lại ít nhất 1 dòng rỗng nếu người dùng xóa hết
+      return { ...prev, degrees: newDegrees.length > 0 ? newDegrees : [emptyDegree()] };
+    });
   };
 
   // Helper chuyển định dạng Date
@@ -84,18 +131,7 @@ export default function CreateEmployeePage() {
     const d = date.trim();
     if (!d) return null;
     if (d.includes("T")) return d;
-    return `${d}T00:00:00.000Z`; // Hoặc tuỳ backend của bạn, nếu chỉ cần "YYYY-MM-DD" thì return d;
-  };
-
-  // Helper tách Fullname thành First/Last/Middle
-  const splitFullname = (fullname: string) => {
-    const parts = fullname.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return { lastName: "", firstName: "", middleName: "" };
-    if (parts.length === 1) return { lastName: parts[0], firstName: "", middleName: "" };
-    const lastName = parts[0];
-    const firstName = parts[parts.length - 1];
-    const middleName = parts.slice(1, -1).join(" ");
-    return { lastName, firstName, middleName };
+    return `${d}T00:00:00.000Z`; 
   };
 
   // Xử lý gửi Form
@@ -112,18 +148,18 @@ export default function CreateEmployeePage() {
     try {
       const { lastName, firstName, middleName } = splitFullname(form.fullname);
 
-      // Tạo mảng degrees chỉ khi có nhập tên trường học
-      const degrees = form.uniSchool.trim() ? [
-        {
-          school: form.uniSchool.trim(),
-          degree: form.uniDegree.trim() || "Unknown",
-          fieldOfStudy: form.uniModeOfStudy.trim() || "Unknown",
-          graduationYear: form.uniGraduationYear ? Number(form.uniGraduationYear) : null,
-          description: form.uniDescription.trim() || null
-        }
-      ] : [];
+      // Lọc và format mảng degrees chỉ lấy các dòng có nhập tên trường (school)
+      const degreesPayload = (form.degrees || [])
+        .filter((d) => d.school.trim() !== "")
+        .map((d) => ({
+          school: d.school.trim(),
+          degree: d.degree.trim() || "Unknown",
+          fieldOfStudy: d.fieldOfStudy.trim() || "Unknown",
+          graduationYear: toOptionalNumber(d.graduationYear),
+          description: d.description.trim() || null,
+        }));
 
-      // Payload cấu trúc chính xác theo yêu cầu
+      // Payload gửi lên API
       const payload = {
         lastName,
         firstName,
@@ -137,24 +173,23 @@ export default function CreateEmployeePage() {
         idCard: form.idCard.trim() || null,
         address: form.address.trim() || null,
         departmentName: form.departmentName.trim() || null,
-        marriedStatus: form.married,
-        numberOfChildren: form.children,
+        marriedStatus: Boolean(form.married),
+        numberOfChildren: form.children ? Number(form.children) : 0,
         childrenDescription: form.childrenDescription.trim() || null,
         grossSalary: form.salaryGross !== "" ? Number(form.salaryGross) : undefined,
         basicSalary: form.salaryBasic !== "" ? Number(form.salaryBasic) : undefined,
         signDate: toIsoUtc(form.signDay),
         quitDate: toIsoUtc(form.quitDay),
-        degrees: degrees, // Đưa array University vào payload
+        degrees: degreesPayload, 
       };
 
-      console.log("Payload:", payload);
+      console.log("Payload Create:", payload);
 
       await createEmployee(payload);
       alert("Tạo nhân viên thành công!");
       router.push("/manager/employee");
     } catch (error) {
       console.error("Failed to create employee", error);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const message = (error as any)?.response?.data?.message || (error as any)?.message || "Tạo thất bại";
       alert(`Lỗi: ${Array.isArray(message) ? message.join(", ") : message}`);
     } finally {
@@ -225,10 +260,6 @@ export default function CreateEmployeePage() {
                 <FormRow label="Phone">
                   <input type="text" name="phone" value={form.phone} onChange={onChange} className={inputClass} placeholder="+1234567890" />
                 </FormRow>
-
-                <FormRow label="Department">
-                  <input type="text" name="departmentName" value={form.departmentName} onChange={onChange} className={inputClass} placeholder="VD: Sales, Engineering" />
-                </FormRow>
               </div>
             </div>
           </div>
@@ -283,7 +314,7 @@ export default function CreateEmployeePage() {
           </div>
         </div>
 
-        {/* ROW 2: Other Info & University */}
+        {/* ROW 2: Other Info & Department/University */}
         <div className="grid grid-cols-12 gap-6">
           
           {/* Other Info (5 Cols) */}
@@ -306,7 +337,7 @@ export default function CreateEmployeePage() {
                   />
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-600">Children</span>
-                    <input type="number" name="children" value={form.children} onChange={onChange} className={`${inputBase} w-16 text-xs`} />
+                    <input type="number" name="children" value={form.children} onChange={onChange} className={`${inputBase} w-16 text-xs text-center`} />
                   </div>
                 </div>
               </div>
@@ -332,25 +363,89 @@ export default function CreateEmployeePage() {
             </div>
           </div>
 
-          {/* University Info (7 Cols) */}
-          <div className="col-span-12 lg:col-span-7 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
-            <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">University</h3>
+          {/* Department & University Info (7 Cols) */}
+          <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+            
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Department</h3>
+              <FormRow label="Department Name">
+                <input name="departmentName" value={form.departmentName} onChange={onChange} className={inputClass} placeholder="VD: Sales, Engineering" />
+              </FormRow>
+            </div>
 
-            <div className="grid grid-cols-5 gap-2 mb-2">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">University</h3>
+
+              <div className="grid grid-cols-6 gap-2 mb-2">
                 <div className="text-[10px] font-bold text-gray-500 uppercase">Schools</div>
                 <div className="text-[10px] font-bold text-gray-500 uppercase">Degree</div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase">Mode of study</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase">Field of study</div>
                 <div className="text-[10px] font-bold text-gray-500 uppercase">Graduation Year</div>
                 <div className="text-[10px] font-bold text-gray-500 uppercase">Description</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase text-center">Xóa</div>
+              </div>
+
+              <div className="space-y-2">
+                {(form.degrees && form.degrees.length > 0 ? form.degrees : [emptyDegree()]).map((d, idx) => (
+                  <div key={`degree-${idx}`} className="grid grid-cols-6 gap-2 items-center">
+                    <input
+                      type="text"
+                      value={d.school}
+                      onChange={(e) => handleDegreeChange(idx, "school", e.target.value)}
+                      className={inputClass}
+                      placeholder="VD: MIT"
+                    />
+                    <input
+                      type="text"
+                      value={d.degree}
+                      onChange={(e) => handleDegreeChange(idx, "degree", e.target.value)}
+                      className={inputClass}
+                      placeholder="VD: Bachelor"
+                    />
+                    <input
+                      type="text"
+                      value={d.fieldOfStudy}
+                      onChange={(e) => handleDegreeChange(idx, "fieldOfStudy", e.target.value)}
+                      className={inputClass}
+                      placeholder="VD: CS"
+                    />
+                    <input
+                      type="number"
+                      value={d.graduationYear}
+                      onChange={(e) => handleDegreeChange(idx, "graduationYear", e.target.value)}
+                      className={inputClass}
+                      placeholder="2022"
+                    />
+                    <input
+                      type="text"
+                      value={d.description}
+                      onChange={(e) => handleDegreeChange(idx, "description", e.target.value)}
+                      className={inputClass}
+                      placeholder="Mô tả..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDegree(idx)}
+                      className="h-8 w-full rounded border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                      title="Xóa"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleAddDegree}
+                    className="text-[10px] font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    + ADD DEGREE
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-2">
-              <input name="uniSchool" value={form.uniSchool} onChange={onChange} className={inputClass} placeholder="MIT" />
-              <input name="uniDegree" value={form.uniDegree} onChange={onChange} className={inputClass} placeholder="Bachelor" />
-              <input name="uniModeOfStudy" value={form.uniModeOfStudy} onChange={onChange} className={inputClass} placeholder="Computer Science" />
-              <input type="number" name="uniGraduationYear" value={form.uniGraduationYear} onChange={onChange} className={inputClass} placeholder="2022" />
-              <input name="uniDescription" value={form.uniDescription} onChange={onChange} className={inputClass} placeholder="Graduated with honors" />
-            </div>
           </div>
         </div>
 
