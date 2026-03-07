@@ -316,12 +316,6 @@ export default function LeaveManagementPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-900">Leave History</h1>
         <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-gray-100 rounded text-gray-600">
-             <Filter size={20} className="fill-current" />
-          </button>
-          <button className="flex items-center gap-2 bg-[#2D2D2D] text-white px-4 py-2 rounded text-sm font-medium hover:bg-black transition-colors">
-             Export <ChevronDown size={16} />
-          </button>
         </div>
       </div>
 
