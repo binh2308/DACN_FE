@@ -24,6 +24,37 @@ export type SupportTicket = {
 	messages: TicketMessage[];
 };
 
+const STORAGE_KEY = "support_tickets_created_v1";
+
+function safeId(prefix = "t") {
+	if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return `${prefix}_${(crypto as any).randomUUID()}`;
+	}
+	return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function readCreatedTickets(): SupportTicket[] {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = window.localStorage.getItem(STORAGE_KEY);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw) as SupportTicket[];
+		return Array.isArray(parsed) ? parsed : [];
+	} catch {
+		return [];
+	}
+}
+
+function writeCreatedTickets(items: SupportTicket[]) {
+	if (typeof window === "undefined") return;
+	try {
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+	} catch {
+		// ignore
+	}
+}
+
 const iso = (yyyyMmDd: string, hhmm: string) => `${yyyyMmDd}T${hhmm}:00`;
 
 export const supportTickets: SupportTicket[] = [
@@ -112,8 +143,45 @@ export const supportTickets: SupportTicket[] = [
 	},
 ];
 
+export function listSupportTickets(): SupportTicket[] {
+	const created = readCreatedTickets();
+	// created first so newly created appears on top
+	return [...created, ...supportTickets];
+}
+
+export type CreateSupportTicketInput = {
+	subject: string;
+	issue: string;
+	username?: string;
+	phone?: string;
+	priority?: TicketPriority;
+};
+
+export function createSupportTicket(input: CreateSupportTicketInput): SupportTicket {
+	const now = new Date().toISOString();
+	const ticket: SupportTicket = {
+		id: safeId(),
+		subject: input.subject,
+		user: {
+			username: input.username || "employee",
+			phone: input.phone,
+		},
+		submittedAt: now,
+		status: "open",
+		priority: input.priority || "medium",
+		assignee: undefined,
+		issue: input.issue,
+		messages: [],
+	};
+
+	const created = readCreatedTickets();
+	const next = [ticket, ...created];
+	writeCreatedTickets(next);
+	return ticket;
+}
+
 export const getTicketById = (id: string) =>
-	supportTickets.find((t) => t.id === id);
+	listSupportTickets().find((t) => t.id === id);
 
 export const formatTicketStatus = (s: TicketStatus) => {
 	if (s === "open") return "OPEN";

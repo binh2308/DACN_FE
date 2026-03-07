@@ -16,7 +16,7 @@ import {
 import {
 	formatPriority,
 	formatTicketStatus,
-	supportTickets,
+	listSupportTickets,
 	statusBadgeVariant,
 	type TicketPriority,
 	type TicketStatus,
@@ -37,20 +37,25 @@ const formatDate = (iso: string) => {
 };
 
 export default function SupportPage() {
+	const [tickets, setTickets] = React.useState(() => listSupportTickets());
 	const [filters, setFilters] = React.useState<Filters>({
 		status: "all",
 		priority: "all",
 	});
 	const [limit, setLimit] = React.useState(6);
 
+	React.useEffect(() => {
+		setTickets(listSupportTickets());
+	}, []);
+
 	const filtered = React.useMemo(() => {
-		return supportTickets.filter((t) => {
+		return tickets.filter((t) => {
 			if (filters.status !== "all" && t.status !== filters.status) return false;
 			if (filters.priority !== "all" && t.priority !== filters.priority)
 				return false;
 			return true;
 		});
-	}, [filters]);
+	}, [filters, tickets]);
 
 	const visible = filtered.slice(0, limit);
 

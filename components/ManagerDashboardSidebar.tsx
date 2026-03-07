@@ -8,6 +8,7 @@ import {
   Calendar,
   ClipboardList,
   DollarSign,
+  Package,
   Home,
   GitBranch,
   FileText,
@@ -41,6 +42,11 @@ const menuSections: MenuSection[] = [
         label: "Lịch cá nhân",
         icon: <Calendar className="w-5 h-5" />,
         href: "/calendar",
+      },
+      {
+        label: "Tài sản",
+        icon: <Package className="w-5 h-5" />,
+        href: "/assets",
       },
       {
         label: "Chấm công",
