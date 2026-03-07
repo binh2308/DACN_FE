@@ -214,9 +214,6 @@ export default function UserAssetsPage() {
             Tổng: {filtered.length.toLocaleString("vi-VN")} thiết bị
           </Badge>
         </div>
-        <Button type="button" variant="outline" className="h-9 text-xs" disabled>
-          <Package className="w-4 h-4 mr-2" /> Xuất Excel
-        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center gap-3 mt-5">
