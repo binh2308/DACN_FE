@@ -2,8 +2,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@mantine/core/styles.css";
 import "@mantine/charts/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/notifications/styles.css";
 
 import { mantineHtmlProps, MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 export const metadata = {
   title: "Employee Support System",
   description: "Employee Support System Interface",
@@ -28,7 +31,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MantineProvider>{children}</MantineProvider>
+        <MantineProvider>
+          <Notifications position="bottom-right" />
+          {children}
+        </MantineProvider>
       </body>
     </html>
   );

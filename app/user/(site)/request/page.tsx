@@ -1,6 +1,5 @@
 "use client";
 
-import { get } from "http";
 import {
   Filter,
   ChevronDown,
@@ -10,12 +9,23 @@ import {
   Plus,
 } from "lucide-react";
 import { useState, useRef, useEffect, use } from "react";
-import { myRequests } from "@/services/DACN/request";
-import next from "next";
+import { Button, TextInput, Textarea } from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { DatePickerInput } from "@mantine/dates";
+import { notifications } from "@mantine/notifications";
+import { myRequests, createLeaveRequest } from "@/services/DACN/request";
+import { on } from "node:stream";
 // --- Types & Mock Data ---
 
 // 1. Định nghĩa kiểu cho trạng thái quyết định (Thêm phần này để sửa lỗi)
 type DecisionMap = Record<number, "approved" | "declined">;
+
+type LeaveFormValues = {
+  date_from: Date | string | null;
+  date_to: Date | string | null;
+  reason: string;
+  description: string;
+};
 
 interface LeaveRequest {
   date_from: string;
@@ -72,10 +82,9 @@ function LeaveDetailModal({
     (dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24);
   const daysRemaining = Math.max(
     0,
-    duration -
-      Math.ceil(
-        (currentDate.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24),
-      ),
+    Math.ceil(
+      (dateTo.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+    ),
   );
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -195,18 +204,183 @@ function LeaveDetailModal({
   );
 }
 
-// 2. Main Page (Giống ảnh 1)
+function LeaveCreateModal({ onClose }: { onClose: () => void }) {
+  const form = useForm<LeaveFormValues>({
+    initialValues: {
+      date_from: null,
+      date_to: null,
+      reason: "",
+      description: "",
+    },
+
+    validate: {
+      date_from: (value) => (!value ? "Vui lòng chọn ngày bắt đầu" : null),
+      date_to: (value, values) => {
+        if (!value) return "Vui lòng chọn ngày kết thúc";
+        if (values.date_from && value < values.date_from) {
+          return "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
+        }
+        return null;
+      },
+      reason: (value) =>
+        value.trim().length < 3 ? "Nhập lý do nghỉ phép" : null,
+    },
+  });
+
+  const handleSubmit = async (values: LeaveFormValues) => {
+    const data = {
+      date_from: values.date_from, 
+      date_to: values.date_to,
+      reason: values.reason,
+      description: values.description,
+    };
+    try {
+      await createLeaveRequest(data);
+      notifications.show({
+        title: "Success",
+        message: "Leave request created successfully",
+        color: "green",
+      });
+      form.reset();
+      onClose();
+    } catch (error) {
+       notifications.show({
+        title: "Error",
+        message: "Failed to create leave request",
+        color: "red",
+      });
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Header Modal */}
+        <div className="p-6 pb-2">
+          <div className="flex items-start gap-3">
+            <div className="mt-1">
+              <RefreshCw size={32} className="text-gray-800" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Create Leave Request
+              </h2>
+              <p className="text-sm text-gray-500">
+                Fill in the details to create a new leave request
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="ml-auto text-gray-400 hover:text-gray-600"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+        <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-4">
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="relative">
+                  <DatePickerInput
+                    label="Start Date"
+                    labelProps={{
+                      className: "text-sm font-medium text-gray-600 mb-1",
+                    }}
+                    placeholder="Chọn ngày bắt đầu"
+                    valueFormat="DD/MM/YYYY"
+                    required
+                    rightSection={
+                      <Calendar size={16} className="text-gray-400" />
+                    }
+                    {...form.getInputProps("date_from")}
+                    onChange={(value) => {
+                      form.setFieldValue("date_from", value);
+
+                      const date_to = form.values.date_to;
+                      if (value && date_to && date_to < value) {
+                        form.setFieldValue("date_to", null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="relative">
+                  <DatePickerInput
+                    label="End Date"
+                    labelProps={{
+                      className: "text-sm font-medium text-gray-600 mb-1",
+                    }}
+                    placeholder="Chọn ngày kết thúc"
+                    required
+                    valueFormat="DD/MM/YYYY"
+                    minDate={form.values.date_from ?? undefined}
+                    rightSection={
+                      <Calendar size={16} className="text-gray-400" />
+                    }
+                    {...form.getInputProps("date_to")}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <TextInput
+                label="Reason"
+                labelProps={{
+                  className: "block text-sm font-medium text-gray-600 mb-1",
+                }}
+                required
+                placeholder="Nhập lý do nghỉ phép"
+                {...form.getInputProps("reason")}
+              />
+            </div>
+
+            <div>
+              <Textarea
+                rows={3}
+                label="Description"
+                labelProps={{
+                  className: "block text-sm font-medium text-gray-600 mb-1",
+                }}
+                placeholder="Mô tả chi tiết"
+                {...form.getInputProps("description")}
+              />
+            </div>
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="px-6 py-3 pt-0">
+            {/* <button
+          type="submit"
+            className={`w-full bg-emerald-500 border border-emerald-500 text-white font-semibold py-2.5 rounded cursor-pointer`}
+          >
+            Submit
+          </button> */}
+            <Button fullWidth color="green.7" type="submit" h={45} fw={600}>
+              Submit
+            </Button>
+          </div>
+        </form>
+        <div className="p-6 pt-0">
+          <button
+            onClick={onClose}
+            className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 2. Main Page
 export default function LeaveManagementPage() {
   const [activeActionId, setActiveActionId] = useState<number | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
-  const [myLeaves, setMyLeaves] = useState<any | null>([
-    {
-      date_from: "22/04/2022",
-      date_to: "28/04/2022",
-      status: "APPROVED",
-      reason: "Personal",
-    },
-  ]);
+  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [myLeaves, setMyLeaves] = useState<LeaveRequest[] | null>([]);
   // Sử dụng type DecisionMap đã định nghĩa
   const [decisions, setDecisions] = useState<DecisionMap>({});
   const actionRef = useRef<HTMLDivElement>(null);
@@ -215,7 +389,6 @@ export default function LeaveManagementPage() {
       try {
         const data = await myRequests();
         if (data) {
-          console.log("Fetched leave requests:", data.data);
           setMyLeaves(data.data.items);
         }
       } catch (error) {
@@ -263,7 +436,10 @@ export default function LeaveManagementPage() {
           <button className="p-2 hover:bg-gray-100 rounded text-gray-600">
             <Filter size={20} className="fill-current" />
           </button>
-          <button className="flex items-center gap-2 bg-main-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#0c820c] transition-colors">
+          <button
+            className="flex items-center gap-2 bg-main-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#0c820c] transition-colors"
+            onClick={() => setOpenCreateModal(true)}
+          >
             New request <Plus size={16} />
           </button>
         </div>
@@ -348,6 +524,9 @@ export default function LeaveManagementPage() {
           data={selectedLeave}
           onClose={() => setSelectedLeave(null)}
         />
+      )}
+      {openCreateModal && (
+        <LeaveCreateModal onClose={() => setOpenCreateModal(false)} />
       )}
     </div>
   );

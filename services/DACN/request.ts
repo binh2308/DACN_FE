@@ -23,3 +23,17 @@ export async function myRequests(
     ...(options || {}),
   });
 }
+
+export async function createLeaveRequest(
+  data: DACN.CreateLeaveRequestDto,
+  options?: { [key: string]: any },
+) {
+  return request<any>("/leave-requests/submit", {
+    method: "POST",
+    data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
