@@ -290,7 +290,8 @@ export default function Profile() {
   };
 
   const onPickAvatar = () => {
-    if (!isEditing || saving || uploadingAvatar) return;
+    // Xóa điều kiện khóa !isEditing ở đây
+    if (saving || uploadingAvatar) return;
     avatarFileInputRef.current?.click();
   };
 
@@ -307,7 +308,9 @@ export default function Profile() {
         alert("Upload avatar thành công nhưng không nhận được URL ảnh.");
         return;
       }
+      // Cập nhật URL ảnh mới cho cả form và profile gốc
       setForm((prev) => ({ ...prev, avatarUrl: url }));
+      setProfile((prev) => prev ? { ...prev, avatarUrl: url } : prev);
     } catch (error) {
       console.error("Failed to upload avatar", error);
       const message =
@@ -330,7 +333,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      {/* Container căn giữa toàn bộ trang */}
       <div className="max-w-[1200px] mx-auto w-full">
         
         {/* Tabs Header */}
@@ -375,7 +377,7 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Buttons Edit/Save/Cancel chuyển xuống dưới cùng */}
+        {/* Buttons Edit/Save/Cancel */}
         <div className="flex items-center justify-center gap-4 mt-8">
           {!isEditing ? (
             <button
@@ -488,7 +490,8 @@ function PersonalTab({
               <button
                 type="button"
                 onClick={onPickAvatar}
-                disabled={!isEditing || saving || uploadingAvatar}
+                // Xóa điều kiện khóa !isEditing ở đây
+                disabled={saving || uploadingAvatar}
                 className="mt-2 w-full flex items-center justify-center gap-1 text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-1.5 rounded hover:bg-gray-200 disabled:opacity-60 whitespace-nowrap"
               >
                 <Upload size={12} /> {uploadingAvatar ? "UPLOADING" : "UPLOAD"}
@@ -656,7 +659,7 @@ function PersonalTab({
                     const n = Number(e.target.value);
                     setForm((prev) => ({ ...prev, numberOfChildren: Number.isFinite(n) ? n : 0 }));
                   }}
-                  className={`${inputClass} w-4 ps-1 text-xs text-center`} 
+                  className={`${inputClass} w-10 px-1 text-xs text-center`} 
                 />
               </div>
             </div>
@@ -683,17 +686,10 @@ function PersonalTab({
                 <tr>
                   {/* Chia tỷ lệ các cột, ưu tiên Degree rộng hơn */}
                   <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[20%]">Schools</th>
-                  
-                  {/* Tăng chiều rộng cột Degree lên 30% */}
                   <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[30%]">Degree</th>
-                  
                   <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[20%]">Mode of study</th>
-                  
-                  {/* Cột năm tốt nghiệp chỉ cần nhỏ */}
                   <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[12%]">Graduation Year</th>
-                  
                   <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[18%]">Description</th>
-                  
                   {isEditing ? <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[34px]"></th> : null}
                 </tr>
               </thead>
@@ -840,7 +836,7 @@ function ContractTab({
 }) {
   return (
     <div className="max-w-[900px] mx-auto mt-4 w-full">
-      {/* Khung Contract giống trong ảnh 2 */}
+      {/* Khung Contract */}
       <div className="relative border border-[#E9EAEC] rounded-lg p-8 pt-10">
         
         {/* Label lơ lửng trên viền */}
