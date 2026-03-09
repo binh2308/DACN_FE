@@ -2,11 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Settings, Lock, LogOut } from "lucide-react";
-import {useRouter} from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -25,7 +26,15 @@ export default function ProfileDropdown() {
   };
 
   const handleProfile = () => {
-    router.push("/user/profile");
+    const prefix = pathname?.startsWith("/admin")
+      ? "/admin"
+      : pathname?.startsWith("/manager")
+        ? "/manager"
+        : pathname?.startsWith("/user")
+          ? "/user"
+          : "";
+
+    router.push(prefix ? `${prefix}/profile` : "/profile");
     setIsOpen(false);
   };
 

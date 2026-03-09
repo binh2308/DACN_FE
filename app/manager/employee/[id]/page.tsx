@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Upload, X } from "lucide-react";
+import {X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getEmployeeDetail,
@@ -116,7 +116,6 @@ export default function EmployeeDetailPage() {
     role: "",
     permissionTemplate: "Member",
     avatar: null as unknown,
-    avatarUrl: "",
 
     // Identity (API)
     lastName: "",
@@ -232,7 +231,6 @@ export default function EmployeeDetailPage() {
           id: found.id,
           role: found.roles || "",
           avatar: found.avatarUrl ?? null,
-          avatarUrl: found.avatarUrl ?? "",
 
           lastName: found.lastName ?? "",
           firstName: found.firstName ?? "",
@@ -353,7 +351,6 @@ export default function EmployeeDetailPage() {
           numberOfChildren: Number(form.children ?? 0) || 0,
           childrenDescription: String(form.childrenDescription || "").trim() || null,
           degrees: degreesPayload.length ? degreesPayload : undefined,
-          // avatarUrl: String(form.avatarUrl || "").trim() || null,
         };
 
         await updateEmployeeByAdmin(employeeId, payload);
@@ -368,7 +365,6 @@ export default function EmployeeDetailPage() {
             id: found.id,
             role: found.roles || "",
             avatar: found.avatarUrl ?? null,
-            avatarUrl: found.avatarUrl ?? "",
             lastName: found.lastName ?? "",
             firstName: found.firstName ?? "",
             middleName: found.middleName ?? "",
@@ -495,12 +491,6 @@ export default function EmployeeDetailPage() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-[10px] font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200"
-                    >
-                      <Upload size={12} /> UPLOAD
-                    </button>
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-1">
@@ -547,15 +537,6 @@ export default function EmployeeDetailPage() {
                     />
                   </FormRow>
 
-                  <FormRow label="Avatar URL">
-                    <input
-                      type="text"
-                      name="avatarUrl"
-                      value={String(form.avatarUrl)}
-                      onChange={onChange}
-                      className={inputClass}
-                    />
-                  </FormRow>
                   </div>
                 </div>
               </div>

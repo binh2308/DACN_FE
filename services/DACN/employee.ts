@@ -103,6 +103,12 @@ export type GetEmployeeDetailResponse = {
   data: EmployeeDetailDto;
 };
 
+export type GetEmployeeProfileResponse = {
+  statusCode: number;
+  message?: string;
+  data: EmployeeDetailDto;
+};
+
 export type UpdateEmployeeByAdminPayload = Partial<
   Omit<CreateEmployeePayload, "id" | "password">
 >;
@@ -135,6 +141,17 @@ export async function getEmployeeDetail(id: string, options?: { [key: string]: a
 // Admin/HR use-case: lấy tất cả nhân viên (backend có thể trả paged hoặc array)
 export async function getAllEmployees(options?: { [key: string]: any }) {
   return request<GetEmployeesResponse>("/employee/all", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
+// Lấy profile nhân viên hiện tại (theo token)
+export async function getEmployeeProfile(options?: { [key: string]: any }) {
+  return request<GetEmployeeProfileResponse, GetEmployeeProfileResponse>("/employee/profile", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
