@@ -290,7 +290,6 @@ export default function Profile() {
   };
 
   const onPickAvatar = () => {
-    // Xóa điều kiện khóa !isEditing ở đây
     if (saving || uploadingAvatar) return;
     avatarFileInputRef.current?.click();
   };
@@ -308,7 +307,6 @@ export default function Profile() {
         alert("Upload avatar thành công nhưng không nhận được URL ảnh.");
         return;
       }
-      // Cập nhật URL ảnh mới cho cả form và profile gốc
       setForm((prev) => ({ ...prev, avatarUrl: url }));
       setProfile((prev) => prev ? { ...prev, avatarUrl: url } : prev);
     } catch (error) {
@@ -333,7 +331,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      <div className="max-w-[1200px] mx-auto w-full">
+      <div className="max-w-[1500px] mx-auto w-full">
         
         {/* Tabs Header */}
         <div className="flex border-b border-[#E9EAEC] px-6 pt-8">
@@ -432,7 +430,7 @@ const ViewRow = ({
   </div>
 );
 
-const inputClass = "w-full h-[34px] px-3 bg-[#F8F9FA] border border-[#E9EAEC] rounded text-[13px] text-[#21252B] focus:outline-none";
+const inputClass = "w-full h-[34px] px-3 bg-[#F8F9FA] border border-[#E9EAEC] rounded text-[5px] text-[#21252B] focus:outline-none";
 const SectionTitle = ({ title }: { title: string }) => (
   <div className="flex items-center mb-5">
     <h3 className="text-[13px] font-bold text-[#21252B]">{title}</h3>
@@ -490,7 +488,6 @@ function PersonalTab({
               <button
                 type="button"
                 onClick={onPickAvatar}
-                // Xóa điều kiện khóa !isEditing ở đây
                 disabled={saving || uploadingAvatar}
                 className="mt-2 w-full flex items-center justify-center gap-1 text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-1.5 rounded hover:bg-gray-200 disabled:opacity-60 whitespace-nowrap"
               >
@@ -649,8 +646,8 @@ function PersonalTab({
                 onChange={(e) => setForm((prev) => ({ ...prev, marriedStatus: e.target.checked }))}
                 className="w-4 h-4 rounded border-[#E9EAEC] text-[#0B9F57]"
               />
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-gray-600">Children</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[#657081] whitespace-nowrap">Children</span>
                 <input 
                   type="text" 
                   readOnly={!isEditing} 
@@ -659,7 +656,7 @@ function PersonalTab({
                     const n = Number(e.target.value);
                     setForm((prev) => ({ ...prev, numberOfChildren: Number.isFinite(n) ? n : 0 }));
                   }}
-                  className={`${inputClass} w-10 px-1 text-xs text-center`} 
+                  className={`${inputClass} px-10 text-center`} 
                 />
               </div>
             </div>
@@ -680,16 +677,16 @@ function PersonalTab({
         <div className="col-span-12 lg:col-span-7">
           <SectionTitle title="University" />
           
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full overflow-x-auto pb-2">
+            {/* Sử dụng min-w-[800px] để bảng có đủ không gian hiển thị text không bị cắt */}
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr>
-                  {/* Chia tỷ lệ các cột, ưu tiên Degree rộng hơn */}
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[20%]">Schools</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[30%]">Degree</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[20%]">Mode of study</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[12%]">Graduation Year</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[18%]">Description</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[15%]">Schools</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[25%]">Degree</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[22%]">Mode of study</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[13%]">Graduation Year</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[25%]">Description</th>
                   {isEditing ? <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[34px]"></th> : null}
                 </tr>
               </thead>
@@ -783,12 +780,13 @@ function PersonalTab({
                                 degrees: (prev.degrees ?? []).filter((x) => x.id !== d.id),
                               }))
                             }
-                            className="h-[34px] w-[34px] inline-flex items-center justify-center rounded border border-[#E9EAEC] hover:bg-[#F5F6F8]"
+                            className="h-[34px] w-[34px] inline-flex items-center justify-center rounded border border-red-200 bg-white text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors"
                             title="Remove"
                             aria-label="Remove"
-                          >
-                            <X className="w-4 h-4 text-[#657081]" />
-                          </button>
+                            >
+                              {/* Lưu ý xóa màu text-[#657081] cũ ở đây để nó nhận màu đỏ từ thẻ button truyền xuống */}
+                              <X className="w-4 h-4" /> 
+                        </button>
                         </td>
                       ) : null}
                     </tr>
@@ -809,9 +807,9 @@ function PersonalTab({
               <button
                 type="button"
                 onClick={() => setForm((prev) => ({ ...prev, degrees: [...(prev.degrees ?? []), emptyDegree()] }))}
-                className="h-9 px-4 rounded border border-[#E9EAEC] text-[13px] font-semibold text-[#21252B] hover:bg-[#F5F6F8]"
+                className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded hover:bg-emerald-100"
               >
-                Add degree
+                 + Add degree
               </button>
             </div>
           ) : null}
