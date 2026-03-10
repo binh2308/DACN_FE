@@ -2,14 +2,30 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlarmClock, Bell, Check, LogOut, Mail, MapPin, Search } from "lucide-react";
+import {
+  checkIn,
+  checkOut,
+  getMyAttendance,
+  getMonthlySummary,
+} from "@/services/DACN/attendance";
+import { formatDate } from "@/lib/utils";
+
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
 }
 
-function formatHHmm(d: Date) {
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+function getDaysInCurrentMonth(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
+
+// function formatHHmm(d: Date) {
+//   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+// }
+
+// function formatDateTime(d: Date) {
+//   return `${pad2(d.getHours())}:${pad2(d.getMinutes())} ${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+// }
 
 function formatDuration(ms: number) {
   const totalMin = Math.max(0, Math.floor(ms / 60000));
@@ -128,23 +144,87 @@ function MonthlyTrendChart({ data }: { data: TrendRow[] }) {
 
 export default function ManagerCheckInPage() {
   const [now, setNow] = useState(() => new Date());
+  const [checkedInToday, setCheckedInToday] = useState(false);
+  const [checkedoutToday, setCheckedOutToday] = useState(false);
   const [checkedInAt, setCheckedInAt] = useState<Date | null>(null);
-
+  const [monthlySummary, setMonthlySummary] = useState({
+    workedDays: 0,
+    lateDays: 0,
+    absentDays: 0,
+  });
+  const handleCheckIn = async () => {
+    await checkIn();
+    setCheckedInAt(new Date());
+  };
+  const handleCheckOut = async () => {
+    await checkOut();
+  };
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        const res = await getMyAttendance();
+        const records = res.data;
+        const todayVN = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+        if (records) console.log("Fetched attendance records:", records);
+        const hasCheckedInToday = records.some((item) => {
+          const timeInVN = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date(item.timeIn));
+          // console.log(
+          //   "Comparing check-in date:",
+          //   timeInVN,
+          //   "with today:",
+          //   todayVN,
+          // );
+          return timeInVN === todayVN;
+        });
+        const hasCheckedOutToday = records.some((item) => {
+          const timeOutVN = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date(item.timeOut));
+          return timeOutVN === todayVN;
+        });
+        setCheckedInToday(hasCheckedInToday);
+        setCheckedOutToday(hasCheckedOutToday);
+      } catch (error) {
+        console.error("Failed to fetch attendance:", error);
+      }
+    };
+    fetchAttendance();
+  }, []);
+  useEffect(() => {
+    const fetchMonthlySummary = async () => {
+      try {
+        const now = new Date();
+        const res = await getMonthlySummary({
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+        });
+        setMonthlySummary(res.data);
+      } catch (error) {
+        console.error("Failed to fetch monthly summary:", error);
+      }
+    };
+    fetchMonthlySummary();
+  }, []);
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const currentTime = formatHHmm(now);
+  const currentTime = formatDate(now, "HH:mm DD/MM/YYYY");
   const working = checkedInAt ? formatDuration(now.getTime() - checkedInAt.getTime()) : "00:00";
-
-  const summary = {
-    monthTitle: "October 2025 Summary",
-    present: 21,
-    absent: 1,
-    late: 2,
-    rate: 95.5,
-  };
 
   const trend: TrendRow[] = [
     { month: "Jul", present: 23, absent: 1, late: 15 },
@@ -184,18 +264,26 @@ export default function ManagerCheckInPage() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <button
-              onClick={() => setCheckedInAt((prev) => prev ?? new Date())}
+              onClick={handleCheckIn}
               className={[
                 "rounded-xl px-3 py-4 border text-center transition-colors",
-                checkedInAt ? "bg-[#F5F6F7] border-[#E9EAEC] text-[#B8BDC5]" : "bg-white border-[#E9EAEC] text-[#21252B] hover:border-[#0B9F57]",
+                checkedInAt || checkedInToday
+                  ? "bg-[#F5F6F7] border-[#E9EAEC] text-[#B8BDC5]"
+                  : "bg-white border-[#E9EAEC] text-[#21252B] hover:border-[#0B9F57]",
               ].join(" ")}
             >
               <div className="mx-auto mb-2 h-8 w-8 rounded-lg bg-[#F0FFF7] flex items-center justify-center">
                 <Check className="text-[#0B9F57]" size={18} />
               </div>
-              <div className="text-[10px] font-semibold leading-[140%] tracking-[0.12px]">Check In</div>
+              <div className="text-[10px] font-semibold leading-[140%] tracking-[0.12px]">
+                Check In
+              </div>
               <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-                {checkedInAt ? formatHHmm(checkedInAt) : "08:00 AM"}
+                {checkedInToday
+                  ? "You have checked in today"
+                  : checkedInAt
+                    ? `Checked in at ${formatDate(checkedInAt, "HH:mm")}`
+                    : "08:00 AM"}
               </div>
             </button>
 
@@ -203,7 +291,9 @@ export default function ManagerCheckInPage() {
               <div className="mx-auto mb-2 h-8 w-8 rounded-lg bg-white flex items-center justify-center">
                 <AlarmClock className="text-[#FF8A00]" size={18} />
               </div>
-              <div className="text-[10px] font-semibold leading-[140%] tracking-[0.12px]">Giờ làm việc</div>
+              <div className="text-[10px] font-semibold leading-[140%] tracking-[0.12px]">
+                Giờ làm việc
+              </div>
               <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
                 {working}
               </div>
@@ -211,11 +301,13 @@ export default function ManagerCheckInPage() {
           </div>
 
           <button
-            onClick={() => setCheckedInAt(null)}
-            disabled={!checkedInAt}
+            onClick={handleCheckOut}
+            disabled={!checkedInAt || checkedoutToday}
             className={[
               "mt-3 w-full rounded-lg px-3 py-2 text-xs font-semibold text-white transition-colors",
-              checkedInAt ? "bg-[#FF5A5A] hover:opacity-95" : "bg-[#FF5A5A]/40 cursor-not-allowed",
+              checkedInAt || checkedoutToday
+                ? "bg-[#FF5A5A] hover:opacity-95"
+                : "bg-[#FF5A5A]/40 cursor-not-allowed",
             ].join(" ")}
           >
             <span className="inline-flex items-center gap-2 justify-center">
@@ -233,14 +325,30 @@ export default function ManagerCheckInPage() {
         {/* Summary */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-xs font-semibold text-[#21252B] leading-[150%] tracking-[0.07px]">
-            {summary.monthTitle}
+            {formatDate(new Date(), "MMMM YYYY")} Summary
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <StatBox value={String(summary.present)} label="Days Present" valueClassName="text-[#0B9F57]" />
-            <StatBox value={String(summary.absent)} label="Days Absent" valueClassName="text-[#FF5A5A]" />
-            <StatBox value={String(summary.late)} label="Late Arrivals" valueClassName="text-[#FF8A00]" />
-            <StatBox value={`${summary.rate.toFixed(1)}%`} label="Attendance Rate" valueClassName="text-[#06B6D4]" />
+            <StatBox
+              value={String(monthlySummary.workedDays)}
+              label="Days Present"
+              valueClassName="text-[#0B9F57]"
+            />
+            <StatBox
+              value={String(monthlySummary.absentDays)}
+              label="Days Absent"
+              valueClassName="text-[#FF5A5A]"
+            />
+            <StatBox
+              value={String(monthlySummary.lateDays)}
+              label="Late Arrivals"
+              valueClassName="text-[#FF8A00]"
+            />
+            <StatBox
+              value={`${((monthlySummary.absentDays / getDaysInCurrentMonth()) * 100).toFixed(1)}%`}
+              label="Attendance Rate"
+              valueClassName="text-[#06B6D4]"
+            />
           </div>
         </div>
       </div>
