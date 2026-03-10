@@ -345,7 +345,7 @@ export default function ManagerCheckInPage() {
 
   const summary = (() => {
     const monthTitle = `${monthLongLabel(currentYm)} ${currentYm.year} Summary`;
-    const present = monthlySummary?.enoughDays ?? 0;
+    const present = monthlySummary?.workedDays ?? 0;
     const absent = monthlySummary?.absentDays ?? 0;
     const late = monthlySummary?.lateDays ?? 0;
     const rate =
