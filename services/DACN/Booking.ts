@@ -20,6 +20,12 @@ export type BookingsByEmployeeResponse = {
 	data: BookingByRoom[];
 };
 
+export type GetBookingsResponse = {
+	success: boolean;
+	data: BookingByRoom[];
+	total: number;
+};
+
 export type RecurringPattern = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
 
 export type CreateBookingRequest = {
@@ -55,6 +61,17 @@ export async function getBookingsByRoomId(
 
 export async function getBookingsByEmployee(options?: { [key: string]: any }) {
 	return request<BookingsByEmployeeResponse>("/bookings/by-employee", {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		...(options || {}),
+	});
+}
+
+// Admin use-case: get all bookings
+export async function getBookings(options?: { [key: string]: any }) {
+	return request<GetBookingsResponse>("/bookings", {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",

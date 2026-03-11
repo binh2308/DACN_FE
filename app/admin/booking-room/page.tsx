@@ -38,6 +38,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getRooms as apiGetRooms, type Room as ApiRoom } from "@/services/DACN/Rooms";
+import {
+  createBooking,
+  getBookings,
+  type BookingByRoom,
+  type RecurringPattern,
+} from "@/services/DACN/Booking";
 
 // --- TYPES ---
 
@@ -138,6 +145,113 @@ function writeJson<T>(key: string, value: T) {
   } catch {
     // ignore
   }
+}
+
+const normalizeKey = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+
+function normalizeRoomsResponse(data: unknown): ApiRoom[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as ApiRoom[];
+  if (typeof data === "object" && data !== null) {
+    if ("data" in data && Array.isArray((data as any).data)) {
+      return (data as any).data as ApiRoom[];
+    }
+    if ("success" in data && "data" in data && Array.isArray((data as any).data)) {
+      return (data as any).data as ApiRoom[];
+    }
+  }
+  return [];
+}
+
+function normalizeBookingsResponse(data: unknown): BookingByRoom[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as BookingByRoom[];
+  if (typeof data === "object" && data !== null && "data" in data) {
+    const arr = (data as any).data;
+    if (Array.isArray(arr)) return arr as BookingByRoom[];
+  }
+  return [];
+}
+
+function toLocalYmd(iso: string) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function toLocalHHmm(iso: string) {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function mapEquipmentToAmenities(equipment: unknown): RoomAmenities {
+  const list = Array.isArray(equipment) ? (equipment as unknown[]) : [];
+  const text = list
+    .map((x) => String(x || "").toLowerCase())
+    .join(" |");
+  return {
+    projector: text.includes("project") || text.includes("may chieu") || text.includes("máy chiếu"),
+    tv: text.includes("tv") || text.includes("screen") || text.includes("monitor") || text.includes("man hinh") || text.includes("màn hình"),
+    whiteboard: text.includes("whiteboard") || text.includes("board") || text.includes("bang") || text.includes("bảng"),
+    videoCall: text.includes("video") || text.includes("camera") || text.includes("call") || text.includes("zoom"),
+  };
+}
+
+function computeRoomsStatus(baseRooms: Room[], bookings: Booking[], now: Date) {
+  const nowYmd = todayYmd();
+  return baseRooms.map((room) => {
+    // Keep maintenance as-is
+    if (room.status === "maintenance") return room;
+
+    const active = bookings.find(
+      (b) =>
+        b.roomId === room.id &&
+        b.startDate === nowYmd &&
+        isTimeInRange(now, b.startTime, b.endTime),
+    );
+
+    if (!active) {
+      return { ...room, status: "available", currentMeeting: undefined };
+    }
+
+    return {
+      ...room,
+      status: "occupied",
+      currentMeeting: {
+        title: active.title || "Đang họp",
+        endTime: active.endTime,
+      },
+    };
+  });
+}
+
+function toRecurringPattern(value: string): RecurringPattern {
+  switch (String(value || "").toLowerCase()) {
+    case "daily":
+      return "DAILY";
+    case "weekly":
+      return "WEEKLY";
+    case "monthly":
+      return "MONTHLY";
+    default:
+      return "NONE";
+  }
+}
+
+function joinLocalDateTimeToIso(dateYmd: string, timeHhmm: string) {
+  // Interpret as local time, then convert to ISO for backend
+  const d = new Date(`${dateYmd}T${timeHhmm}:00`);
+  return d.toISOString();
 }
 
 // --- SEEDS ---
@@ -307,6 +421,8 @@ export default function AdminBookingRoomPage() {
   const [rooms, setRooms] = React.useState<Room[]>([]);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
 
+  const [tick, setTick] = React.useState(0);
+
   const [q, setQ] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | RoomStatus>(
     "all",
@@ -337,38 +453,88 @@ export default function AdminBookingRoomPage() {
 
   const today = React.useMemo(() => todayYmd(), []);
 
+  // Recompute occupied status periodically (keeps UI up to date during the day)
   React.useEffect(() => {
-    const existingRooms = readJson<Room[]>(STORAGE_ROOMS, []);
-    const nextRooms =
-      existingRooms.length > 0 ? existingRooms : seedRooms();
-    setRooms(nextRooms);
-    if (existingRooms.length === 0) writeJson(STORAGE_ROOMS, nextRooms);
+    const t = setInterval(() => setTick((x) => x + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
-    const existingBookings = readJson<Booking[]>(STORAGE_BOOKINGS, []);
-    const todayBookings = existingBookings.filter((b) => b.startDate === today);
-    if (existingBookings.length === 0 || todayBookings.length === 0) {
-      const seeded = seedBookings(today);
-      const merged = [...existingBookings.filter((b) => b.startDate !== today), ...seeded];
-      setBookings(merged);
-      writeJson(STORAGE_BOOKINGS, merged);
-    } else {
-      setBookings(existingBookings);
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [roomsRaw, bookingsRaw] = await Promise.all([apiGetRooms(), getBookings()]);
+        if (cancelled) return;
+
+        const apiRooms = normalizeRoomsResponse(roomsRaw);
+        const mappedRooms: Room[] = apiRooms.map((r) => ({
+          id: String(r.id),
+          name: String(r.name || ""),
+          capacity: Number(r.capacity ?? 0),
+          location: String(r.location || ""),
+          status: "available",
+          amenities: mapEquipmentToAmenities((r as any).equipment),
+        }));
+
+        const roomIdByName = new Map<string, string>();
+        for (const r of mappedRooms) {
+          if (r?.name) roomIdByName.set(normalizeKey(r.name), r.id);
+        }
+
+        const apiBookings = normalizeBookingsResponse(bookingsRaw);
+        const mappedBookings: Booking[] = apiBookings.map((b) => {
+          const roomName = String(b.roomName || "");
+          const roomId = roomIdByName.get(normalizeKey(roomName)) ?? `room:${normalizeKey(roomName)}`;
+          return {
+            id: String(b.id),
+            roomId,
+            roomName,
+            title: String(b.name || "Booking"),
+            organizer: String(b.name || ""),
+            startDate: toLocalYmd(String(b.startTime)),
+            endDate: toLocalYmd(String(b.endTime)),
+            startTime: toLocalHHmm(String(b.startTime)),
+            endTime: toLocalHHmm(String(b.endTime)),
+          };
+        });
+
+        setBookings(mappedBookings);
+        setRooms(computeRoomsStatus(mappedRooms, mappedBookings, new Date()));
+      } catch {
+        // fallback to local seed if API fails
+        const existingRooms = readJson<Room[]>(STORAGE_ROOMS, []);
+        const nextRooms = existingRooms.length > 0 ? existingRooms : seedRooms();
+        setRooms(nextRooms);
+        if (existingRooms.length === 0) writeJson(STORAGE_ROOMS, nextRooms);
+
+        const existingBookings = readJson<Booking[]>(STORAGE_BOOKINGS, []);
+        const todayBookings = existingBookings.filter((b) => b.startDate === today);
+        if (existingBookings.length === 0 || todayBookings.length === 0) {
+          const seeded = seedBookings(today);
+          const merged = [...existingBookings.filter((b) => b.startDate !== today), ...seeded];
+          setBookings(merged);
+          writeJson(STORAGE_BOOKINGS, merged);
+        } else {
+          setBookings(existingBookings);
+        }
+      }
     }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [today]);
 
-  React.useEffect(() => {
-    if (rooms.length) writeJson(STORAGE_ROOMS, rooms);
-  }, [rooms]);
+  const roomsWithStatus = React.useMemo(() => computeRoomsStatus(rooms, bookings, new Date()), [rooms, bookings, tick]);
 
-  React.useEffect(() => {
-    if (bookings.length) writeJson(STORAGE_BOOKINGS, bookings);
-  }, [bookings]);
-
-  const availableCount = rooms.filter((r) => r.status === "available").length;
+  const availableCount = roomsWithStatus.filter((r) => r.status === "available").length;
 
   const filteredRooms = React.useMemo(() => {
     const query = q.trim().toLowerCase();
-    return rooms.filter((room) => {
+    return roomsWithStatus.filter((room) => {
       if (query) {
         const hay = `${room.name} ${room.location}`.toLowerCase();
         if (!hay.includes(query)) return false;
@@ -382,7 +548,7 @@ export default function AdminBookingRoomPage() {
       }
       return true;
     });
-  }, [rooms, q, statusFilter, capacityFilter]);
+  }, [roomsWithStatus, q, statusFilter, capacityFilter]);
 
   const todayBookings = React.useMemo(() => {
     return bookings
@@ -397,7 +563,7 @@ export default function AdminBookingRoomPage() {
   };
 
   const openEdit = (roomId: string) => {
-    const room = rooms.find((r) => r.id === roomId);
+    const room = roomsWithStatus.find((r) => r.id === roomId);
     if (!room) return;
     setActiveRoomId(roomId);
     setDraft({
@@ -410,7 +576,7 @@ export default function AdminBookingRoomPage() {
   };
 
   const openBookNow = (roomId: string) => {
-    const room = rooms.find((r) => r.id === roomId);
+    const room = roomsWithStatus.find((r) => r.id === roomId);
     if (!room) return;
     setActiveRoomId(roomId);
 
@@ -479,7 +645,7 @@ export default function AdminBookingRoomPage() {
 
   const saveBooking = () => {
     if (!activeRoomId) return;
-    const room = rooms.find((r) => r.id === activeRoomId);
+    const room = roomsWithStatus.find((r) => r.id === activeRoomId);
     if (!room) return;
     
     // Cho phép đặt nếu phòng available hoặc mình muốn override (tuỳ logic, ở đây giữ logic cũ)
@@ -495,6 +661,9 @@ export default function AdminBookingRoomPage() {
     const endTime = bookingDraft.endTime;
 
     if (!title) return alert("Vui lòng nhập mục đích/tiêu đề");
+    if (!startDate || !startTime || !endDate || !endTime) {
+      return alert("Vui lòng chọn đầy đủ ngày/giờ bắt đầu và kết thúc");
+    }
     // Nếu muốn bắt buộc organizer: if (!organizer) return alert("Vui lòng nhập người tổ chức");
     
     // Validation đơn giản ngày giờ
@@ -502,43 +671,50 @@ export default function AdminBookingRoomPage() {
       return alert("Thời gian kết thúc phải sau thời gian bắt đầu");
     }
 
-    const newBooking: Booking = {
-      id: safeId("bk"),
-      roomId: room.id,
-      roomName: room.name,
-      title,
-      organizer: organizer || "Admin", // Fallback nếu không nhập
-      startDate,
-      endDate,
-      startTime,
-      endTime,
-      recurring: bookingDraft.recurringPattern,
-      recurringEndDate: bookingDraft.recurringEndDate
-    };
+    // Call backend API
+    (async () => {
+      try {
+        await createBooking(
+          {
+            room_id: room.id,
+            start_time: joinLocalDateTimeToIso(startDate, startTime),
+            end_time: joinLocalDateTimeToIso(endDate, endTime),
+            purpose: title,
+            recurring_pattern: toRecurringPattern(bookingDraft.recurringPattern),
+            recurring_end_date: bookingDraft.recurringEndDate || endDate,
+          },
+        );
 
-    setBookings((prev) => [...prev, newBooking]);
+        const bookingsRaw = await getBookings();
+        const apiBookings = normalizeBookingsResponse(bookingsRaw);
 
-    // Cập nhật trạng thái phòng nếu đang diễn ra ngay bây giờ
-    const now = new Date();
-    const nowYmd = todayYmd();
-    // Logic check đơn giản: nếu ngày bắt đầu là hôm nay và giờ nằm trong khoảng
-    if (startDate === nowYmd) {
-        const shouldBeOccupied = isTimeInRange(now, startTime, endTime);
-        if (shouldBeOccupied) {
-            setRooms((prev) =>
-                prev.map((r) =>
-                r.id !== room.id
-                    ? r
-                    : {
-                        ...r,
-                        status: "occupied",
-                        currentMeeting: { title, endTime },
-                    },
-                ),
-            );
+        const roomIdByName = new Map<string, string>();
+        for (const r of roomsWithStatus) {
+          if (r?.name) roomIdByName.set(normalizeKey(r.name), r.id);
         }
-    }
-    setBookOpen(false);
+
+        const mappedBookings: Booking[] = apiBookings.map((b) => {
+          const roomName = String(b.roomName || "");
+          const roomId = roomIdByName.get(normalizeKey(roomName)) ?? `room:${normalizeKey(roomName)}`;
+          return {
+            id: String(b.id),
+            roomId,
+            roomName,
+            title: String(b.name || "Booking"),
+            organizer: String(b.name || ""),
+            startDate: toLocalYmd(String(b.startTime)),
+            endDate: toLocalYmd(String(b.endTime)),
+            startTime: toLocalHHmm(String(b.startTime)),
+            endTime: toLocalHHmm(String(b.endTime)),
+          };
+        });
+
+        setBookings(mappedBookings);
+        setBookOpen(false);
+      } catch (err) {
+        alert((err as any)?.message || "Đặt phòng thất bại.");
+      }
+    })();
   };
 
   const RoomForm = () => (
