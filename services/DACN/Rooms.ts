@@ -7,6 +7,11 @@ export type Room = {
 	equipment: string[];
 	imageUrl?: string | null;
 	imageKey?: string | null;
+	/**
+	 * Room availability status returned by backend.
+	 * Known values: AVAILABLE | OCCUPIED | MAINTANANCE
+	 */
+	status?: "AVAILABLE" | "OCCUPIED" | "MAINTANANCE" | "MAINTENANCE" | (string & {});
 	location?: string | null;
 };
 

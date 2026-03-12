@@ -90,9 +90,23 @@ function normalizeEquipment(value: unknown): string[] {
     return out;
 }
 
+type RoomApiStatus = "AVAILABLE" | "OCCUPIED" | "MAINTANANCE" | "MAINTENANCE";
+
+function normalizeRoomStatus(value: unknown): RoomApiStatus | null {
+    const s = String(value ?? "").trim().toUpperCase();
+    if (!s) return null;
+    if (s === "AVAILABLE" || s === "OCCUPIED" || s === "MAINTANANCE" || s === "MAINTENANCE") {
+        return s as RoomApiStatus;
+    }
+    return null;
+}
+
 export default function BookingPage() {
     const { toast } = useToast();
-    const { data, loading, error, refresh } = useRequest(getRooms);
+    const { data, loading, error, refresh } = useRequest(getRooms, {
+        pollingInterval: 5000,
+        pollingWhenHidden: false,
+    });
     const rooms = React.useMemo(() => normalizeRoomsResponse(data), [data]);
 
     const [createOpen, setCreateOpen] = React.useState(false);
@@ -445,7 +459,7 @@ export default function BookingPage() {
                             <div className="text-red-500 font-semibold">Lỗi tải dữ liệu</div>
                             <Button className="mt-4 bg-[#3B82F6]" onClick={() => refresh()}>Thử lại</Button>
                         </div>
-                    ) : loading ? (
+                    ) : (!data && loading) ? (
                         <div className="rounded-xl bg-white p-10 text-center shadow-sm border border-gray-100 animate-pulse">
                             <div className="text-gray-500 font-semibold">Đang tải danh sách phòng...</div>
                         </div>
@@ -456,8 +470,14 @@ export default function BookingPage() {
                     ) : (
                         /* Room Grid */
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {filteredRooms.map((room, index) => {
-                                const statusType = index % 3 === 0 ? 'available' : index % 3 === 1 ? 'busy' : 'maintenance';
+                            {filteredRooms.map((room) => {
+                                const apiStatus = normalizeRoomStatus((room as any).status) ?? "AVAILABLE";
+                                const statusType =
+                                    apiStatus === "AVAILABLE"
+                                        ? "available"
+                                        : apiStatus === "OCCUPIED"
+                                            ? "busy"
+                                            : "maintenance";
                                 
                                 return (
                                     <div key={room.id} className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
@@ -480,9 +500,8 @@ export default function BookingPage() {
                                                     {statusType === 'available' && <MonitorPlay size={48} className="text-gray-400" />}
                                                     {statusType === 'busy' && (
                                                         <div className="text-center">
-                                                            <div className="flex justify-center mb-1"><Users size={32} className="text-red-500" /></div>
-                                                            <div className="text-red-600 font-bold text-sm">Team Marketing</div>
-                                                            <div className="text-red-500/80 text-xs">Kết thúc lúc 11:30</div>
+                                                            <div className="flex justify-center mb-2"><Users size={32} className="text-red-500" /></div>
+                                                            <div className="text-red-600 font-bold text-sm">Đang họp</div>
                                                         </div>
                                                     )}
                                                     {statusType === 'maintenance' && <Wrench size={48} className="text-gray-400" />}
