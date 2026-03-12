@@ -273,7 +273,7 @@ export default function BookRoomPage() {
 
 							<div className="flex items-center justify-end gap-3 pt-2">
 								<Button asChild variant="outline" type="button">
-									<Link href={`/admin/booking/${room.id}`}>Back</Link>
+									<Link href={`/admin/booking`}>Back</Link>
 								</Button>
 								<Button
 									type="submit"
