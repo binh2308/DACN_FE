@@ -4,13 +4,22 @@ import * as React from "react";
 import { Upload, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  getEmployees,
-  type EmployeeDto,
-  type GetEmployeesResponse,
-  updateEmployee,
+  getEmployeeDetail,
+  type EmployeeDetailDto,
+  type GetEmployeeDetailResponse,
+  updateEmployeeByAdmin,
 } from "@/services/DACN/employee";
 
-function fullNameFromApi(e: EmployeeDto) {
+type DegreeFormItem = {
+  school: string;
+  degree: string;
+  fieldOfStudy: string;
+  graduationYear: string;
+  description: string;
+};
+
+// --- HÀM HELPER ĐƯỢC ĐƯA RA NGOÀI ĐỂ DỄ QUẢN LÝ ---
+function fullNameFromApi(e: any) {
   return [e.lastName, e.middleName ?? "", e.firstName]
     .map((x) => String(x || "").trim())
     .filter(Boolean)
@@ -24,6 +33,55 @@ function ymdFromIso(iso?: string | null) {
   return iso.length >= 10 ? iso.slice(0, 10) : iso;
 }
 
+function emptyDegree(): DegreeFormItem {
+  return {
+    school: "",
+    degree: "",
+    fieldOfStudy: "",
+    graduationYear: "",
+    description: "",
+  };
+}
+
+function toOptionalNumber(value: string): number | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+const splitFullname = (fullname: string) => {
+  const parts = fullname.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { lastName: "", firstName: "", middleName: "" };
+  if (parts.length === 1) return { lastName: parts[0], firstName: "", middleName: "" };
+  const lastName = parts[0];
+  const firstName = parts[parts.length - 1];
+  const middleName = parts.slice(1, -1).join(" ");
+  return { lastName, firstName, middleName };
+};
+
+const inputBase = "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
+const inputClass = `${inputBase} w-full`;
+const dateClass = `${inputBase} w-full pr-8`;
+
+const FormRow = ({
+  label,
+  children,
+  required = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) => (
+  <div className="flex items-center gap-3 mb-2">
+    <label className="w-32 shrink-0 text-xs font-medium text-gray-600">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <div className="flex-1 min-w-0">{children}</div>
+  </div>
+);
+
+// --- COMPONENT CHÍNH ---
 export default function EmployeeEditPage() {
   const router = useRouter();
   const params = useParams<{ id: string | string[] }>();
@@ -36,12 +94,13 @@ export default function EmployeeEditPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [employee, setEmployee] = React.useState<EmployeeDto | null>(null);
+  const [employee, setEmployee] = React.useState<EmployeeDetailDto | null>(null);
   const [saving, setSaving] = React.useState(false);
 
+  // Cập nhật State bao gồm cả Department và University (Degrees)
   const [form, setForm] = React.useState({
     id: "",
-    role: "Member",
+    role: "EMPLOYEE",
     fullname: "",
     gender: "Male",
     dateOfBirth: "",
@@ -56,6 +115,9 @@ export default function EmployeeEditPage() {
     salaryGross: "",
     salaryBasic: "",
     phone: "",
+    departmentName: "",
+
+    degrees: [emptyDegree()] as DegreeFormItem[],
   });
 
   React.useEffect(() => {
@@ -71,10 +133,8 @@ export default function EmployeeEditPage() {
       setLoading(true);
       setErrorMsg(null);
       try {
-        const employeesRes = (await getEmployees()) as unknown as GetEmployeesResponse;
-        const data = employeesRes?.data;
-        const all: EmployeeDto[] = Array.isArray(data) ? data : data?.items ?? [];
-        const found = all.find((e: EmployeeDto) => e.id === employeeId) ?? null;
+        const res = (await getEmployeeDetail(employeeId)) as unknown as GetEmployeeDetailResponse;
+        const found = res?.data ?? null;
 
         if (!mounted) return;
 
@@ -84,23 +144,39 @@ export default function EmployeeEditPage() {
         }
 
         setEmployee(found);
+
+        // Map data từ API vào Form. Ép kiểu (found as any) để tránh lỗi TS nếu EmployeeDto chưa update
+        const rawFound = found as any;
+        const degreesFromApi: DegreeFormItem[] = Array.isArray(rawFound.degrees)
+          ? rawFound.degrees.map((d: any) => ({
+              school: d?.school ?? "",
+              degree: d?.degree ?? "",
+              fieldOfStudy: d?.fieldOfStudy ?? "",
+              graduationYear: d?.graduationYear != null ? String(d.graduationYear) : "",
+              description: d?.description ?? "",
+            }))
+          : [];
+
         setForm({
-          id: found.id,
-          role: found.roles || "Member",
-          fullname: fullNameFromApi(found) || found.email,
-          gender: found.gender ?? "Male",
-          dateOfBirth: ymdFromIso(found.dateOfBirth),
-          email: found.email ?? "",
-          address: found.address ?? "",
-          signDay: ymdFromIso(found.signDate),
-          quitDay: ymdFromIso(found.quitDate),
-          idCard: found.idCard ?? "",
-          married: Boolean(found.marriedStatus),
-          children: Number(found.numberOfChildren ?? 0) || 0,
-          childrenDescription: found.childrenDescription ?? "",
-          salaryGross: found.grossSalary != null ? String(found.grossSalary) : "",
-          salaryBasic: found.basicSalary != null ? String(found.basicSalary) : "",
-          phone: found.phone ?? "",
+          id: rawFound.id,
+          role: rawFound.roles || "EMPLOYEE",
+          fullname: fullNameFromApi(rawFound) || rawFound.email,
+          gender: rawFound.gender ?? "Male",
+          dateOfBirth: ymdFromIso(rawFound.dateOfBirth),
+          email: rawFound.email ?? "",
+          address: rawFound.address ?? "",
+          signDay: ymdFromIso(rawFound.signDate),
+          quitDay: ymdFromIso(rawFound.quitDate),
+          idCard: rawFound.idCard ?? "",
+          married: Boolean(rawFound.marriedStatus),
+          children: Number(rawFound.numberOfChildren ?? 0) || 0,
+          childrenDescription: rawFound.childrenDescription ?? "",
+          salaryGross: rawFound.grossSalary != null ? String(rawFound.grossSalary) : "",
+          salaryBasic: rawFound.basicSalary != null ? String(rawFound.basicSalary) : "",
+          phone: rawFound.phone ?? "",
+          departmentName: rawFound.department?.name ?? rawFound.departmentName ?? "",
+
+          degrees: degreesFromApi.length ? degreesFromApi : [emptyDegree()],
         });
       } catch (err) {
         if (!mounted) return;
@@ -148,37 +224,55 @@ export default function EmployeeEditPage() {
 
     setSaving(true);
     try {
-      // Prevent changing id
       if (form.id.trim() !== employee.id) {
         alert("Không thể đổi Employee ID khi cập nhật (theo API hiện tại).");
         return;
       }
 
-      // Map to API payload (minimal, compatible with current backend typing).
+      const { lastName, firstName, middleName } = splitFullname(form.fullname);
+
+      const degrees = (Array.isArray(form.degrees) ? form.degrees : [])
+        .map((d) => ({
+          school: d.school.trim(),
+          degree: d.degree.trim() || "Unknown",
+          fieldOfStudy: d.fieldOfStudy.trim() || "Unknown",
+          graduationYear: toOptionalNumber(d.graduationYear),
+          description: d.description.trim() || null,
+        }))
+        .filter((d) => Boolean(d.school));
+
+      // Map payload đúng cấu trúc yêu cầu
       const payload = {
-        id: employee.id,
+        lastName,
+        firstName,
+        middleName: middleName || null,
+        gender: form.gender || null,
+        dateOfBirth: form.dateOfBirth || null, // API nhận YYYY-MM-DD
+        email: form.email.trim(),
         roles: form.role,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
-        gender: form.gender,
-        dateOfBirth: form.dateOfBirth,
-        signDate: form.signDay,
-        quitDate: form.quitDay,
-        idCard: form.idCard,
+        phone: form.phone.trim() || null,
+        basicSalary: form.salaryBasic !== "" ? Number(form.salaryBasic) : undefined,
+        grossSalary: form.salaryGross !== "" ? Number(form.salaryGross) : undefined,
+        signDate: form.signDay || null,
+        quitDate: form.quitDay || null,
+        idCard: form.idCard.trim() || null,
+        address: form.address.trim() || null,
+        departmentName: form.departmentName.trim() || null,
         marriedStatus: Boolean(form.married),
         numberOfChildren: Number(form.children) || 0,
-        childrenDescription: form.childrenDescription,
-        grossSalary: form.salaryGross !== "" ? Number(form.salaryGross) : undefined,
-        basicSalary: form.salaryBasic !== "" ? Number(form.salaryBasic) : undefined,
-        fullname: form.fullname,
+        childrenDescription: form.childrenDescription.trim() || null,
+        degrees: degrees,
       };
 
-      await updateEmployee(employee.id, payload);
+      console.log("Payload Update:", payload);
+
+      await updateEmployeeByAdmin(employee.id, payload);
+      alert("Cập nhật nhân viên thành công!");
       router.push(`/manager/employee/${encodeURIComponent(employee.id)}`);
     } catch (error) {
       console.error("Failed to update employee", error);
-      alert("Cập nhật nhân viên thất bại. Vui lòng thử lại.");
+      const message = (error as any)?.response?.data?.message || (error as any)?.message || "Tạo thất bại";
+      alert(`Cập nhật thất bại. Lỗi: ${Array.isArray(message) ? message.join(", ") : message}`);
     } finally {
       setSaving(false);
     }
@@ -233,28 +327,6 @@ export default function EmployeeEditPage() {
     );
   }
 
-  const inputBase =
-    "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
-  const inputClass = `${inputBase} w-full`;
-  const dateClass = `${inputBase} w-full pr-8`;
-
-  const FormRow = ({
-    label,
-    children,
-    required = false,
-  }: {
-    label: string;
-    children: React.ReactNode;
-    required?: boolean;
-  }) => (
-    <div className="flex items-center gap-3 mb-2">
-      <label className="w-32 shrink-0 text-xs font-medium text-gray-600">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <div className="flex-1 min-w-0">{children}</div>
-    </div>
-  );
-
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white sticky top-0 z-20 shadow-sm">
@@ -273,9 +345,12 @@ export default function EmployeeEditPage() {
         </button>
       </div>
 
-      <form onSubmit={onSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px] mx-auto w-full">
+      <form onSubmit={onSubmit} className="relative z-0 p-6 space-y-6 max-w-[1400px] mx-auto w-full">
+        {/* ROW 1: Account Info & Main Info */}
         <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          
+          {/* LEFT: Account Info */}
+          <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
             <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Account Info</h3>
             <div className="flex gap-4">
               <div className="flex flex-col items-center gap-2 w-1/3">
@@ -293,16 +368,14 @@ export default function EmployeeEditPage() {
 
               <div className="flex-1 min-w-0 space-y-1">
                 <FormRow label="Employee ID" required>
-                  <input type="text" name="id" value={String(form.id)} className={inputClass} readOnly />
+                  <input type="text" name="id" value={String(form.id)} className={`${inputClass} bg-gray-50 text-gray-400`} readOnly />
                 </FormRow>
 
                 <FormRow label="Roles">
                   <select name="role" value={String(form.role)} onChange={onChange} className={inputClass}>
-                    <option value="Member">Member</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Developer">Developer</option>
-                    <option value="HR">HR</option>
-                    <option value="Sale">Sale</option>
+                    <option value="EMPLOYEE">EMPLOYEE</option>
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="ADMIN">ADMIN</option>
                   </select>
                 </FormRow>
 
@@ -317,7 +390,8 @@ export default function EmployeeEditPage() {
             </div>
           </div>
 
-          <div className="col-span-12 lg:col-span-7 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          {/* RIGHT: Main Info */}
+          <div className="col-span-12 lg:col-span-7 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
             <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Main Info</h3>
             <div className="space-y-1">
               <FormRow label="Fullname" required>
@@ -366,8 +440,11 @@ export default function EmployeeEditPage() {
           </div>
         </div>
 
+        {/* ROW 2: Other Info & Department/University */}
         <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          
+          {/* LEFT: Other Info */}
+          <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
             <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Other Info</h3>
             <div className="space-y-1">
               <FormRow label="ID Card" required>
@@ -386,7 +463,7 @@ export default function EmployeeEditPage() {
                   />
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-600">Children</span>
-                    <input type="number" name="children" value={String(form.children)} onChange={onChange} className={`${inputBase} w-16 text-xs`} />
+                    <input type="number" name="children" value={String(form.children)} onChange={onChange} className={`${inputBase} w-16 text-xs text-center`} />
                   </div>
                 </div>
               </div>
@@ -398,7 +475,6 @@ export default function EmployeeEditPage() {
                   onChange={onChange}
                   rows={1}
                   className={inputClass}
-                  placeholder="Are you sure ?"
                 />
               </FormRow>
 
@@ -409,6 +485,136 @@ export default function EmployeeEditPage() {
               <FormRow label="Basic Salary">
                 <input type="text" name="salaryBasic" value={String(form.salaryBasic)} onChange={onChange} className={inputClass} />
               </FormRow>
+            </div>
+          </div>
+
+          {/* RIGHT: Department & University */}
+          <div className="col-span-12 lg:col-span-7 flex flex-col gap-6 relative isolate z-[9999]">
+            
+            {/* Department */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative isolate z-[9999]">
+              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Department</h3>
+              <FormRow label="Department Name">
+                <input
+                  name="departmentName"
+                  value={form.departmentName}
+                  onChange={onChange}
+                  className={`${inputClass} pointer-events-auto`}
+                  placeholder="VD: Sales, HR, Engineering"
+                />
+              </FormRow>
+            </div>
+
+            {/* University */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative isolate z-[9999]">
+              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">University</h3>
+
+              <div className="grid grid-cols-6 gap-2 mb-2">
+                <div className="text-[10px] font-bold text-gray-500 uppercase">Schools</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase">Degree</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase">Field of study</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase">Graduation Year</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase">Description</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase"> </div>
+              </div>
+
+              <div className="space-y-2">
+                {(form.degrees?.length ? form.degrees : [emptyDegree()]).map((d, idx) => (
+                  <div key={idx} className="grid grid-cols-6 gap-2">
+                    <input
+                      type="text"
+                      value={d.school}
+                      onChange={(e) =>
+                        setForm((prev) => {
+                          const next = [...(prev.degrees ?? [])];
+                          next[idx] = { ...(next[idx] ?? emptyDegree()), school: e.target.value };
+                          return { ...prev, degrees: next };
+                        })
+                      }
+                      className={`${inputClass} pointer-events-auto`}
+                      placeholder="MIT"
+                    />
+                    <input
+                      type="text"
+                      value={d.degree}
+                      onChange={(e) =>
+                        setForm((prev) => {
+                          const next = [...(prev.degrees ?? [])];
+                          next[idx] = { ...(next[idx] ?? emptyDegree()), degree: e.target.value };
+                          return { ...prev, degrees: next };
+                        })
+                      }
+                      className={`${inputClass} pointer-events-auto`}
+                      placeholder="Bachelor of Science"
+                    />
+                    <input
+                      type="text"
+                      value={d.fieldOfStudy}
+                      onChange={(e) =>
+                        setForm((prev) => {
+                          const next = [...(prev.degrees ?? [])];
+                          next[idx] = { ...(next[idx] ?? emptyDegree()), fieldOfStudy: e.target.value };
+                          return { ...prev, degrees: next };
+                        })
+                      }
+                      className={`${inputClass} pointer-events-auto`}
+                      placeholder="Computer Science"
+                    />
+                    <input
+                      type="number"
+                      value={d.graduationYear}
+                      onChange={(e) =>
+                        setForm((prev) => {
+                          const next = [...(prev.degrees ?? [])];
+                          next[idx] = { ...(next[idx] ?? emptyDegree()), graduationYear: e.target.value };
+                          return { ...prev, degrees: next };
+                        })
+                      }
+                      className={`${inputClass} pointer-events-auto`}
+                      placeholder="2022"
+                    />
+                    <input
+                      type="text"
+                      value={d.description}
+                      onChange={(e) =>
+                        setForm((prev) => {
+                          const next = [...(prev.degrees ?? [])];
+                          next[idx] = { ...(next[idx] ?? emptyDegree()), description: e.target.value };
+                          return { ...prev, degrees: next };
+                        })
+                      }
+                      className={`${inputClass} pointer-events-auto`}
+                      placeholder="Graduated with honors"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => {
+                          const current = prev.degrees ?? [];
+                          const next = current.filter((_, i) => i !== idx);
+                          return { ...prev, degrees: next.length ? next : [emptyDegree()] };
+                        })
+                      }
+                      className="h-8 w-8 rounded border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"
+                      aria-label="Remove degree"
+                      title="Remove"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, degrees: [...(prev.degrees ?? []), emptyDegree()] }))}
+                    className="text-[10px] font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200"
+                  >
+                    + ADD DEGREE
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

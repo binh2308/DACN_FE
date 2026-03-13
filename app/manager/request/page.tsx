@@ -8,14 +8,23 @@ import {
   RefreshCw 
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useRequest } from "ahooks";
+
+import {
+  getDepartmentLeaveRequests,
+  getLeaveRequestById,
+  processLeaveRequest,
+  type DepartmentLeaveRequestsResponse,
+  type LeaveRequestDetailResponse,
+} from "@/services/DACN/request";
 
 // --- Types & Mock Data ---
 
 // 1. Định nghĩa kiểu cho trạng thái quyết định (Thêm phần này để sửa lỗi)
-type DecisionMap = Record<number, "approved" | "declined">;
+type DecisionMap = Record<string, "approved" | "REJECTED">;
 
 interface LeaveRequest {
-  id: number;
+  id: string;
   name: string;
   duration: number; // số ngày
   startDate: string;
@@ -28,99 +37,70 @@ interface LeaveRequest {
   fullReason: string; // Lý do chi tiết
 }
 
-const mockLeaves: LeaveRequest[] = [
-  {
-    id: 1,
-    name: "abebe gemechu",
-    duration: 5,
-    startDate: "22/04/2022",
-    endDate: "28/04/2022",
-    type: "Sick",
-    reason: "Personal",
-    department: "Sales and Marketing",
-    daysRemaining: 3,
-    newResumptionDate: "29/04/2022",
-    fullReason: "My wife gave birth"
-  },
-  {
-    id: 2,
-    name: "aman bey",
-    duration: 7,
-    startDate: "22/04/2022",
-    endDate: "30/04/2022",
-    type: "Exam",
-    reason: "Examination",
-    department: "IT Department",
-    daysRemaining: 10,
-    newResumptionDate: "01/05/2022",
-    fullReason: "Final semester exams"
-  },
-  {
-    id: 3,
-    name: "feven tesfaye",
-    duration: 120,
-    startDate: "22/04/2022",
-    endDate: "28/06/2022",
-    type: "Maternity",
-    reason: "Child Care",
-    department: "Human Resources",
-    daysRemaining: 0,
-    newResumptionDate: "29/06/2022",
-    fullReason: "Maternity leave"
-  },
-  {
-    id: 4,
-    name: "gelila moges",
-    duration: 5,
-    startDate: "22/04/2022",
-    endDate: "28/04/2022",
-    type: "Sick",
-    reason: "Personal",
-    department: "Finance",
-    daysRemaining: 5,
-    newResumptionDate: "29/04/2022",
-    fullReason: "Medical checkup"
-  },
-  {
-    id: 5,
-    name: "yanet tesfaye",
-    duration: 5,
-    startDate: "22/04/2022",
-    endDate: "28/04/2022",
-    type: "Sick",
-    reason: "Personal",
-    department: "Operations",
-    daysRemaining: 2,
-    newResumptionDate: "29/04/2022",
-    fullReason: "Family emergency"
-  },
-   {
-    id: 6,
-    name: "beti woloe",
-    duration: 5,
-    startDate: "22/04/2022",
-    endDate: "28/04/2022",
-    type: "Sick",
-    reason: "Personal",
-    department: "Operations",
-    daysRemaining: 2,
-    newResumptionDate: "29/04/2022",
-    fullReason: "Personal leave"
-  },
-   {
-    id: 7,
-    name: "dawit int",
-    duration: 5,
-    startDate: "22/04/2022",
-    endDate: "28/04/2022",
-    type: "Sick",
-    reason: "Personal",
-    department: "Sales",
-    daysRemaining: 2,
-    newResumptionDate: "29/04/2022",
-    fullReason: "Feeling unwell"
-  },
-];
+function formatDateDmy(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(d.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function diffDaysInclusive(fromIso: string, toIso: string): number {
+  const from = new Date(fromIso);
+  const to = new Date(toIso);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return 0;
+  const ms = to.getTime() - from.getTime();
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000)) + 1;
+  return Math.max(1, days);
+}
+
+function addDaysDmy(iso: string, days: number): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setDate(d.getDate() + days);
+  return formatDateDmy(d.toISOString());
+}
+
+function mapApiToUi(res: DepartmentLeaveRequestsResponse | null | undefined): LeaveRequest[] {
+  const items = res?.data?.items ?? [];
+  return items.map((it) => {
+    const startDate = formatDateDmy(it.date_from);
+    const endDate = formatDateDmy(it.date_to);
+    return {
+      id: it.id,
+      name: it.employee?.name ?? "",
+      duration: diffDaysInclusive(it.date_from, it.date_to),
+      startDate,
+      endDate,
+      // API không trả type -> dùng status để vẫn lấp cột Type mà không đổi layout
+      type: String(it.status ?? "").toUpperCase(),
+      reason: it.reason ?? "",
+      department: "",
+      daysRemaining: 0,
+      newResumptionDate: addDaysDmy(it.date_to, 1),
+      fullReason: it.reason ?? "",
+    };
+  });
+}
+
+function mapDetailToUi(
+  res: LeaveRequestDetailResponse | null | undefined,
+): Partial<LeaveRequest> {
+  const data = res?.data;
+  if (!data) return {};
+  return {
+    name: data.employee?.name ?? "",
+    startDate: formatDateDmy(data.date_from),
+    endDate: formatDateDmy(data.date_to),
+    duration: diffDaysInclusive(data.date_from, data.date_to),
+    type: String(data.status ?? "").toUpperCase(),
+    reason: data.reason ?? "",
+    newResumptionDate: addDaysDmy(data.date_to, 1),
+    // Ưu tiên description (chi tiết), fallback reason
+    fullReason: data.description || data.reason || "",
+  };
+}
 
 // --- Components ---
 
@@ -159,14 +139,6 @@ function LeaveDetailModal({
               <label className="block text-sm font-medium text-gray-600 mb-1">Employee Name</label>
               <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm">
                  {data.name}
-              </div>
-           </div>
-
-           {/* Department */}
-           <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Department</label>
-              <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm">
-                 {data.department}
               </div>
            </div>
 
@@ -239,11 +211,49 @@ function LeaveDetailModal({
 
 // 2. Main Page (Giống ảnh 1)
 export default function LeaveManagementPage() {
-  const [activeActionId, setActiveActionId] = useState<number | null>(null);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
   // Sử dụng type DecisionMap đã định nghĩa
   const [decisions, setDecisions] = useState<DecisionMap>({});
   const actionRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data: leaveRes,
+    loading: isLoading,
+    error,
+    refresh: refreshLeaves,
+  } = useRequest(async () => {
+    const resRaw = await getDepartmentLeaveRequests({ page: 1, pageSize: 20 });
+    return resRaw as unknown as DepartmentLeaveRequestsResponse;
+  });
+
+  const {
+    runAsync: fetchLeaveDetail,
+  } = useRequest(
+    async (id: string) => {
+      const resRaw = await getLeaveRequestById(id);
+      return resRaw as unknown as LeaveRequestDetailResponse;
+    },
+    { manual: true },
+  );
+
+  const {
+    runAsync: processLeave,
+  } = useRequest(
+    async (id: string, status: "APPROVED" | "REJECTED") => {
+      const description =
+        status === "APPROVED"
+          ? "Approved"
+          : "REJECTED";
+
+      return processLeaveRequest(id, {
+        status
+      });
+    },
+    { manual: true },
+  );
+
+  const leaves = mapApiToUi(leaveRes);
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -256,23 +266,47 @@ export default function LeaveManagementPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleActionClick = (id: number) => {
+  const handleActionClick = (id: string) => {
     setActiveActionId(activeActionId === id ? null : id);
   };
 
-  const handleViewDetails = (leave: LeaveRequest) => {
-    setSelectedLeave(leave);
+  const handleRowClick = async (leave: LeaveRequest) => {
     setActiveActionId(null);
+    try {
+      const detailRes = await fetchLeaveDetail(leave.id);
+      const merged: LeaveRequest = {
+        ...leave,
+        ...mapDetailToUi(detailRes),
+      };
+      setSelectedLeave(merged);
+    } catch {
+      // Fallback: vẫn mở modal với dữ liệu list nếu call detail fail
+      setSelectedLeave(leave);
+    }
   };
 
-  const handleApprove = (id: number) => {
-    setDecisions((prev) => ({ ...prev, [id]: "approved" }));
-    setActiveActionId(null);
+  const handleApprove = async (id: string) => {
+    try {
+      await processLeave(id, "APPROVED");
+      setDecisions((prev) => ({ ...prev, [id]: "approved" }));
+      refreshLeaves();
+    } catch (e) {
+      console.error("Failed to approve leave request", e);
+    } finally {
+      setActiveActionId(null);
+    }
   };
 
-  const handleDecline = (id: number) => {
-    setDecisions((prev) => ({ ...prev, [id]: "declined" }));
-    setActiveActionId(null);
+  const handleDecline = async (id: string) => {
+    try {
+      await processLeave(id, "REJECTED");
+      setDecisions((prev) => ({ ...prev, [id]: "REJECTED" }));
+      refreshLeaves();
+    } catch (e) {
+      console.error("Failed to decline leave request", e);
+    } finally {
+      setActiveActionId(null);
+    }
   };
 
   return (
@@ -282,12 +316,6 @@ export default function LeaveManagementPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-900">Leave History</h1>
         <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-gray-100 rounded text-gray-600">
-             <Filter size={20} className="fill-current" />
-          </button>
-          <button className="flex items-center gap-2 bg-[#2D2D2D] text-white px-4 py-2 rounded text-sm font-medium hover:bg-black transition-colors">
-             Export <ChevronDown size={16} />
-          </button>
         </div>
       </div>
 
@@ -306,13 +334,38 @@ export default function LeaveManagementPage() {
             </tr>
           </thead>
           <tbody className="text-sm text-gray-700">
-            {mockLeaves.map((leave, index) => {
-              const decision = decisions[leave.id];
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="py-8 px-4 text-center text-gray-500">
+                  Loading data from API...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="py-8 px-4 text-center text-red-600">
+                  Failed to load leave requests. Please try again.
+                </td>
+              </tr>
+            ) : leaves.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-8 px-4 text-center text-gray-500 italic">
+                  No leave requests found.
+                </td>
+              </tr>
+            ) : (
+            leaves.map((leave, index) => {
+              const decision =
+                decisions[leave.id] ??
+                (leave.type === "APPROVED"
+                  ? "approved"
+                  : leave.type === "REJECTED"
+                  ? "REJECTED"
+                  : undefined);
 
               const rowBg =
                 decision === "approved"
                   ? "bg-[#CCFFCC]"
-                  : decision === "declined"
+                  : decision === "REJECTED"
                   ? "bg-[#FFBBBB]"
                   : index % 2 === 1
                   ? "bg-[#F9FAFB]"
@@ -324,14 +377,15 @@ export default function LeaveManagementPage() {
               const rowAccent =
                 decision === "approved"
                   ? "border-l-4 border-l-[#0B9F57]"
-                  : decision === "declined"
+                  : decision === "REJECTED"
                   ? "border-l-4 border-l-[#FF5A5A]"
                   : "";
 
               return (
                 <tr
                   key={leave.id}
-                  className={`border-b border-gray-100 transition-colors ${rowBg} ${rowHover} ${rowAccent}`}
+                  onClick={() => handleRowClick(leave)}
+                  className={`border-b border-gray-100 transition-colors cursor-pointer ${rowBg} ${rowHover} ${rowAccent}`}
                 >
                   <td className="py-3 px-4 font-medium">{leave.name}</td>
                   <td className="py-3 px-4 text-center">{leave.duration}</td>
@@ -341,7 +395,10 @@ export default function LeaveManagementPage() {
                   <td className="py-3 px-4">{leave.reason}</td>
                   <td className="py-3 px-4 text-center relative">
                     <button 
-                      onClick={() => handleActionClick(leave.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleActionClick(leave.id);
+                      }}
                       className="inline-flex items-center gap-1 bg-[#536E68] text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-[#3E524D] transition-colors"
                     >
                       Actions <ChevronDown size={14} />
@@ -351,22 +408,32 @@ export default function LeaveManagementPage() {
                     {activeActionId === leave.id && (
                       <div 
                         ref={actionRef}
+                        onClick={(e) => e.stopPropagation()}
                         className="absolute right-4 top-10 w-32 bg-[#536E68] text-white rounded shadow-lg z-10 flex flex-col text-xs text-left overflow-hidden"
                       >
                         <button 
-                          onClick={() => handleApprove(leave.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleApprove(leave.id);
+                          }}
                           className="px-3 py-2 hover:bg-[#3E524D] border-b border-[#3E524D]/50 text-left"
                         >
                           Approve
                         </button>
                         <button 
-                          onClick={() => handleDecline(leave.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDecline(leave.id);
+                          }}
                           className="px-3 py-2 hover:bg-[#3E524D] border-b border-[#3E524D]/50 text-left"
                         >
                           Decline
                         </button>
                         <button 
-                          onClick={() => handleViewDetails(leave)}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleRowClick(leave);
+                          }}
                           className="px-3 py-2 hover:bg-[#3E524D] border-b border-[#3E524D]/50 text-left font-semibold"
                         >
                           View Details
@@ -376,7 +443,7 @@ export default function LeaveManagementPage() {
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

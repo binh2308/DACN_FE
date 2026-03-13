@@ -46,7 +46,7 @@ const getDuration = (start: string, end: string) => {
   const endDate = new Date(end);
   return Math.ceil(
     (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  ) + 1;
 };
 const getRemainingDays = (start: string, end: string) => {
   const startDate = new Date(start);

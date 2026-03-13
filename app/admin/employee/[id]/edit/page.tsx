@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Upload, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { getEmployees, updateEmployee } from "@/services/DACN/employee";
+import { getEmployees, updateEmployeeByAdmin } from "@/services/DACN/employee";
 import { extractEmployeesFromResponseData, type EmployeeUI, uiFormToEmployeePayload, employeeDtoToUI } from "@/lib/employee-ui";
 
 type EmployeeRecord = EmployeeUI & {
@@ -237,7 +237,7 @@ export default function EditEmployeePage() {
 
     const run = async () => {
       try {
-        await updateEmployee(employee.id, payload);
+        await updateEmployeeByAdmin(employee.id, payload);
         router.push(`/admin/employee/${encodeURIComponent(employee.id)}`);
       } catch (error) {
         console.error("Failed to update employee", error);

@@ -121,7 +121,7 @@ export default function TicketDetailPage() {
 				<Button variant="ghost" className="h-9 px-2" onClick={() => router.back()}>
 					<ChevronLeft className="h-4 w-4" />
 				</Button>
-				<Link href="/manager/support" className="text-sm font-semibold text-foreground">
+				<Link href="/admin/support" className="text-sm font-semibold text-foreground">
 					Ticket Details
 				</Link>
 			</div>

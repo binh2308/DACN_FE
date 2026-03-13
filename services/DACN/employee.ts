@@ -37,6 +37,15 @@ export type DegreeDto = {
   description?: string | null;
 };
 
+// Payload used for create/update requests. Backend examples don't include `id`.
+export type DegreePayload = {
+  school: string;
+  degree: string;
+  fieldOfStudy?: string | null;
+  graduationYear?: number | null;
+  description?: string | null;
+};
+
 export type EmployeeDetailDto = EmployeeDto & {
   degrees?: DegreeDto[];
 };
@@ -58,11 +67,12 @@ export type CreateEmployeePayload = {
   quitDate?: string | null;
   idCard?: string | null;
   address?: string | null;
+  // Backend update/create examples use departmentName rather than a nested department object
+  departmentName?: string | null;
   marriedStatus?: boolean | null;
   numberOfChildren?: number | null;
   childrenDescription?: string | null;
-  department?: DepartmentDto | null;
-  degrees?: DegreeDto[];
+  degrees?: DegreePayload[];
   avatarUrl?: string | null;
 };
 
@@ -88,6 +98,22 @@ export type GetEmployeesResponse = {
 };
 
 export type GetEmployeeDetailResponse = {
+  statusCode: number;
+  message?: string;
+  data: EmployeeDetailDto;
+};
+
+export type GetEmployeeProfileResponse = {
+  statusCode: number;
+  message?: string;
+  data: EmployeeDetailDto;
+};
+
+export type UpdateEmployeeByAdminPayload = Partial<
+  Omit<CreateEmployeePayload, "id" | "password">
+>;
+
+export type UpdateEmployeeByAdminResponse = {
   statusCode: number;
   message?: string;
   data: EmployeeDetailDto;
@@ -123,22 +149,39 @@ export async function getAllEmployees(options?: { [key: string]: any }) {
   });
 }
 
+// Lấy profile nhân viên hiện tại (theo token)
+export async function getEmployeeProfile(options?: { [key: string]: any }) {
+  return request<GetEmployeeProfileResponse, GetEmployeeProfileResponse>("/employee/profile", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
 // Tạo nhân viên mới
 export async function createEmployee(body: CreateEmployeePayload, options?: { [key: string]: any }) {
-  return request<CreateEmployeeResponse>("/auth/signup", {
+  return request<CreateEmployeeResponse>("/employee/by-admin", {
     method: "POST",
     data: body,
     ...(options || {}),
   });
 }
 
-// Cập nhật thông tin nhân viên
-export async function updateEmployee(id: string, body: any, options?: { [key: string]: any }) {
-  return request<any>(`/employee/${id}`, {
-    method: "PUT",
-    data: body,
-    ...(options || {}),
-  });
+// Manager/Admin use-case: cập nhật nhân viên theo quyền admin
+export async function updateEmployeeByAdmin(
+  id: string,
+  body: UpdateEmployeeByAdminPayload,
+  options?: { [key: string]: any }
+) {
+  return request<UpdateEmployeeByAdminResponse>(`/employee/by-admin/${id}`,
+    {
+      method: "PATCH",
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 // Xóa nhân viên

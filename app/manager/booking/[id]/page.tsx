@@ -16,7 +16,7 @@ const formatTimeRange = (startIso: string, endIso: string) => {
 	const end = new Date(endIso);
 	const date = start.toLocaleDateString("vi-VN", {
 		weekday: "short",
-		year: "numeric",
+		year: "numeric",  
 		month: "short",
 		day: "2-digit",
 	});

@@ -16,7 +16,7 @@ import {
 import {
 	formatPriority,
 	formatTicketStatus,
-	supportTickets,
+	listSupportTickets,
 	statusBadgeVariant,
 	type TicketPriority,
 	type TicketStatus,
@@ -37,20 +37,25 @@ const formatDate = (iso: string) => {
 };
 
 export default function SupportPage() {
+	const [tickets, setTickets] = React.useState(() => listSupportTickets());
 	const [filters, setFilters] = React.useState<Filters>({
 		status: "all",
 		priority: "all",
 	});
 	const [limit, setLimit] = React.useState(6);
 
+	React.useEffect(() => {
+		setTickets(listSupportTickets());
+	}, []);
+
 	const filtered = React.useMemo(() => {
-		return supportTickets.filter((t) => {
+		return tickets.filter((t) => {
 			if (filters.status !== "all" && t.status !== filters.status) return false;
 			if (filters.priority !== "all" && t.priority !== filters.priority)
 				return false;
 			return true;
 		});
-	}, [filters]);
+	}, [filters, tickets]);
 
 	const visible = filtered.slice(0, limit);
 
@@ -116,7 +121,7 @@ export default function SupportPage() {
 				{visible.map((t) => (
 					<Link
 						key={t.id}
-						href={`/manager/support/${t.id}`}
+						href={`/user/support/${t.id}`}
 						className="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md"
 					>
 						<div className="flex items-start justify-between gap-3">
