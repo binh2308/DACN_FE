@@ -36,10 +36,38 @@ export async function getAssets(
   });
 }
 
-export async function createAsset(data: DACN.CreateAssetDto, options?: { [key: string]: any }) {
+export async function createAsset(
+  data: DACN.CreateAssetDto,
+  options?: { [key: string]: any },
+) {
   return request<any>("/assets", {
     method: "POST",
     data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
+export function updateAsset(
+  id: string,
+  data: DACN.UpdateAssetDto,
+  options?: { [key: string]: any },
+) {
+  return request<any>(`/assets/${id}`, {
+    method: "PATCH",
+    data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
+export function deleteAsset(id: string, options?: { [key: string]: any }) {
+  return request<any>(`/assets/${id}`, {
+    method: "DELETE",
     headers: {
       "Content-Type": "application/json",
     },

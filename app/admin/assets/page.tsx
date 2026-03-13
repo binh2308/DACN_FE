@@ -14,7 +14,12 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { getAssets, createAsset } from "@/services/DACN/asset";
+import {
+  getAssets,
+  createAsset,
+  updateAsset,
+  deleteAsset,
+} from "@/services/DACN/asset";
 import { DACN } from "@/services/DACN/typings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -498,32 +503,54 @@ export default function AdminAssetsPage() {
     }
   };
 
-  const saveEdit = () => {
+  const handleUpdate = async () => {
     if (!activeId) return;
     if (!draft.name.trim()) {
       alert("Vui lòng nhập tên tài sản");
       return;
     }
-    setItems((prev) =>
-      prev.map((x) =>
-        x.id !== activeId
-          ? x
-          : {
-              ...x,
-              name: draft.name.trim(),
-              code: draft.code.trim(),
-              serialNumber: draft.serialNumber.trim(),
-              category: draft.category,
-              condition: draft.condition,
-              location: draft.location,
-              purchase_date: draft.purchase_date,
-              warranty_expiration_date:
-                draft.warranty_expiration_date || undefined,
-              maintenance_schedule: draft.maintenance_schedule || "",
-            },
-      ),
-    );
-    setEditOpen(false);
+    try {
+      const updatedAssetData: DACN.UpdateAssetDto = {
+        name: draft.name.trim(),
+        condition: draft.condition,
+        type: draft.type as string,
+        ownerEmployeeId: draft.owner ? "emp_nd" : null,
+        location: draft.location,
+        purchase_date: draft.purchase_date,
+        warranty_expiration_date: draft.warranty_expiration_date as string,
+        maintenance_schedule: draft.warranty_expiration_date ?? "",
+      };
+      await updateAsset(activeId, updatedAssetData);
+      notifications.show({
+        title: "Thành công",
+        message: "Thông tin tài sản đã được cập nhật.",
+        color: "green",
+      });
+      setItems((prev) =>
+        prev.map((x) =>
+          x.id !== activeId
+            ? x
+            : {
+                ...x,
+                name: draft.name.trim(),
+                category: draft.category,
+                condition: draft.condition,
+                location: draft.location,
+                purchase_date: draft.purchase_date,
+                warranty_expiration_date:
+                  draft.warranty_expiration_date || undefined,
+                maintenance_schedule: draft.warranty_expiration_date || "",
+              },
+        ),
+      );
+      setEditOpen(false);
+    } catch (error) {
+      notifications.show({
+        title: "Lỗi",
+        message: "Đã xảy ra lỗi khi cập nhật tài sản.",
+        color: "red",
+      });
+    }
   };
 
   const saveAssign = () => {
@@ -547,9 +574,23 @@ export default function AdminAssetsPage() {
     setAssignOpen(false);
   };
 
-  const onDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Bạn có chắc muốn xóa tài sản này không?")) return;
-    setItems((prev) => prev.filter((x) => x.id !== id));
+    try {
+      await deleteAsset(id);
+      notifications.show({
+        title: "Thành công",
+        message: "Tài sản đã được xóa khỏi hệ thống.",
+        color: "green",
+      });
+      setItems((prev) => prev.filter((x) => x.id !== id));
+    } catch (error) {
+      notifications.show({
+        title: "Lỗi",
+        message: "Đã xảy ra lỗi khi xóa tài sản.",
+        color: "red",
+      });
+    }
   };
 
   const StatCard = ({
@@ -688,8 +729,7 @@ export default function AdminAssetsPage() {
             <thead className="bg-neutral-background border-b border-grey-50">
               <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-semibold">Tài sản / Mã</th>
-                <th className="px-4 py-3 font-semibold">Serial</th>{" "}
-                {/* Thêm cột Serial */}
+                <th className="px-4 py-3 font-semibold">Serial</th>
                 <th className="px-4 py-3 font-semibold">Loại</th>
                 <th className="px-4 py-3 font-semibold">Trạng thái</th>
                 <th className="px-4 py-3 font-semibold">Được cấp cho</th>
@@ -779,7 +819,7 @@ export default function AdminAssetsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => onDelete(it.id as string)}
+                          onClick={() => handleDelete(it.id as string)}
                           className="p-2 rounded-md hover:bg-red-50 text-red-500"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -870,7 +910,7 @@ export default function AdminAssetsPage() {
             </Button>
             <Button
               type="button"
-              onClick={saveEdit}
+              onClick={handleUpdate}
               className="h-9 bg-blue-600 hover:bg-blue-700 text-white"
             >
               Lưu thông tin
