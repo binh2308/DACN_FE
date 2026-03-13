@@ -61,11 +61,11 @@ export default function AdminDashboardSidebar() {
   };
 
   return (
-    <aside className="w-64 h-screen bg-[#0B2E4E] flex flex-col flex-shrink-0 transition-all duration-300">
+    <aside className="w-64 h-screen bg-[#0D3B66] flex flex-col flex-shrink-0 transition-all duration-300">
       <div className="h-16 px-5 flex items-center justify-between">
         <h1
-          className="text-xl font-bold text-[#2DD4BF] uppercase tracking-wide"
-          style={{ fontFamily: "serif" }} 
+          className="text-xl font-bold text-[#3FBFBF] uppercase tracking-wide"
+          style={{ fontFamily: "serif" }}
         >
           HRMS LOGO
         </h1>
@@ -83,17 +83,13 @@ export default function AdminDashboardSidebar() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium",
                   active
-                    ? "bg-[#154568] text-[#2DD4BF]" 
-                    : "text-white hover:bg-white/5" 
+                    ? "bg-[#154568] text-[#2DD4BF]"
+                    : "text-white hover:bg-white/5",
                 )}
               >
-                <span className="flex-shrink-0">
-                  {item.icon}
-                </span>
+                <span className="flex-shrink-0">{item.icon}</span>
 
-                <span className="truncate">
-                  {item.label}
-                </span>
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
