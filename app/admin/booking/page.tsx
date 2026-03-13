@@ -40,12 +40,16 @@ import {
     createRoom,
     deleteRoomById,
     getRooms,
-    uploadRoomImageById, // Bổ sung API upload ảnh
+    uploadRoomImageById,
     type CreateRoomRequest,
     type Room,
 } from "@/services/DACN/Rooms";
 
-// --- HELPER FUNCTIONS CHO NGÀY THÁNG LẤY TỪ ĐOẠN CODE CỦA BẠN ---
+import {
+    getBookings,
+} from "@/services/DACN/Booking";
+
+// --- HELPER FUNCTIONS ---
 function todayYmd() {
     const d = new Date();
     const y = d.getFullYear();
@@ -101,8 +105,27 @@ function normalizeRoomStatus(value: unknown): RoomApiStatus | null {
     return null;
 }
 
+// Bảng màu Pastel sinh động cho Lịch trình
+const PASTEL_COLORS = [
+    { bg: "bg-blue-50", border: "border-blue-100", text: "text-blue-700" },
+    { bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700" },
+    { bg: "bg-purple-50", border: "border-purple-100", text: "text-purple-700" },
+    { bg: "bg-amber-50", border: "border-amber-100", text: "text-amber-700" },
+    { bg: "bg-cyan-50", border: "border-cyan-100", text: "text-cyan-700" },
+];
+
 export default function BookingPage() {
     const { toast } = useToast();
+    
+    // --- STATE ĐỒNG HỒ TICK THỜI GIAN THỰC ---
+    // Giúp lịch nhận biết được sự trôi qua của thời gian để tự động bật "Đang diễn ra"
+    const [nowTick, setNowTick] = React.useState(() => Date.now());
+    React.useEffect(() => {
+        // Cứ mỗi 10 giây sẽ cập nhật lại thời gian hiện tại 1 lần
+        const timer = setInterval(() => setNowTick(Date.now()), 10000);
+        return () => clearInterval(timer);
+    }, []);
+
     const { data, loading, error, refresh } = useRequest(getRooms, {
         pollingInterval: 5000,
         pollingWhenHidden: false,
@@ -116,11 +139,9 @@ export default function BookingPage() {
     const [createEquipment, setCreateEquipment] = React.useState<string[]>([]);
     const [createNewEquipment, setCreateNewEquipment] = React.useState("");
     
-    // --- STATE CHO UPLOAD ẢNH ---
     const [createFile, setCreateFile] = React.useState<File | null>(null);
     const [createPreviewUrl, setCreatePreviewUrl] = React.useState<string | null>(null);
 
-    // Hiển thị URL Preview khi người dùng chọn ảnh
     React.useEffect(() => {
         if (!createFile) {
             setCreatePreviewUrl(null);
@@ -149,7 +170,7 @@ export default function BookingPage() {
         setCreateLocation("");
         setCreateEquipment([]);
         setCreateNewEquipment("");
-        setCreateFile(null); // Reset file ảnh
+        setCreateFile(null);
     }, []);
 
     const addCreateEquipment = React.useCallback(() => {
@@ -171,24 +192,15 @@ export default function BookingPage() {
         const name = createName.trim();
         const capNum = Number(createCapacity);
         if (!name) {
-            toast({
-                variant: "destructive",
-                title: "Thiếu thông tin",
-                description: "Vui lòng nhập tên phòng.",
-            });
+            toast({ variant: "destructive", title: "Thiếu thông tin", description: "Vui lòng nhập tên phòng." });
             return;
         }
         if (!Number.isFinite(capNum) || capNum <= 0) {
-            toast({
-                variant: "destructive",
-                title: "Sức chứa không hợp lệ",
-                description: "Capacity phải là số > 0.",
-            });
+            toast({ variant: "destructive", title: "Sức chứa không hợp lệ", description: "Capacity phải là số > 0." });
             return;
         }
 
         try {
-            // 1. Gửi request tạo phòng mới
             const res = await createAsync({
                 name,
                 capacity: Math.floor(capNum),
@@ -196,7 +208,6 @@ export default function BookingPage() {
                 location: createLocation.trim(),
             });
 
-            // 2. Lấy ID của phòng vừa tạo để upload ảnh (nếu có chọn ảnh)
             const newRoomId = (res as any)?.data?.id ?? (res as any)?.id;
             
             if (newRoomId && createFile) {
@@ -204,11 +215,7 @@ export default function BookingPage() {
                     await uploadRoomImageById(newRoomId, createFile);
                 } catch (imgError) {
                     console.error("Lỗi upload ảnh:", imgError);
-                    toast({
-                        variant: "destructive",
-                        title: "Lỗi tải ảnh",
-                        description: "Phòng đã tạo thành công nhưng hình ảnh tải lên bị lỗi.",
-                    });
+                    toast({ variant: "destructive", title: "Lỗi tải ảnh", description: "Phòng đã tạo thành công nhưng hình ảnh tải lên bị lỗi." });
                 }
             }
 
@@ -217,23 +224,9 @@ export default function BookingPage() {
             resetCreateForm();
             refresh();
         } catch (e: any) {
-            toast({
-                variant: "destructive",
-                title: "Tạo phòng thất bại",
-                description: e?.message || "Không thể tạo phòng.",
-            });
+            toast({ variant: "destructive", title: "Tạo phòng thất bại", description: e?.message || "Không thể tạo phòng." });
         }
-    }, [
-        createAsync,
-        createCapacity,
-        createEquipment,
-        createLocation,
-        createName,
-        createFile,
-        refresh,
-        resetCreateForm,
-        toast,
-    ]);
+    }, [createAsync, createCapacity, createEquipment, createLocation, createName, createFile, refresh, resetCreateForm, toast]);
 
     const onDeleteRoom = React.useCallback(
         async (room: Room) => {
@@ -244,11 +237,7 @@ export default function BookingPage() {
                 toast({ title: "Đã xoá", description: "Xoá phòng họp thành công." });
                 refresh();
             } catch (e: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Xoá thất bại",
-                    description: e?.message || "Không thể xoá phòng.",
-                });
+                toast({ variant: "destructive", title: "Xoá thất bại", description: e?.message || "Không thể xoá phòng." });
             }
         },
         [deleteAsync, refresh, toast],
@@ -321,6 +310,13 @@ export default function BookingPage() {
         });
     }, [rooms, searchText, seatApplied, selectedEquipment, selectedLocations]);
 
+    const availableRoomsCount = React.useMemo(() => {
+        return filteredRooms.filter(r => {
+            const status = ((r as any).status || "AVAILABLE").toUpperCase();
+            return status === "AVAILABLE";
+        }).length;
+    }, [filteredRooms]);
+
     const toggleLocation = (location: string) => {
         setSelectedLocations((prev) => {
             const next = new Set(prev);
@@ -351,11 +347,106 @@ export default function BookingPage() {
 
     const today = todayYmd();
 
-    const mockSchedule = [
-        { time: "09:00", title: "Họp Daily Marketing", room: "Phòng Creative", avatars: ["bg-blue-300", "bg-teal-300"], extra: "+5", current: false },
-        { time: "10:30", title: "Ban Lãnh Đạo Q4", room: "Phòng Boardroom", status: "Đang diễn ra", current: true },
-        { time: "14:00", title: "Onboarding NV Mới", room: "Phòng Training A", current: false },
-    ];
+    type BookingLike = {
+        id: string;
+        start_time?: string;
+        end_time?: string;
+        purpose?: string;
+        status?: string;
+        created_at?: string;
+        updated_at?: string;
+        room?: { id?: string; name?: string };
+        employee?: { id?: string; name?: string; email?: string };
+        startTime?: string;
+        endTime?: string;
+        name?: string;
+        roomName?: string;
+    };
+
+    function normalizeAllBookingsResponse(data: unknown): BookingLike[] {
+        if (!data) return [];
+        if (Array.isArray(data)) return data as BookingLike[];
+        if (typeof data === "object" && data !== null) {
+            if ("data" in data && Array.isArray((data as any).data)) {
+                return (data as any).data as BookingLike[];
+            }
+            if ("success" in data && "data" in data && Array.isArray((data as any).data)) {
+                return (data as any).data as BookingLike[];
+            }
+        }
+        return [];
+    }
+
+    const formatTime = React.useCallback((iso: string) => {
+        const d = new Date(iso);
+        return new Intl.DateTimeFormat("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        }).format(d);
+    }, []);
+
+    // Nhờ depend vào nowTick, hàm này sẽ liên tục kiểm tra theo thời gian thực
+    const isCurrent = React.useCallback((startIso: string, endIso: string) => {
+        const s = new Date(startIso).getTime();
+        const e = new Date(endIso).getTime();
+        if (!Number.isFinite(s) || !Number.isFinite(e)) return false;
+        return nowTick >= s && nowTick <= e;
+    }, [nowTick]);
+
+	const {
+		data: bookingsData,
+		loading: loadingTodayBookings,
+		error: bookingsError,
+		refresh: refreshBookings,
+	} = useRequest(getBookings, {
+		pollingInterval: 5000,
+		pollingWhenHidden: false,
+	});
+
+    const allBookings = React.useMemo(() => normalizeAllBookingsResponse(bookingsData), [bookingsData]);
+
+	const timeline = React.useMemo(() => {
+		const dayStart = new Date(`${today}T00:00:00`);
+		const dayEndExclusive = new Date(dayStart);
+		dayEndExclusive.setDate(dayEndExclusive.getDate() + 1);
+
+		const todays = allBookings
+			.map((b) => {
+				const startIso = String(b.start_time ?? b.startTime ?? "");
+				const endIso = String(b.end_time ?? b.endTime ?? "");
+				return { b, startIso, endIso };
+			})
+			.filter(({ startIso, endIso }) => {
+				const s = new Date(startIso);
+				const e = new Date(endIso);
+				if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return false;
+				return s < dayEndExclusive && e > dayStart;
+			})
+			.sort((x, y) => new Date(x.startIso).getTime() - new Date(y.startIso).getTime());
+
+		return todays.map(({ b, startIso, endIso }, index) => {
+			const title = (b.purpose ?? b.name ?? "").trim() || "(Không có mục đích)";
+			const roomName = (b.room?.name ?? b.roomName ?? "").trim() || "(Không rõ phòng)";
+			const employeeName = (b.employee?.name ?? "").trim();
+            const curr = isCurrent(startIso, endIso);
+
+            // Logic Color: Nếu Đang diễn ra -> Đỏ. Còn lại -> xoay vòng màu pastel
+            const colorTheme = curr 
+                ? { bg: "bg-red-50", border: "border-red-100", text: "text-red-700" }
+                : PASTEL_COLORS[index % PASTEL_COLORS.length];
+
+			return {
+				id: b.id,
+				time: formatTime(startIso),
+				title,
+				room: roomName,
+				employee: employeeName,
+				current: curr,
+                color: colorTheme
+			};
+		});
+	}, [allBookings, formatTime, isCurrent, today]);
 
     return (
         <div className="mx-auto w-full min-h-screen bg-[#F8FAFC]">
@@ -366,7 +457,7 @@ export default function BookingPage() {
                     <h1 className="text-xl font-bold text-gray-900">Quản lý Phòng họp</h1>
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        {filteredRooms.length} Phòng
+                        {availableRoomsCount} Phòng trống
                     </div>
                 </div>
                 <Button
@@ -453,7 +544,6 @@ export default function BookingPage() {
                         </div>
                     </div>
 
-                    {/* Loading / Error States */}
                     {error ? (
                         <div className="rounded-xl bg-white p-10 text-center shadow-sm border border-red-100">
                             <div className="text-red-500 font-semibold">Lỗi tải dữ liệu</div>
@@ -468,7 +558,6 @@ export default function BookingPage() {
                             <div className="text-gray-500 font-semibold">Không tìm thấy phòng phù hợp.</div>
                         </div>
                     ) : (
-                        /* Room Grid */
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {filteredRooms.map((room) => {
                                 const apiStatus = normalizeRoomStatus((room as any).status) ?? "AVAILABLE";
@@ -482,7 +571,6 @@ export default function BookingPage() {
                                 return (
                                     <div key={room.id} className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                                         
-                                        {/* Card Header (Graphic Area) */}
                                         <div className={`relative h-40 flex items-center justify-center overflow-hidden
                                             ${statusType === 'available' ? 'bg-[#F8FAFC]' : statusType === 'busy' ? 'bg-[#FEF2F2]' : 'bg-[#F3F4F6]'}
                                         `}>
@@ -501,7 +589,7 @@ export default function BookingPage() {
                                                     {statusType === 'busy' && (
                                                         <div className="text-center">
                                                             <div className="flex justify-center mb-2"><Users size={32} className="text-red-500" /></div>
-                                                            <div className="text-red-600 font-bold text-sm">Đang họp</div>
+                                                            <div className="text-red-600 font-bold text-sm">Đang sử dụng</div>
                                                         </div>
                                                     )}
                                                     {statusType === 'maintenance' && <Wrench size={48} className="text-gray-400" />}
@@ -515,7 +603,6 @@ export default function BookingPage() {
                                             </div>
                                         </div>
 
-                                        {/* Card Body */}
                                         <div className="p-4 flex-1 flex flex-col">
                                             <div className="flex justify-between items-start mb-1">
                                                 <h3 className="font-bold text-gray-900 text-lg">{room.name}</h3>
@@ -528,7 +615,6 @@ export default function BookingPage() {
                                                 <MapPin size={14}/> {room.location || "Chưa cập nhật vị trí"}
                                             </div>
 
-                                            {/* Equipment Pills */}
                                             <div className="flex flex-wrap gap-2 mt-auto mb-4">
                                                 {room.equipment?.slice(0, 4).map((eq, i) => {
                                                     const eqLower = eq.toLowerCase();
@@ -548,7 +634,6 @@ export default function BookingPage() {
                                                 })}
                                             </div>
 
-                                            {/* Footer Actions */}
                                             <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
                                                 <Link 
                                                     href={`/admin/booking/${room.id}`} 
@@ -557,15 +642,17 @@ export default function BookingPage() {
                                                     <Settings size={16} /> Cấu hình
                                                 </Link>
                                                 
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    onClick={() => onDeleteRoom(room)}
-                                                    disabled={deleting}
-                                                >
-                                                    Xoá phòng
-                                                </Button>
+                                                {statusType === 'available' ? (
+                                                    <Link href={`/admin/booking/${room.id}/book`} className="bg-[#ECFDF5] text-[#10B981] font-bold text-sm px-4 py-2 rounded-md hover:bg-[#D1FAE5] transition-colors">
+                                                        Đặt ngay
+                                                    </Link>
+                                                ) : statusType === 'busy' ? (
+                                                    <button disabled className="bg-gray-100 text-gray-400 font-bold text-sm px-4 py-2 rounded-md cursor-not-allowed">
+                                                        Đặt ngay
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-[#F97316] text-xs font-medium italic">Đang bảo trì</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -583,35 +670,48 @@ export default function BookingPage() {
                             <span className="text-xs text-gray-400 font-medium">{formatDateVi(today)}</span>
                         </div>
 
-                        {mockSchedule && mockSchedule.length > 0 ? (
+                        {bookingsError ? (
+                            <div className="mt-4 mb-6 text-sm text-red-600 text-center">
+                                <div className="font-semibold">Lỗi tải lịch</div>
+                                <div className="text-xs text-red-500 mt-1">
+                                    {(bookingsError as any)?.message || "Không thể tải bookings."}
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-3"
+                                    onClick={() => refreshBookings()}
+                                >
+                                    Thử lại
+                                </Button>
+                            </div>
+                        ) : (!bookingsData && loadingTodayBookings) ? (
+							<div className="mt-4 mb-6 text-sm text-gray-500 italic text-center">
+								Đang tải lịch…
+							</div>
+						) : timeline && timeline.length > 0 ? (
                             <div className="space-y-0 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                                {mockSchedule.map((item, idx) => (
-                                    <div key={idx} className="relative flex items-start gap-4 pb-6 group">
+                                {timeline.map((item) => (
+                                    <div key={item.id} className="relative flex items-start gap-4 pb-6 group">
                                         <div className="w-10 text-xs font-bold text-gray-500 pt-1 shrink-0">{item.time}</div>
                                         
                                         <div className="relative z-10 w-2 h-2 rounded-full bg-gray-300 mt-2 ring-4 ring-white shrink-0"></div>
                                         
-                                        <div className={`flex-1 rounded-xl p-3 border ${item.current ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
-                                            <h4 className={`text-sm font-bold mb-1 ${item.current ? 'text-red-600' : 'text-[#3B82F6]'}`}>
+                                        {/* ÁP DỤNG ĐỘNG CÁC CLASS MÀU CHO CARD */}
+                                        <div className={`flex-1 rounded-xl p-3 border ${item.color.bg} ${item.color.border}`}>
+                                            <h4 className={`text-sm font-bold mb-1 ${item.color.text}`}>
                                                 {item.title}
                                             </h4>
                                             <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
                                                 <MapPin size={12} /> {item.room}
                                             </div>
+                                            {item.employee ? (
+                                                <div className="text-xs text-gray-500 mb-2">{item.employee}</div>
+                                            ) : null}
                                             
                                             {item.current && (
-                                                <div className="text-xs font-bold text-red-500">Đang diễn ra</div>
-                                            )}
-                                            
-                                            {item.avatars && (
-                                                <div className="flex items-center mt-2">
-                                                    {item.avatars.map((bg, i) => (
-                                                        <div key={i} className={`w-6 h-6 rounded-full border-2 border-white ${bg} -ml-2 first:ml-0`}></div>
-                                                    ))}
-                                                    <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 text-[9px] font-bold text-gray-600 flex items-center justify-center -ml-2">
-                                                        {item.extra}
-                                                    </div>
-                                                </div>
+                                                <div className="text-xs font-bold text-red-600 mt-1">Đang diễn ra</div>
                                             )}
                                         </div>
                                     </div>
