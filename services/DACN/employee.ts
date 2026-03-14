@@ -1,5 +1,16 @@
 import { request } from "../service";
 
+export type DepartmentType =
+  | "All"
+  | "HR"
+  | "Engineering"
+  | "Sales"
+  | "Marketing"
+  | "Finance"
+  | "Operations"
+  | "IT"
+  | "Customer Support";
+
 export type DepartmentDto = {
   id: string;
   name: string;
@@ -26,6 +37,14 @@ export type EmployeeDto = {
   childrenDescription?: string | null;
   department?: DepartmentDto | null;
   avatarUrl?: string | null;
+};
+
+export type GetEmployeesParams = {
+  page?: number;
+  pageSize?: number;
+  role?: string;
+  department?: DepartmentType;
+  search?: string;
 };
 
 export type DegreeDto = {
@@ -119,6 +138,10 @@ export type UpdateEmployeeByAdminResponse = {
   data: EmployeeDetailDto;
 };
 
+export function getFullName(employee: any) {
+  return `${employee.firstName} ${employee.middleName ? employee.middleName + " " : ""}${employee.lastName}`;
+}
+
 // Lấy danh sách nhân viên cùng phòng ban với user hiện tại
 export async function getEmployees(options?: { [key: string]: any }) {
   return request<GetEmployeesResponse>("/employee/department", {
@@ -131,7 +154,10 @@ export async function getEmployees(options?: { [key: string]: any }) {
 }
 
 // Lấy chi tiết 1 nhân viên
-export async function getEmployeeDetail(id: string, options?: { [key: string]: any }) {
+export async function getEmployeeDetail(
+  id: string,
+  options?: { [key: string]: any },
+) {
   return request<GetEmployeeDetailResponse>(`/employee/${id}`, {
     method: "GET",
     ...(options || {}),
@@ -139,9 +165,13 @@ export async function getEmployeeDetail(id: string, options?: { [key: string]: a
 }
 
 // Admin/HR use-case: lấy tất cả nhân viên (backend có thể trả paged hoặc array)
-export async function getAllEmployees(options?: { [key: string]: any }) {
+export async function getAllEmployees(
+  params?: GetEmployeesParams,
+  options?: { [key: string]: any },
+) {
   return request<GetEmployeesResponse>("/employee/all", {
     method: "GET",
+    params,
     headers: {
       "Content-Type": "application/json",
     },
@@ -151,17 +181,23 @@ export async function getAllEmployees(options?: { [key: string]: any }) {
 
 // Lấy profile nhân viên hiện tại (theo token)
 export async function getEmployeeProfile(options?: { [key: string]: any }) {
-  return request<GetEmployeeProfileResponse, GetEmployeeProfileResponse>("/employee/profile", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
+  return request<GetEmployeeProfileResponse, GetEmployeeProfileResponse>(
+    "/employee/profile",
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      ...(options || {}),
     },
-    ...(options || {}),
-  });
+  );
 }
 
 // Tạo nhân viên mới
-export async function createEmployee(body: CreateEmployeePayload, options?: { [key: string]: any }) {
+export async function createEmployee(
+  body: CreateEmployeePayload,
+  options?: { [key: string]: any },
+) {
   return request<CreateEmployeeResponse>("/employee/by-admin", {
     method: "POST",
     data: body,
@@ -173,19 +209,20 @@ export async function createEmployee(body: CreateEmployeePayload, options?: { [k
 export async function updateEmployeeByAdmin(
   id: string,
   body: UpdateEmployeeByAdminPayload,
-  options?: { [key: string]: any }
+  options?: { [key: string]: any },
 ) {
-  return request<UpdateEmployeeByAdminResponse>(`/employee/by-admin/${id}`,
-    {
-      method: "PATCH",
-      data: body,
-      ...(options || {}),
-    }
-  );
+  return request<UpdateEmployeeByAdminResponse>(`/employee/by-admin/${id}`, {
+    method: "PATCH",
+    data: body,
+    ...(options || {}),
+  });
 }
 
 // Xóa nhân viên
-export async function deleteEmployee(id: string, options?: { [key: string]: any }) {
+export async function deleteEmployee(
+  id: string,
+  options?: { [key: string]: any },
+) {
   return request<any>(`/employee/${id}`, {
     method: "DELETE",
     ...(options || {}),
