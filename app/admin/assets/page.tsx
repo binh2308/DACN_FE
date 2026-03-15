@@ -20,6 +20,10 @@ import {
   updateAsset,
   deleteAsset,
   assignAsset,
+  Asset,
+  AssetCategory,
+  AssetType,
+  AssetStatus,
 } from "@/services/DACN/asset";
 import {
   EmployeeDto,
@@ -48,27 +52,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { get } from "http";
-import { set } from "react-hook-form";
-import { em } from "@mantine/core";
 
 // --- 1. Cập nhật Type để khớp với ảnh ---
-type AssetType = "PUBLIC" | "PRIVATE";
-type AssetStatus = "NEW" | "USED" | "BROKEN" | "UNDER_MAINTENANCE" | "RETIRED";
-type AssetCategory = "Laptop / Máy tính" | "Màn hình" | "Thiết bị VP";
 
-type Asset = {
-  id?: string;
-  name: string;
-  type: AssetType;
-  category?: AssetCategory;
-  condition: AssetStatus;
-  location?: string;
-  owner?: any;
-  purchase_date: string;
-  warranty_expiration_date?: string;
-  maintenance_schedule: string;
-};
 
 const STORAGE_KEY = "admin_assets";
 
@@ -171,7 +157,6 @@ const emptyDraft: AssetDraft = {
   maintenance_schedule: "",
 };
 
-type AssigneeOption = string & { id: string };
 
 function assetIcon(category: AssetCategory) {
   switch (category) {
