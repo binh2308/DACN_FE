@@ -26,6 +26,19 @@ export type TicketCategoryDto = {
 	name: string;
 };
 
+export type TicketCategoryDepartmentDto = {
+	id: string;
+	name: string;
+};
+
+export type ManagementTicketCategoryDto = {
+	id: string;
+	name: string;
+	description?: string | null;
+	is_active?: boolean;
+	departments: TicketCategoryDepartmentDto[];
+};
+
 export type TicketProcessDto = {
 	id: string;
 	actor?: TicketActorDto | null;
@@ -54,6 +67,11 @@ export type ManagementTicketDto = {
 
 export type AssignManagementTicketBody = {
 	assignee_id: string;
+	note?: string;
+};
+
+export type UpdateManagementTicketStatusBody = {
+	status: ManagementTicketStatus;
 	note?: string;
 };
 
@@ -130,12 +148,71 @@ export async function assignManagementTicket(
 	);
 }
 
+export async function updateManagementTicketStatus(
+	id: string,
+	body: UpdateManagementTicketStatusBody,
+	options?: { [key: string]: any },
+) {
+	const attempts: Array<{ url: string; method: "PATCH" | "PUT" }> = [
+		{ url: `/management/tickets/${id}/status`, method: "PATCH" },
+		{ url: `/management/tickets/${id}`, method: "PATCH" },
+		{ url: `/management/tickets/${id}/status`, method: "PUT" },
+		{ url: `/management/tickets/${id}`, method: "PUT" },
+	];
+
+	let lastError: any;
+	for (const a of attempts) {
+		try {
+			return await request<AssignManagementTicketResponse>(a.url, {
+				method: a.method,
+				data: body,
+				...(options || {}),
+			});
+		} catch (e: any) {
+			lastError = e;
+			const status = e?.response?.status;
+			// Only retry for "route/method not found"-style failures.
+			// If backend returns a business 404 (e.g. employee not found), do NOT fallback.
+			if (status === 404 || status === 405) {
+				const msg = e?.response?.data?.message;
+				const msgText = Array.isArray(msg) ? msg.join(" ") : String(msg ?? "");
+				const looksLikeMissingRoute =
+					/\bCannot\b/i.test(msgText) ||
+					/^Not Found$/i.test(msgText) ||
+					/\broute\b/i.test(msgText);
+				if (looksLikeMissingRoute) continue;
+			}
+			throw e;
+		}
+	}
+
+	throw lastError;
+}
+
 export async function getManagementTicketProcesses(
 	id: string,
 	options?: { [key: string]: any },
 ) {
 	return request<GetManagementTicketProcessesResponse>(
 		`/management/tickets/${id}/processes`,
+		{
+			method: "GET",
+			...(options || {}),
+		},
+	);
+}
+
+export type GetManagementTicketCategoriesAllResponse = {
+	statusCode: number;
+	message?: string;
+	data: ManagementTicketCategoryDto[];
+};
+
+export async function getManagementTicketCategoriesAll(
+	options?: { [key: string]: any },
+) {
+	return request<GetManagementTicketCategoriesAllResponse>(
+		"/management/tickets/categories/all",
 		{
 			method: "GET",
 			...(options || {}),

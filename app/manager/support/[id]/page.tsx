@@ -37,6 +37,7 @@ import {
 	getManagementTicketById,
 	assignManagementTicket,
 	getManagementTicketProcesses,
+	updateManagementTicketStatus,
 	type ManagementTicketDto,
 	type ManagementTicketStatus,
 	type TicketProcessDto,
@@ -105,6 +106,24 @@ const getInitialsFromPerson = (person: any) => {
 	return getInitials(n || undefined);
 };
 
+const normalizeTicketStatus = (status: unknown): ManagementTicketStatus => {
+	const raw = String(status ?? "").trim();
+	if (!raw) return "OPEN";
+	const normalized = raw
+		.toUpperCase()
+		.replace(/\s+/g, "_")
+		.replace(/-+/g, "_")
+		.replace(/__+/g, "_");
+
+	if (normalized === "INPROGRESS") return "IN_PROGRESS";
+	if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
+	if (normalized === "OPEN") return "OPEN";
+	if (normalized === "RESOLVED") return "RESOLVED";
+	if (normalized === "DEFERRED") return "DEFERRED";
+
+	return "OPEN";
+};
+
 function normalizeEmployeesResponse(raw: any): EmployeeDto[] {
 	const payload = raw?.data ?? raw;
 	if (Array.isArray(payload)) return payload as EmployeeDto[];
@@ -145,7 +164,13 @@ export default function TicketDetailPage() {
 		return Array.isArray(id) ? id[0] : id;
 	}, [params]);
 
-	const { data: ticket, loading, error, refresh } = useRequest(
+	const {
+		data: ticket,
+		loading,
+		error,
+		refreshAsync: refreshTicket,
+		mutate: mutateTicket,
+	} = useRequest(
 		async () => {
 			if (!ticketId) return null;
 			const res: any = await getManagementTicketById(ticketId);
@@ -158,7 +183,7 @@ export default function TicketDetailPage() {
 		data: processesRaw,
 		loading: processesLoading,
 		error: processesError,
-		refresh: refreshProcesses,
+		refreshAsync: refreshProcesses,
 	} = useRequest(
 		async () => {
 			if (!ticketId) return null;
@@ -185,6 +210,7 @@ export default function TicketDetailPage() {
 		});
 	}, [employeesRaw]);
 
+
 	const processesInfo = React.useMemo(() => normalizeProcessesResponse(processesRaw), [processesRaw]);
 	const processes = React.useMemo(() => {
 		const fromApi = processesInfo.processes;
@@ -194,6 +220,9 @@ export default function TicketDetailPage() {
 
 	const [assigneeId, setAssigneeId] = React.useState<string>("");
 	const [assignNote, setAssignNote] = React.useState<string>("");
+	const [approveNote, setApproveNote] = React.useState<string>(
+		"Started working on this ticket",
+	);
 
 	React.useEffect(() => {
 		setAssigneeId(ticket?.assignee?.id ?? "");
@@ -204,6 +233,17 @@ export default function TicketDetailPage() {
 			if (!ticketId) throw new Error("Missing ticket id");
 			return await assignManagementTicket(ticketId, {
 				assignee_id: nextAssigneeId,
+				note: note.trim() ? note.trim() : undefined,
+			});
+		},
+		{ manual: true },
+	);
+
+	const { runAsync: runApprove, loading: approving } = useRequest(
+		async (note: string) => {
+			if (!ticketId) throw new Error("Missing ticket id");
+			return await updateManagementTicketStatus(ticketId, {
+				status: "IN_PROGRESS",
 				note: note.trim() ? note.trim() : undefined,
 			});
 		},
@@ -232,7 +272,7 @@ export default function TicketDetailPage() {
 					<p className="text-sm text-muted-foreground mb-6">{(error as any)?.message || "Đã có lỗi xảy ra. Vui lòng thử lại sau."}</p>
 					<div className="flex gap-3 justify-center">
 						<Button variant="outline" onClick={() => router.back()}>Quay lại</Button>
-						<Button onClick={() => refresh()}>Thử lại</Button>
+						<Button onClick={() => refreshTicket()}>Thử lại</Button>
 					</div>
 				</div>
 			</div>
@@ -241,9 +281,11 @@ export default function TicketDetailPage() {
 
 	if (!ticket) return null;
 
-	const statusInfo = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.OPEN;
+	const normalizedTicketStatus = normalizeTicketStatus(ticket.status);
+	const statusInfo = STATUS_CONFIG[normalizedTicketStatus] || STATUS_CONFIG.OPEN;
 	const StatusIcon = statusInfo.icon;
 	const employeeName = formatPersonName(ticket.employee) || "Người dùng ẩn danh";
+	const canAssign = normalizedTicketStatus === "IN_PROGRESS";
 
 	return (
 		<div className="mx-auto w-full max-w-[1400px] px-6 py-6">
@@ -324,7 +366,9 @@ export default function TicketDetailPage() {
 										const actorName = formatPersonName(p.actor);
 										const isSystem = !actorName;
 										const isLast = index === processes.length - 1;
-										const itemStatus = (p.status ?? p.to_status ?? ticket.status) as ManagementTicketStatus;
+										const itemStatus = normalizeTicketStatus(
+											(p.status ?? p.to_status ?? ticket.status) as any,
+										);
 										const itemStatusInfo = STATUS_CONFIG[itemStatus] || STATUS_CONFIG.OPEN;
 
 										return (
@@ -398,6 +442,49 @@ export default function TicketDetailPage() {
 				<aside className="space-y-4">
 					<Card className="shadow-sm sticky top-6">
 						<CardContent className="space-y-6 p-6">
+							{/* Approve */}
+							{normalizedTicketStatus === "OPEN" ? (
+								<div className="space-y-3">
+									<div className="text-sm font-semibold text-foreground">
+										Duyệt yêu cầu
+									</div>
+									<div className="text-xs text-muted-foreground">
+										Chuyển trạng thái từ "Chờ xử lý" sang "Đang xử lý".
+									</div>
+									<Textarea
+										value={approveNote}
+										onChange={(e) => setApproveNote(e.target.value)}
+										placeholder='Ghi chú (ví dụ: "Started working on this ticket")'
+										className="min-h-[72px]"
+									/>
+									<Button
+										className="w-full"
+										disabled={approving}
+										onClick={async () => {
+											try {
+												await runApprove(approveNote);
+												mutateTicket((prev) => {
+													if (!prev) return prev;
+													return { ...prev, status: "IN_PROGRESS" };
+												});
+												toast({
+													title: "Duyệt thành công",
+													description: "Ticket đã chuyển sang trạng thái Đang xử lý.",
+												});
+												await Promise.all([refreshTicket(), refreshProcesses()]);
+											} catch (e: any) {
+												toast({
+													variant: "destructive",
+													title: "Không thể duyệt ticket",
+													description: e?.message || "Đã có lỗi xảy ra.",
+												});
+											}
+										}}
+									>
+										{approving ? "Đang duyệt..." : "Duyệt"}
+									</Button>
+								</div>
+							) : null}
 							
 							{/* Assignee */}
 							<div>
@@ -423,15 +510,30 @@ export default function TicketDetailPage() {
 								{/* Assign control */}
 								<div className="mt-4 space-y-3">
 									<div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-										Gán cho nhân viên IT
+										Gán cho nhân viên trong phòng ban của bạn
 									</div>
+									{!canAssign ? (
+										<div className="text-xs text-muted-foreground">
+											Duyệt ticket trước khi gán cho nhân viên.
+										</div>
+									) : null}
 									<Select
 										value={assigneeId || undefined}
 										onValueChange={(v) => setAssigneeId(v)}
-										disabled={employeesLoading}
+										disabled={employeesLoading || !canAssign}
 									>
 										<SelectTrigger className="h-10">
-											<SelectValue placeholder={employeesLoading ? "Đang tải danh sách..." : "Chọn nhân viên"} />
+											<SelectValue
+												placeholder={
+													employeesLoading
+														? "Đang tải danh sách..."
+														: !canAssign
+															? "Duyệt để gán"
+														: employees.length === 0
+															? "Không có nhân viên"
+														: "Chọn nhân viên"
+												}
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											{employees.length === 0 ? (
@@ -455,7 +557,7 @@ export default function TicketDetailPage() {
 									<div className="flex items-center gap-2">
 										<Button
 											className="flex-1"
-											disabled={!assigneeId || assigneeId === "__empty" || assigning}
+											disabled={!canAssign || !assigneeId || assigneeId === "__empty" || assigning}
 											onClick={async () => {
 												try {
 													await runAssign(assigneeId, assignNote);
@@ -463,7 +565,7 @@ export default function TicketDetailPage() {
 														title: "Gán thành công",
 														description: "Đã cập nhật người xử lý ticket.",
 													});
-													await Promise.all([refresh(), refreshProcesses()]);
+													await Promise.all([refreshTicket(), refreshProcesses()]);
 												} catch (e: any) {
 													toast({
 														variant: "destructive",

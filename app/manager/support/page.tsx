@@ -145,7 +145,7 @@ export default function SupportPage() {
 							<MessageSquare className="text-primary" /> Quản lý Yêu cầu hỗ trợ
 						</h1>
 						<p className="text-sm text-muted-foreground mt-1">
-							Theo dõi và xử lý các yêu cầu từ nhân viên trong phòng ban của bạn.
+							Theo dõi và xử lý các yêu cầu hỗ trợ gửi đến phòng ban của bạn.
 						</p>
 					</div>
 					<div className="flex items-center gap-3 bg-primary/10 text-primary px-4 py-2 rounded-lg ring-1 ring-primary/20">
