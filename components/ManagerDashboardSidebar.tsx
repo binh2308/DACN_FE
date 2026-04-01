@@ -104,7 +104,7 @@ const menuSections: MenuSection[] = [
         href: "/forum",
       },
       {
-        label: "Hỗ trợ kỹ thuật",
+        label: "Dịch vụ hỗ trợ",
         icon: <Users className="w-5 h-5" />,
         href: "/support",
       },
