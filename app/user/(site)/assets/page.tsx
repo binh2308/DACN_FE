@@ -127,7 +127,6 @@ export default function UserAssetsPage() {
         const params: GetAssetsParams = {
           ownerEmployeeId: employeeId,
         };
-        setLoading(true);
         const res = await getAssets(params);
         setMyAssets(res.data?.items);
       } catch (error) {

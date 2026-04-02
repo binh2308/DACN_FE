@@ -739,9 +739,9 @@ export default function AdminAssetsPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* ...Buttons (Giữ nguyên) */}
-          <Button type="button" variant="outline" className="h-9 text-xs">
+          {/* <Button type="button" variant="outline" className="h-9 text-xs">
             <Download className="w-4 h-4 mr-2" /> Xuất Excel
-          </Button>
+          </Button> */}
           <Button type="button" className="h-9 text-xs" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-2" /> Thêm Tài sản mới
           </Button>
