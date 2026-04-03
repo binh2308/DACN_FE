@@ -28,7 +28,7 @@ import {
   getTicketById,
   addCommentToTicket,
   updateTicketStatus,
-} from "@/services/DACN/ticket";
+} from "@/services/DACN/Tickets";
 import { DACN } from "@/services/DACN/typings";
 import { formatDate } from "@/lib/utils";
 import { set } from "react-hook-form";

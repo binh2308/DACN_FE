@@ -3,13 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { Filter, Plus, RefreshCw, X } from "lucide-react";
-import { DACN } from "@/services/DACN/typings";
 import {
   getMyAssignedTickets,
   getMyTickets,
   getTicketCategories,
   createSupportTicket,
-} from "@/services/DACN/ticket";
+} from "@/services/DACN/Tickets";
 import {
   Button as MantineButton,
   TextInput,

@@ -46,6 +46,11 @@ const navItems: NavItem[] = [
     icon: <Home className="w-5 h-5" />,
   },
   {
+    label: "Dịch vụ hỗ trợ",
+    href: "/admin/support",
+    icon: <MessageSquare className="w-5 h-5" />,
+  },
+  {
     label: "Cấu hình hệ thống",
     href: "/admin/settings",
     icon: <Settings className="w-5 h-5" />,

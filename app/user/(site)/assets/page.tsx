@@ -30,8 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createSupportTicket } from "@/lib/support/tickets";
-import { m } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { createSupportTicket } from "@/services/DACN/Tickets";
 
 type AssignedAsset = {
   id: string;
@@ -103,6 +103,7 @@ function conditionMeta(condition: AssetStatus) {
 }
 
 export default function UserAssetsPage() {
+  const { toast } = useToast();
   const [q, setQ] = React.useState("");
   const [myAssets, setMyAssets] = React.useState<Asset[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -113,6 +114,7 @@ export default function UserAssetsPage() {
   const [reportAsset, setReportAsset] = React.useState<Asset | null>(null);
   const [reportIssue, setReportIssue] = React.useState("");
   const [reportError, setReportError] = React.useState<string | null>(null);
+  const [submittingReport, setSubmittingReport] = React.useState(false);
   const [submittedTicketId, setSubmittedTicketId] = React.useState<
     string | null
   >(null);
@@ -172,7 +174,7 @@ export default function UserAssetsPage() {
     setReportOpen(true);
   };
 
-  const submitReport = () => {
+  const submitReport = async () => {
     if (!reportAsset) return;
     const note = reportIssue.trim();
     if (!note) {
@@ -192,14 +194,44 @@ export default function UserAssetsPage() {
       note,
     ].join("\n");
 
-    const ticket = createSupportTicket({
-      subject: `Yêu cầu sửa chữa tài sản: ${reportAsset.name}`,
-      issue,
-      username: "user",
-    });
+    try {
+      setSubmittingReport(true);
+      setReportError(null);
 
-    setSubmittedTicketId(ticket.id);
-    setReportError(null);
+      const res: any = await createSupportTicket({
+        category_id: "f19210c3-f8c1-4700-8f7e-048b79e40346",
+        title: "Report an issue of my asset",
+        description: issue,
+      });
+
+      const ticketId =
+        res?.data?.id ??
+        res?.id ??
+        res?.data?.data?.id ??
+        res?.data?.ticket?.id ??
+        null;
+
+      if (!ticketId) {
+        throw new Error("Không nhận được mã ticket từ server.");
+      }
+
+      setSubmittedTicketId(String(ticketId));
+      toast({
+        title: "Đã gửi yêu cầu",
+        description: `Mã ticket: ${String(ticketId)}`,
+      });
+    } catch (e: any) {
+      setSubmittedTicketId(null);
+      const msg = e?.message || "Không thể gửi yêu cầu. Vui lòng thử lại.";
+      setReportError(msg);
+      toast({
+        variant: "destructive",
+        title: "Gửi thất bại",
+        description: msg,
+      });
+    } finally {
+      setSubmittingReport(false);
+    }
   };
 
   return (
@@ -275,7 +307,9 @@ export default function UserAssetsPage() {
               {pageItems.map((it) => {
                 const tm = typeMeta(it.type);
                 const cm = conditionMeta(it.condition);
-                const wLabel = warrantyLabel(it.warranty_expiration_date);
+                const wLabel = it.warranty_expiration_date
+                  ? warrantyLabel(it.warranty_expiration_date)
+                  : "";
                 return (
                   <tr
                     key={it.id}
@@ -448,9 +482,9 @@ export default function UserAssetsPage() {
             <Button
               type="button"
               onClick={submitReport}
-              disabled={Boolean(submittedTicketId)}
+              disabled={Boolean(submittedTicketId) || submittingReport}
             >
-              Gửi
+              {submittingReport ? "Đang gửi..." : "Gửi"}
             </Button>
           </DialogFooter>
         </DialogContent>
