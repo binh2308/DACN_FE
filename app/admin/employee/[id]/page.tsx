@@ -116,8 +116,6 @@ export default function EmployeeDetailPage() {
     role: "",
     permissionTemplate: "Member",
     avatar: null as unknown,
-    avatarUrl: "",
-
     // Identity (API)
     lastName: "",
     firstName: "",
@@ -232,7 +230,6 @@ export default function EmployeeDetailPage() {
           id: found.id,
           role: found.roles || "",
           avatar: found.avatarUrl ?? null,
-          avatarUrl: found.avatarUrl ?? "",
 
           lastName: found.lastName ?? "",
           firstName: found.firstName ?? "",
@@ -368,7 +365,6 @@ export default function EmployeeDetailPage() {
             id: found.id,
             role: found.roles || "",
             avatar: found.avatarUrl ?? null,
-            avatarUrl: found.avatarUrl ?? "",
             lastName: found.lastName ?? "",
             firstName: found.firstName ?? "",
             middleName: found.middleName ?? "",
@@ -542,16 +538,6 @@ export default function EmployeeDetailPage() {
                       type="email"
                       name="email"
                       value={String(form.email)}
-                      onChange={onChange}
-                      className={inputClass}
-                    />
-                  </FormRow>
-
-                  <FormRow label="Avatar URL">
-                    <input
-                      type="text"
-                      name="avatarUrl"
-                      value={String(form.avatarUrl)}
                       onChange={onChange}
                       className={inputClass}
                     />

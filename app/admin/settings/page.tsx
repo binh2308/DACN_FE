@@ -560,18 +560,7 @@ export default function AdminSettingsPage() {
 											</div>
 
 											<div className="mt-3 flex items-center gap-2">
-												<Checkbox
-													checked={policies.bookingRequireVipApproval}
-													onCheckedChange={(v) =>
-														setPolicies((p) => ({
-															...p,
-															bookingRequireVipApproval: Boolean(v),
-														}))
-													}
-												/>
-												<div className="text-sm text-grey-900">
-													Yêu cầu duyệt nếu đặt phòng VIP
-												</div>
+
 											</div>
 										</div>
 									</div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Calendar, Upload, X } from "lucide-react";
 import type { EmployeeDetailDto } from "@/services/DACN/employee";
-import { getEmployeeProfile, updateEmployeeByAdmin } from "@/services/DACN/employee";
+import { getEmployeeProfile, updateEmployee } from "@/services/DACN/employee";
 import { uploadAvatar } from "@/services/DACN/auth";
 
 type TabType = "personal" | "contract";
@@ -248,24 +248,18 @@ export default function Profile() {
         lastName,
         firstName,
         middleName: middleName || null,
+        phone: form.phone.trim() || null,
         gender: form.gender || null,
         dateOfBirth: form.dateOfBirth || null,
-        email: form.email.trim(),
-        phone: form.phone.trim() || null,
-        address: form.address.trim() || null,
-        signDate: form.signDate || null,
-        quitDate: form.quitDate || null,
         idCard: form.idCard.trim() || null,
+        address: form.address.trim() || null,
         marriedStatus: Boolean(form.marriedStatus),
         numberOfChildren: Number(form.numberOfChildren) || 0,
         childrenDescription: form.childrenDescription.trim() || null,
-        basicSalary: form.basicSalary !== "" ? Number(form.basicSalary) : undefined,
-        grossSalary: form.grossSalary !== "" ? Number(form.grossSalary) : undefined,
-        departmentName: form.departmentName.trim() || null,
         degrees: degreesPayload,
       };
 
-      await updateEmployeeByAdmin(profile.id, payload);
+      await updateEmployee(payload);
       alert("Cập nhật thông tin cá nhân thành công!");
       setIsEditing(false);
 

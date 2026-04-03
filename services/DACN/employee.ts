@@ -138,6 +138,27 @@ export type UpdateEmployeeByAdminResponse = {
   data: EmployeeDetailDto;
 };
 
+export type UpdateEmployeePayload = {
+  lastName: string;
+  firstName: string;
+  middleName?: string | null;
+  phone?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  idCard?: string | null;
+  address?: string | null;
+  marriedStatus?: boolean | null;
+  numberOfChildren?: number | null;
+  childrenDescription?: string | null;
+  degrees?: DegreePayload[];
+};
+
+export type UpdateEmployeeResponse = {
+  statusCode?: number;
+  message?: string;
+  data?: EmployeeDetailDto;
+};
+
 export function getFullName(employee: any) {
   return `${employee.firstName} ${employee.middleName ? employee.middleName + " " : ""}${employee.lastName}`;
 }
@@ -216,6 +237,21 @@ export async function updateEmployeeByAdmin(
     data: body,
     ...(options || {}),
   });
+}
+
+// Employee self-service: cập nhật thông tin cá nhân (theo token)
+export async function updateEmployee(
+	body: UpdateEmployeePayload,
+	options?: { [key: string]: any },
+) {
+	return request<UpdateEmployeeResponse>("/employee/update", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		data: body,
+		...(options || {}),
+	});
 }
 
 // Xóa nhân viên

@@ -24,7 +24,7 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from "@/lib/support/tickets";
-import { getTicketById, addCommentToTicket } from "@/services/DACN/ticket";
+import { getTicketById, addCommentToTicket } from "@/services/DACN/Tickets";
 import { DACN } from "@/services/DACN/typings";
 import { formatDate } from "@/lib/utils";
 import { set } from "react-hook-form";

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useRequest } from "ahooks";
+import { Calendar} from "lucide-react"; // Import thêm icon Clock
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,6 @@ function toIsoFromLocal(date: string, time: string) {
 	const normalizedTime = time.split(":").length === 2 ? `${time}:00` : time;
 	return new Date(`${date}T${normalizedTime}`).toISOString();
 }
-
 
 export default function BookRoomPage() {
 	const router = useRouter();
@@ -204,42 +204,68 @@ export default function BookRoomPage() {
 							</div>
 
 							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
+								<div className="space-y-3">
 									<Label htmlFor="startDate">Start time</Label>
-									<Input
-										id="startDate"
-										type="date"
-										value={form.startDate}
-										onChange={onChange("startDate")}
-										required
-									/>
-									<Input
-										type="time"
-										value={form.startTime}
-										onChange={onChange("startTime")}
-										required
-									/>
+									
+									{/* INPUT CHỌN NGÀY */}
+									<div className="relative group">
+										<Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+										<Input
+											id="startDate"
+											type="date"
+											value={form.startDate}
+											onChange={onChange("startDate")}
+											onClick={(e) => e.currentTarget.showPicker?.()}
+											className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+											required
+										/>
+									</div>
+									
+									{/* INPUT CHỌN GIỜ */}
+									<div className="relative group">
+										<Input
+											type="time"
+											value={form.startTime}
+											onChange={onChange("startTime")}
+											onClick={(e) => e.currentTarget.showPicker?.()}
+											className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+											required
+										/>
+									</div>
 								</div>
 
-								<div className="space-y-2">
+								<div className="space-y-3">
 									<Label htmlFor="endDate">End time</Label>
-									<Input
-										id="endDate"
-										type="date"
-										value={form.endDate}
-										onChange={onChange("endDate")}
-										required
-									/>
-									<Input
-										type="time"
-										value={form.endTime}
-										onChange={onChange("endTime")}
-										required
-									/>
+									
+									{/* INPUT CHỌN NGÀY */}
+									<div className="relative group">
+										<Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+										<Input
+											id="endDate"
+											type="date"
+											value={form.endDate}
+											onChange={onChange("endDate")}
+											onClick={(e) => e.currentTarget.showPicker?.()}
+											className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+											required
+										/>
+									</div>
+									
+									{/* INPUT CHỌN GIỜ */}
+									<div className="relative group">
+										<Input
+											type="time"
+											value={form.endTime}
+											onChange={onChange("endTime")}
+											onClick={(e) => e.currentTarget.showPicker?.()}
+											className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+											required
+										/>
+									</div>
 								</div>
 							</div>
 
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-2 gap-4 pt-2">
 								<div className="space-y-2">
 									<Label htmlFor="recurringPattern">Recurring pattern</Label>
 									<select
@@ -251,7 +277,7 @@ export default function BookRoomPage() {
 												recurringPattern: e.target.value as RecurringPattern,
 											}))
 										}
-										className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+										className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:border-[#4F7D7B] transition-colors"
 									>
 										<option value="NONE">NONE</option>
 										<option value="DAILY">DAILY</option>
@@ -259,15 +285,21 @@ export default function BookRoomPage() {
 										<option value="MONTHLY">MONTHLY</option>
 									</select>
 								</div>
+								
 								<div className="space-y-2">
 									<Label htmlFor="recurringEndDate">Recurring end date</Label>
-									<Input
-										id="recurringEndDate"
-										type="date"
-										value={form.recurringEndDate}
-										onChange={onChange("recurringEndDate")}
-										required
-									/>
+									<div className="relative group">
+										<Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+										<Input
+											id="recurringEndDate"
+											type="date"
+											value={form.recurringEndDate}
+											onChange={onChange("recurringEndDate")}
+											onClick={(e) => e.currentTarget.showPicker?.()}
+											className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+											required
+										/>
+									</div>
 								</div>
 							</div>
 

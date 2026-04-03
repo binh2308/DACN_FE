@@ -7,8 +7,19 @@ export type Room = {
 	equipment: string[];
 	imageUrl?: string | null;
 	imageKey?: string | null;
+	/**
+	 * Room availability status returned by backend.
+	 * Known values: AVAILABLE | OCCUPIED | MAINTANANCE
+	 */
+	status?: RoomStatus;
 	location?: string | null;
 };
+
+export type RoomStatus =
+	| "AVAILABLE"
+	| "OCCUPIED"
+	| "MAINTENANCE"
+	| (string & {});
 
 export type RoomsResponse = {
 	success: boolean;
@@ -28,6 +39,11 @@ export type UpdateRoomRequest = {
 	imageUrl?: string | null;
 	imageKey?: string | null;
 	location?: string | null;
+	status?: RoomStatus;
+};
+
+export type UpdateRoomStatusRequest = {
+	status: RoomStatus;
 };
 
 export type UpdateRoomResponse = {
@@ -99,6 +115,21 @@ export async function updateRoomById(
 			"Content-Type": "application/json",
 		},
 		data: body,
+		...(options || {}),
+	});
+}
+
+export async function updateRoomStatusById(
+	id: string,
+	status: RoomStatus,
+	options?: { [key: string]: any },
+) {
+	return request<UpdateRoomResponse>(`/rooms/${id}`.replace(/\/+/g, "/"), {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		data: { status } as UpdateRoomStatusRequest,
 		...(options || {}),
 	});
 }
