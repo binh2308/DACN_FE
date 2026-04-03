@@ -2,12 +2,12 @@ import { request } from "../service";
 import type { DACN } from "./typings";
 
 export type MyLeaveRequestsParams = {
-  page?: number;       
-  pageSize?: number;    
-  employeeId?: string;  
-  search?: string;      
-  fromDate?: string;   
-  toDate?: string;     
+  page?: number;
+  pageSize?: number;
+  employeeId?: string;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
 };
 
 export async function myRequests(

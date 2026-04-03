@@ -18,7 +18,7 @@ export declare namespace DACN {
     condition: string;
     type: string;
     ownerEmployeeId?: string | null;
-    location?: string;
+    location?: string | null;
     purchase_date: string;
     warranty_expiration_date: string;
     maintenance_schedule: string;
@@ -29,9 +29,25 @@ export declare namespace DACN {
     condition: string;
     type: string;
     ownerEmployeeId?: string | null;
-    location?: string;
+    location?: string | null;
     purchase_date: string;
     warranty_expiration_date: string;
     maintenance_schedule: string;
+  };
+  type AssignAssetDto = {
+    employeeId: string;
+    assignmentDate: string;
+  };
+  type TicketResponseDto = {
+    id: string;
+    employee: any;
+    assignee: any;
+    category: any;
+    title: string;
+    description: string;
+    status: "OPEN" | "IN_PROGRESS" | "CLOSED";
+    createdAt: string;
+    updatedAt: string;
+    processes: any;
   };
 }

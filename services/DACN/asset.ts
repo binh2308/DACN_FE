@@ -1,22 +1,33 @@
 import { request } from "../service";
 import { DACN } from "./typings";
-const AssetTypes = {
-  public: "PUBLIC",
-  private: "PRIVATE",
-};
-const AssetConditions = {
-  new: "NEW",
-  used: "USED",
-  broken: "BROKEN",
-  under_maitenance: "UNDER_MAINTENANCE",
-  retired: "RETIRED",
+
+export type AssetType = "PUBLIC" | "PRIVATE";
+export type AssetStatus =
+  | "NEW"
+  | "USED"
+  | "BROKEN"
+  | "UNDER_MAINTENANCE"
+  | "RETIRED";
+export type AssetCategory = "Laptop / Máy tính" | "Màn hình" | "Thiết bị VP";
+
+export type Asset = {
+  id?: string;
+  name: string;
+  type: AssetType;
+  category?: AssetCategory;
+  condition: AssetStatus;
+  location?: string;
+  owner?: any;
+  purchase_date: string;
+  warranty_expiration_date?: string;
+  maintenance_schedule: string;
 };
 
 export type GetAssetsParams = {
   page?: number;
   pageSize?: number;
-  type?: (typeof AssetTypes)[keyof typeof AssetTypes];
-  condition?: (typeof AssetConditions)[keyof typeof AssetConditions];
+  type?: AssetType;
+  condition?: AssetStatus;
   ownerEmployeeId?: string;
   location?: string;
   keyword?: string;
@@ -68,6 +79,17 @@ export function updateAsset(
 export function deleteAsset(id: string, options?: { [key: string]: any }) {
   return request<any>(`/assets/${id}`, {
     method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
+export function assignAsset(id: string, data: DACN.AssignAssetDto, options?: { [key: string]: any }) {
+  return request<any>(`/assets/${id}/assign`, {
+    method: "POST",
+    data,
     headers: {
       "Content-Type": "application/json",
     },
