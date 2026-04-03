@@ -38,4 +38,16 @@ export declare namespace DACN {
     employeeId: string;
     assignmentDate: string;
   };
+  type TicketResponseDto = {
+    id: string;
+    employee: any;
+    assignee: any;
+    category: any;
+    title: string;
+    description: string;
+    status: "OPEN" | "IN_PROGRESS" | "CLOSED";
+    createdAt: string;
+    updatedAt: string;
+    processes: any;
+  };
 }

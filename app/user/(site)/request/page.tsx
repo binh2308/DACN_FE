@@ -44,9 +44,11 @@ const getFormattedDate = (dateStr: string) => {
 const getDuration = (start: string, end: string) => {
   const startDate = new Date(start);
   const endDate = new Date(end);
-  return Math.ceil(
-    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-  ) + 1;
+  return (
+    Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    ) + 1
+  );
 };
 const getRemainingDays = (start: string, end: string) => {
   const startDate = new Date(start);
@@ -229,7 +231,7 @@ function LeaveCreateModal({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (values: LeaveFormValues) => {
     const data = {
-      date_from: values.date_from, 
+      date_from: values.date_from,
       date_to: values.date_to,
       reason: values.reason,
       description: values.description,
@@ -244,7 +246,7 @@ function LeaveCreateModal({ onClose }: { onClose: () => void }) {
       form.reset();
       onClose();
     } catch (error) {
-       notifications.show({
+      notifications.show({
         title: "Error",
         message: "Failed to create leave request",
         color: "red",
