@@ -9,10 +9,20 @@ import { Calendar} from "lucide-react"; // Import thêm icon Clock
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createBooking, type RecurringPattern } from "@/services/DACN/Booking";
+import {
+	createBooking,
+	type RecurringPattern,
+} from "@/services/DACN/Booking";
 import { getRoomById, type Room } from "@/services/DACN/Rooms";
+import {
+	getEmployeeProfile,
+	getEmployees,
+	getFullName,
+	type EmployeeDto,
+} from "@/services/DACN/employee";
 
 function normalizeRoomResponse(data: unknown): Room | null {
 	if (!data || typeof data !== "object") return null;
@@ -37,6 +47,21 @@ function toIsoFromLocal(date: string, time: string) {
 	return new Date(`${date}T${normalizedTime}`).toISOString();
 }
 
+function normalizeEmployeesResponse(raw: any): EmployeeDto[] {
+	const payload = raw?.data ?? raw;
+	if (Array.isArray(payload)) return payload as EmployeeDto[];
+	if (Array.isArray(payload?.data)) return payload.data as EmployeeDto[];
+	if (Array.isArray(payload?.items)) return payload.items as EmployeeDto[];
+	if (Array.isArray(payload?.data?.items)) return payload.data.items as EmployeeDto[];
+	return [];
+}
+
+function pickString(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.trim();
+	return trimmed ? trimmed : undefined;
+}
+
 export default function BookRoomPage() {
 	const router = useRouter();
 	const params = useParams<{ id: string | string[] }>();
@@ -52,8 +77,38 @@ export default function BookRoomPage() {
 	);
 	const room = React.useMemo(() => normalizeRoomResponse(roomRaw), [roomRaw]);
 
+	const { data: profileRaw } = useRequest(getEmployeeProfile);
+
+	const {
+		data: employeesRaw,
+		loading: employeesLoading,
+		error: employeesError,
+		refresh: refreshEmployees,
+	} = useRequest(getEmployees);
+	const employees = React.useMemo(() => {
+		const list = normalizeEmployeesResponse(employeesRaw);
+
+		let myId = pickString((profileRaw as any)?.data?.id);
+		let myEmail = pickString((profileRaw as any)?.data?.email);
+		if (myId && !list.some((e) => e.id === myId)) myId = undefined;
+		if (myEmail && !list.some((e) => (e.email || "").trim() === myEmail)) myEmail = undefined;
+
+		const filtered = list.filter((e) => {
+			if (myId) return e.id !== myId;
+			if (myEmail) return (e.email || "").trim() !== myEmail;
+			return true;
+		});
+
+		return [...filtered].sort((a, b) => {
+			const an = (getFullName(a) || a.email || "").toLowerCase();
+			const bn = (getFullName(b) || b.email || "").toLowerCase();
+			return an.localeCompare(bn);
+		});
+	}, [employeesRaw, profileRaw]);
+
 	const [submitted, setSubmitted] = React.useState(false);
 	const [submitError, setSubmitError] = React.useState<string | null>(null);
+	const [attendeeIds, setAttendeeIds] = React.useState<string[]>([]);
 	const [form, setForm] = React.useState<FormState>({
 		purpose: "",
 		startDate: "",
@@ -129,6 +184,7 @@ export default function BookRoomPage() {
 				start_time: start,
 				end_time: end,
 				purpose: form.purpose,
+				attendee_ids: attendeeIds,
 				recurring_pattern: form.recurringPattern,
 				recurring_end_date: recurringEndIso,
 			});
@@ -300,6 +356,82 @@ export default function BookRoomPage() {
 											required
 										/>
 									</div>
+								</div>
+							</div>
+
+							<div className="pt-2">
+								<div className="mb-2 flex items-center justify-between gap-3">
+									<div>
+										<div className="text-sm font-semibold text-foreground">
+											Attendees
+										</div>
+										<div className="text-xs text-muted-foreground">
+											Select the staff members from your department to participate in the meeting.
+										</div>
+									</div>
+									<Button
+										variant="outline"
+										size="sm"
+										type="button"
+										onClick={() => refreshEmployees()}
+										disabled={employeesLoading}
+									>
+										Refresh
+									</Button>
+								</div>
+
+								{employeesError ? (
+									<div className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-800 ring-1 ring-rose-200">
+										{(employeesError as any)?.message ||
+											"Không thể tải danh sách nhân viên."}
+									</div>
+								) : null}
+
+								<div className="max-h-56 overflow-auto rounded-md border border-input bg-background">
+									{employeesLoading ? (
+										<div className="p-3 text-sm text-muted-foreground">
+											Đang tải danh sách...
+										</div>
+									) : employees.length === 0 ? (
+										<div className="p-3 text-sm text-muted-foreground">
+											Không có nhân viên trong phòng ban.
+										</div>
+									) : (
+										<ul className="divide-y">
+											{employees.map((emp) => {
+												const name = getFullName(emp) || emp.email;
+												const checked = attendeeIds.includes(emp.id);
+												return (
+													<li
+														key={emp.id}
+														className="flex items-start gap-3 p-3"
+													>
+														<Checkbox
+															checked={checked}
+															onCheckedChange={(v) => {
+																const next = Boolean(v);
+																setAttendeeIds((prev) => {
+																	if (next) return prev.includes(emp.id) ? prev : [...prev, emp.id];
+																	return prev.filter((x) => x !== emp.id);
+																});
+															}}
+														/>
+														<div className="min-w-0">
+															<div className="text-sm font-medium text-foreground truncate">
+																{name}
+															</div>
+															<div className="text-xs text-muted-foreground truncate">
+																{emp.email}
+															</div>
+														</div>
+													</li>
+												);
+											})}
+										</ul>
+									)}
+								</div>
+								<div className="mt-2 text-xs text-muted-foreground">
+									Selected: <span className="font-medium text-foreground">{attendeeIds.length}</span>
 								</div>
 							</div>
 
