@@ -50,4 +50,28 @@ export declare namespace DACN {
     updatedAt: string;
     processes: any;
   };
+  type CreateReportRequestDto = {
+    week_starting: string;
+    accomplishment: string;
+    in_progress: string;
+    plan: string;
+    blocker?: string;
+    progress_percentage?: number;
+    progress_notes?: string;
+  };
+  type ReportResponseDto = {
+    id: string;
+    employee_id?: string;
+    week_starting: string;
+    accomplishment: string;
+    in_progress: string;
+    plan: string;
+    blocker?: string;
+    progress_percentage: number;
+    progress_notes?: string;
+    status: "DRAFT" | "SUBMITTED" | "REVIEWED";
+    created_at: string;
+    updated_at: string;
+  };
+
 }

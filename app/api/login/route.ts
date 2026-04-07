@@ -15,11 +15,14 @@ export async function POST(req: Request) {
     const { email, password, rememberMe } = await req.json();
 
     //const data = await authLogin({ email, password });
-    const res = await fetch("http://34.30.235.71:3000/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    }); // Gọi backend thật để lấy accessToken và roles
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_ENDPOINT}/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      },
+    ); // Gọi backend thật để lấy accessToken và roles
     if (!res.ok) {
       const err = await res.json().catch(() => null);
       throw new Error(err?.message || "Login failed");

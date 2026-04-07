@@ -159,7 +159,9 @@ export default function AssignedTicketDetailPage() {
         <Button
           variant="ghost"
           className="h-9 px-2"
-          onClick={() => router.back()}
+          onClick={() =>
+            router.push(`/user/support?tab=${encodeURIComponent("My Assigned Tickets")}`)
+          }
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -229,7 +231,7 @@ export default function AssignedTicketDetailPage() {
                     Ticket Issue
                   </div>
                   <div className="mt-2 leading-relaxed">
-                    {ticket.category?.name}
+                    {ticket.description}
                   </div>
                 </div>
               </div>
