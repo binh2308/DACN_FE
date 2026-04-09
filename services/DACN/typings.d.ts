@@ -59,6 +59,21 @@ export declare namespace DACN {
     progress_percentage?: number;
     progress_notes?: string;
   };
+  type ManagerReportResponseDto = {
+    id: string;
+    employee_id?: string;
+    week_starting: string;
+    accomplishment: string;
+    in_progress: string;
+    plan: string;
+    blocker?: string;
+    employee: any;
+    progress_percentage: number;
+    progress_notes?: string;
+    status: "DRAFT" | "SUBMITTED" | "REVIEWED";
+    created_at: string;
+    updated_at: string;
+  };
   type ReportResponseDto = {
     id: string;
     employee_id?: string;

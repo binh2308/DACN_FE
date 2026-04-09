@@ -16,7 +16,7 @@ export function getListReports(
   params?: ReportParams,
   options?: { [key: string]: any },
 ) {
-  return request<DACN.ReportResponseDto[]>("/management/reports", {
+  return request<DACN.ManagerReportResponseDto[]>("/management/reports", {
     method: "GET",
     params,
     headers: {

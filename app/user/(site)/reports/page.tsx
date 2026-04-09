@@ -571,7 +571,7 @@ export default function WeeklyReportsPage() {
                   setFilters({
                     q: "",
                     status: "all",
-  
+
                     submittedAt: "",
                   })
                 }
