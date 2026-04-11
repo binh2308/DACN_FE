@@ -59,3 +59,7 @@ export function formatDate(
 
   return result;
 }
+
+export function toDateOnlyUTC(date: Date | string) {
+  return new Date(date).toISOString().slice(0, 10);
+}

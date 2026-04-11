@@ -33,7 +33,7 @@ import {
   type TicketStatus,
 } from "@/lib/support/tickets";
 import { formatDate } from "@/lib/utils";
-import { set } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
 
 type TicketCreateValue = {
   category_id: string;
@@ -48,11 +48,11 @@ type Filters = {
 
 function TicketCreateModal({
   categoryData,
-  setHasChange,
+
   onClose,
 }: {
   categoryData: any[];
-  setHasChange: React.Dispatch<React.SetStateAction<boolean>>;
+
   onClose: () => void;
 }) {
   const form = useForm<TicketCreateValue>({
@@ -86,7 +86,6 @@ function TicketCreateModal({
         color: "green",
       });
       form.reset();
-      setHasChange((prev) => !prev);
       onClose();
     } catch (error) {
       notifications.show({
@@ -191,14 +190,16 @@ function TicketCreateModal({
 
 export default function SupportPage() {
   const [tickets, setTickets] = React.useState<DACN.TicketResponseDto[]>([]);
-  const [activeTab, setActiveTab] = React.useState("My Tickets");
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = React.useState(() => {
+    return searchParams?.get("tab") || "My Tickets";
+  });
   const [filters, setFilters] = React.useState<Filters>({
     status: "all",
     category: "all",
   });
   const [categoryData, setCategoryData] = React.useState<any[]>([]);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
-  const [hasChange, setHasChange] = React.useState(false);
   const [limit, setLimit] = React.useState(6);
   const tabs = ["My Tickets", "My Assigned Tickets"];
   React.useEffect(() => {
@@ -237,7 +238,7 @@ export default function SupportPage() {
     };
     fetchTickets();
     fetchCategories();
-  }, [activeTab, hasChange]);
+  }, [activeTab, openCreateModal]);
 
   const filtered = React.useMemo(() => {
     return tickets.filter((t) => {
@@ -398,7 +399,6 @@ export default function SupportPage() {
       {openCreateModal && (
         <TicketCreateModal
           categoryData={categoryData}
-          setHasChange={setHasChange}
           onClose={() => setOpenCreateModal(false)}
         />
       )}

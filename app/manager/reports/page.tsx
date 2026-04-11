@@ -5,14 +5,15 @@ import {
   CalendarDays,
   CheckCircle2,
   Filter,
-  ListFilter,
+  RefreshCcw,
   MessageSquareText,
   Plus,
   Search,
   Send,
   ShieldAlert,
 } from "lucide-react";
-
+import { DACN } from "@/services/DACN/typings";
+import { getListReports } from "@/services/DACN/report";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +34,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { MyDatePicker } from "@/components/MyDatePicker";
+import { toDateOnlyUTC } from "@/lib/utils";
 
-type ReportStatus = "submitted" | "reviewed" | "needs_changes";
+type ReportStatus = "SUBMITTED" | "REVIEWED" | "DRAFT";
 
 type WeeklyReport = {
   id: string;
@@ -83,107 +86,107 @@ function formatDateShort(ymdOrIso: string) {
 
 function statusLabel(s: ReportStatus) {
   switch (s) {
-    case "submitted":
+    case "SUBMITTED":
       return "Submitted";
-    case "reviewed":
+    case "REVIEWED":
       return "Reviewed";
-    case "needs_changes":
-      return "Needs changes";
+    case "DRAFT":
+      return "Draft";
     default:
       return s;
   }
 }
 
 function statusVariant(
-  s: ReportStatus
+  s: ReportStatus,
 ): "default" | "secondary" | "destructive" {
   switch (s) {
-    case "reviewed":
+    case "REVIEWED":
       return "default";
-    case "needs_changes":
-      return "destructive";
-    case "submitted":
-    default:
+    case "DRAFT":
       return "secondary";
+    case "SUBMITTED":
+    default:
+      return "default";
   }
 }
 
-function seedReports(): WeeklyReport[] {
-  const now = new Date();
-  const iso = now.toISOString();
-  return [
-    {
-      id: safeId(),
-      employeeId: "E-0102",
-      employeeName: "Nguyen Van A",
-      department: "Engineering",
-      weekStart: "2026-01-19",
-      weekEnd: "2026-01-25",
-      createdAt: iso,
-      updatedAt: iso,
-      progress: 78,
-      accomplishments:
-        "- Hoàn thành UI trang Booking\n- Fix lỗi date input bị vỡ layout\n- Review PR của team",
-      inProgress:
-        "- Tối ưu performance trang Employee list\n- Chuẩn hoá validation form",
-      planNextWeek:
-        "- Hoàn thiện phần Reports\n- Thêm export CSV\n- Viết unit tests cho utils",
-      blockers: "Chưa có blocker lớn.",
-      links: "PR: #123\nTicket: DACN-45",
-      hours: 40,
-      status: "submitted",
-      managerComment: "",
-    },
-    {
-      id: safeId(),
-      employeeId: "E-0220",
-      employeeName: "Tran Thi B",
-      department: "HR",
-      weekStart: "2026-01-19",
-      weekEnd: "2026-01-25",
-      createdAt: iso,
-      updatedAt: iso,
-      progress: 92,
-      accomplishments:
-        "- Tổng hợp dữ liệu chấm công\n- Làm báo cáo lương sơ bộ\n- Update policy nghỉ phép",
-      inProgress: "- Chuẩn bị onboarding batch mới",
-      planNextWeek: "- Hoàn tất payroll\n- Audit hồ sơ nhân sự",
-      blockers: "Đợi dữ liệu từ phòng IT về phân quyền.",
-      links: "",
-      hours: 38,
-      status: "reviewed",
-      managerComment: "Tốt. Tuần sau ưu tiên payroll trước thứ 4.",
-    },
-  ];
-}
+// function seedReports(): WeeklyReport[] {
+//   const now = new Date();
+//   const iso = now.toISOString();
+//   return [
+//     {
+//       id: safeId(),
+//       employeeId: "E-0102",
+//       employeeName: "Nguyen Van A",
+//       department: "Engineering",
+//       weekStart: "2026-01-19",
+//       weekEnd: "2026-01-25",
+//       createdAt: iso,
+//       updatedAt: iso,
+//       progress: 78,
+//       accomplishments:
+//         "- Hoàn thành UI trang Booking\n- Fix lỗi date input bị vỡ layout\n- Review PR của team",
+//       inProgress:
+//         "- Tối ưu performance trang Employee list\n- Chuẩn hoá validation form",
+//       planNextWeek:
+//         "- Hoàn thiện phần Reports\n- Thêm export CSV\n- Viết unit tests cho utils",
+//       blockers: "Chưa có blocker lớn.",
+//       links: "PR: #123\nTicket: DACN-45",
+//       hours: 40,
+//       status: "submitted",
+//       managerComment: "",
+//     },
+//     {
+//       id: safeId(),
+//       employeeId: "E-0220",
+//       employeeName: "Tran Thi B",
+//       department: "HR",
+//       weekStart: "2026-01-19",
+//       weekEnd: "2026-01-25",
+//       createdAt: iso,
+//       updatedAt: iso,
+//       progress: 92,
+//       accomplishments:
+//         "- Tổng hợp dữ liệu chấm công\n- Làm báo cáo lương sơ bộ\n- Update policy nghỉ phép",
+//       inProgress: "- Chuẩn bị onboarding batch mới",
+//       planNextWeek: "- Hoàn tất payroll\n- Audit hồ sơ nhân sự",
+//       blockers: "Đợi dữ liệu từ phòng IT về phân quyền.",
+//       links: "",
+//       hours: 38,
+//       status: "reviewed",
+//       managerComment: "Tốt. Tuần sau ưu tiên payroll trước thứ 4.",
+//     },
+//   ];
+// }
 
-function readReports(): WeeklyReport[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedReports();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return seedReports();
-    return parsed as WeeklyReport[];
-  } catch {
-    return seedReports();
-  }
-}
+// function readReports(): WeeklyReport[] {
+//   if (typeof window === "undefined") return [];
+//   try {
+//     const raw = localStorage.getItem(STORAGE_KEY);
+//     if (!raw) return seedReports();
+//     const parsed = JSON.parse(raw) as unknown;
+//     if (!Array.isArray(parsed)) return seedReports();
+//     return parsed as WeeklyReport[];
+//   } catch {
+//     return seedReports();
+//   }
+// }
 
-function writeReports(items: WeeklyReport[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    // ignore
-  }
-}
+// function writeReports(items: WeeklyReport[]) {
+//   if (typeof window === "undefined") return;
+//   try {
+//     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+//   } catch {
+//     // ignore
+//   }
+// }
 
 type Filters = {
   q: string;
   status: "all" | ReportStatus;
-  department: "all" | string;
-  weekStart: string;
+
+  submittedAt: string;
 };
 
 function ProgressBar({ value }: { value: number }) {
@@ -213,13 +216,14 @@ function EmptyState({ title, hint }: { title: string; hint?: string }) {
 }
 
 export default function WeeklyReportsPage() {
-  const [reports, setReports] = React.useState<WeeklyReport[]>([]);
+  const [reports, setReports] = React.useState<DACN.ManagerReportResponseDto[]>(
+    [],
+  );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [filters, setFilters] = React.useState<Filters>({
     q: "",
     status: "all",
-    department: "all",
-    weekStart: "",
+    submittedAt: "",
   });
 
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -238,61 +242,64 @@ export default function WeeklyReportsPage() {
     blockers: "",
     links: "",
     hours: 40,
-    status: "submitted",
+    status: "SUBMITTED",
     managerComment: "",
   });
 
   React.useEffect(() => {
-    const initial = readReports();
-    setReports(initial);
-    setSelectedId(initial[0]?.id ?? null);
-  }, []);
-
-  React.useEffect(() => {
-    if (reports.length === 0) return;
-    writeReports(reports);
-  }, [reports]);
-
-  const departments = React.useMemo(() => {
-    const set = new Set<string>();
-    for (const r of reports) set.add(r.department);
-    return Array.from(set).sort();
-  }, [reports]);
+    const fetchReport = async () => {
+      try {
+        const res = await getListReports({
+          page: 1,
+          limit: 10,
+        });
+        //console.log("Fetched my report:", res.data?.data);
+        setReports(res.data?.data);
+        setSelectedId(res.data?.data[0]?.id ?? null);
+      } catch (error) {
+        console.error("Failed to fetch report:", error);
+      }
+    };
+    fetchReport();
+  }, [createOpen]);
 
   const filtered = React.useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     return reports
       .filter((r) => {
-        if (filters.status !== "all" && r.status !== filters.status)
-          return false;
         if (
-          filters.department !== "all" &&
-          r.department !== filters.department
+          q.length > 0 &&
+          q.includes(r.employee?.firstName.toLowerCase()) === false &&
+          q.includes(r.employee?.middleName.toLowerCase()) === false &&
+          q.includes(r.employee?.lastName.toLowerCase()) === false
         )
           return false;
-        if (filters.weekStart && r.weekStart !== filters.weekStart)
+        if (filters.status !== "all" && r.status !== filters.status)
           return false;
-        if (q) {
-          const hay =
-            `${r.employeeId} ${r.employeeName} ${r.department}`.toLowerCase();
-          if (!hay.includes(q)) return false;
+
+        if (
+          filters.submittedAt &&
+          toDateOnlyUTC(r.created_at) !== toDateOnlyUTC(filters.submittedAt)
+        ) {
+          return false;
         }
+
         return true;
       })
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   }, [reports, filters]);
 
   const selected = React.useMemo(
     () => reports.find((r) => r.id === selectedId) ?? null,
-    [reports, selectedId]
+    [reports, selectedId],
   );
 
   const counts = React.useMemo(() => {
     return {
       total: reports.length,
-      submitted: reports.filter((r) => r.status === "submitted").length,
-      reviewed: reports.filter((r) => r.status === "reviewed").length,
-      needsChanges: reports.filter((r) => r.status === "needs_changes").length,
+      submitted: reports.filter((r) => r.status === "SUBMITTED").length,
+      reviewed: reports.filter((r) => r.status === "REVIEWED").length,
+      needsChanges: reports.filter((r) => r.status === "DRAFT").length,
     };
   }, [reports]);
 
@@ -300,7 +307,9 @@ export default function WeeklyReportsPage() {
     if (!selected) return;
     const updatedAt = new Date().toISOString();
     setReports((prev) =>
-      prev.map((r) => (r.id === selected.id ? { ...r, ...patch, updatedAt } : r))
+      prev.map((r) =>
+        r.id === selected.id ? { ...r, ...patch, updatedAt } : r,
+      ),
     );
   };
 
@@ -316,7 +325,7 @@ export default function WeeklyReportsPage() {
       updatedAt: nowIso,
       progress: clampProgress(draft.progress),
       hours: Number(draft.hours) || 0,
-      status: "submitted",
+      status: "SUBMITTED",
       managerComment: "",
     };
     setReports((prev) => [item, ...prev]);
@@ -347,7 +356,9 @@ export default function WeeklyReportsPage() {
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
             Tổng:{" "}
-            <span className="font-semibold text-foreground">{counts.total}</span>{" "}
+            <span className="font-semibold text-foreground">
+              {counts.total}
+            </span>{" "}
             · Submitted{" "}
             <span className="font-semibold text-foreground">
               {counts.submitted}
@@ -364,10 +375,10 @@ export default function WeeklyReportsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-full" type="button">
+          {/* <Button variant="outline" className="rounded-full" type="button">
             <Filter className="mr-2 h-4 w-4" />
             Filter
-          </Button>
+          </Button> */}
 
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
@@ -492,7 +503,10 @@ export default function WeeklyReportsPage() {
                   <Textarea
                     value={draft.accomplishments}
                     onChange={(e) =>
-                      setDraft((p) => ({ ...p, accomplishments: e.target.value }))
+                      setDraft((p) => ({
+                        ...p,
+                        accomplishments: e.target.value,
+                      }))
                     }
                     rows={5}
                     placeholder="Việc đã hoàn thành..."
@@ -570,7 +584,7 @@ export default function WeeklyReportsPage() {
       <div className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-12">
         <Card className="lg:col-span-5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Inbox</CardTitle>
+            <CardTitle className="text-sm">Team Reports</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -593,22 +607,24 @@ export default function WeeklyReportsPage() {
                   setFilters({
                     q: "",
                     status: "all",
-                    department: "all",
-                    weekStart: "",
+                    submittedAt: "",
                   })
                 }
               >
-                <ListFilter className="mr-2 h-4 w-4" />
+                <RefreshCcw className="mr-2 h-4 w-4" />
                 Reset
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Select
                   value={filters.status}
                   onValueChange={(v) =>
-                    setFilters((p) => ({ ...p, status: v as Filters["status"] }))
+                    setFilters((p) => ({
+                      ...p,
+                      status: v as Filters["status"],
+                    }))
                   }
                 >
                   <SelectTrigger className="bg-white">
@@ -616,14 +632,14 @@ export default function WeeklyReportsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="reviewed">Reviewed</SelectItem>
-                    <SelectItem value="needs_changes">Needs changes</SelectItem>
+                    <SelectItem value="SUBMITTED">Submitted</SelectItem>
+                    <SelectItem value="REVIEWED">Reviewed</SelectItem>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
+              {/* <div>
                 <Select
                   value={filters.department}
                   onValueChange={(v) =>
@@ -642,19 +658,25 @@ export default function WeeklyReportsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="relative">
+              </div> */}
+              <MyDatePicker
+                value={filters.submittedAt}
+                onChange={(v) =>
+                  setFilters((p) => ({ ...p, submittedAt: v || "" }))
+                }
+                placeholder="Select submitted date"
+              />
+              {/* <div className="relative">
                 <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="date"
-                  value={filters.weekStart}
+                  value={filters.submittedAt}
                   onChange={(e) =>
-                    setFilters((p) => ({ ...p, weekStart: e.target.value }))
+                    setFilters((p) => ({ ...p, submittedAt: e.target.value }))
                   }
                   className="bg-white pl-10"
                 />
-              </div>
+              </div> */}
             </div>
 
             <div className="space-y-3">
@@ -679,18 +701,16 @@ export default function WeeklyReportsPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-semibold text-foreground">
-                            {r.employeeName}{" "}
+                            {r.employee?.firstName} {r.employee?.middleName}{" "}
+                            {r.employee?.lastName}
                             <span className="text-xs text-muted-foreground">
-                              ({r.employeeId})
+                              ({`#${r.employee?.id.slice(0, 5)}`})
                             </span>
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>{r.department}</span>
+                            <span>({`#${r.id.slice(0, 5)}`})</span>
                             <span>·</span>
-                            <span>
-                              {formatDateShort(r.weekStart)} –{" "}
-                              {formatDateShort(r.weekEnd)}
-                            </span>
+                            <span>{formatDateShort(r.week_starting)}</span>
                           </div>
                         </div>
                         <Badge
@@ -703,17 +723,18 @@ export default function WeeklyReportsPage() {
 
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Progress</span>
+                          <span className="text-muted-foreground">
+                            Progress
+                          </span>
                           <span className="font-semibold text-foreground">
-                            {clampProgress(r.progress)}%
+                            {clampProgress(r.progress_percentage)}%
                           </span>
                         </div>
-                        <ProgressBar value={r.progress} />
+                        <ProgressBar value={r.progress_percentage} />
                       </div>
 
                       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Submitted: {formatDateShort(r.createdAt)}</span>
-                        <span>{r.hours}h</span>
+                        <span>Submitted: {formatDateShort(r.created_at)}</span>
                       </div>
                     </button>
                   );
@@ -730,14 +751,15 @@ export default function WeeklyReportsPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <CardTitle className="text-sm">
-                      {selected.employeeName}{" "}
+                      {selected.employee?.firstName}{" "}
+                      {selected.employee?.middleName}{" "}
+                      {selected.employee?.lastName}
                       <span className="text-muted-foreground">
-                        ({selected.employeeId})
+                        ({`#${selected.employee?.id.slice(0, 5)}`})
                       </span>
                     </CardTitle>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {selected.department} · {formatDateShort(selected.weekStart)} –{" "}
-                      {formatDateShort(selected.weekEnd)}
+                      {formatDateShort(selected.week_starting)}
                     </div>
                   </div>
 
@@ -757,13 +779,12 @@ export default function WeeklyReportsPage() {
                   <div className="mb-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Progress</span>
                     <span className="font-semibold text-foreground">
-                      {clampProgress(selected.progress)}%
+                      {clampProgress(selected.progress_percentage)}%
                     </span>
                   </div>
-                  <ProgressBar value={selected.progress} />
+                  <ProgressBar value={selected.progress_percentage} />
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Hours: {selected.hours}h</span>
-                    <span>Updated: {formatDateShort(selected.updatedAt)}</span>
+                    <span>Updated: {formatDateShort(selected.updated_at)}</span>
                   </div>
                 </div>
 
@@ -773,7 +794,7 @@ export default function WeeklyReportsPage() {
                       Accomplishments
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
-                      {selected.accomplishments || "—"}
+                      {selected.accomplishment || "—"}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -781,7 +802,7 @@ export default function WeeklyReportsPage() {
                       In progress
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
-                      {selected.inProgress || "—"}
+                      {selected.in_progress || "—"}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -789,7 +810,7 @@ export default function WeeklyReportsPage() {
                       Plan next week
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
-                      {selected.planNextWeek || "—"}
+                      {selected.plan || "—"}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -797,15 +818,17 @@ export default function WeeklyReportsPage() {
                       Blockers
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
-                      {selected.blockers || "—"}
+                      {selected.blocker || "—"}
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-foreground">Links</div>
+                  <div className="text-xs font-semibold text-foreground">
+                    Progress Notes
+                  </div>
                   <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
-                    {selected.links || "—"}
+                    {selected.progress_notes || "—"}
                   </div>
                 </div>
 
@@ -819,9 +842,7 @@ export default function WeeklyReportsPage() {
                         type="button"
                         variant="outline"
                         className="rounded-full"
-                        onClick={() =>
-                          updateSelected({ status: "needs_changes" })
-                        }
+                        onClick={() => updateSelected({ status: "REVIEWED" })}
                       >
                         <ShieldAlert className="mr-2 h-4 w-4" />
                         Request changes
@@ -829,7 +850,7 @@ export default function WeeklyReportsPage() {
                       <Button
                         type="button"
                         className="rounded-full"
-                        onClick={() => updateSelected({ status: "reviewed" })}
+                        onClick={() => updateSelected({ status: "REVIEWED" })}
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                         Mark reviewed
@@ -838,7 +859,7 @@ export default function WeeklyReportsPage() {
                   </div>
 
                   <Textarea
-                    value={selected.managerComment}
+                    value={""}
                     onChange={(e) =>
                       updateSelected({ managerComment: e.target.value })
                     }
