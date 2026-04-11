@@ -14,9 +14,14 @@ export async function POST(req: Request) {
   try {
     const { email, password, rememberMe } = await req.json();
 
+    const apiBase = (process.env.NEXT_PUBLIC_API_ENDPOINT || "").replace(/\/+$/, "");
+    if (!apiBase) {
+      throw new Error("Missing NEXT_PUBLIC_API_ENDPOINT (backend base URL)");
+    }
+
     //const data = await authLogin({ email, password });
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_ENDPOINT}/auth/login`,
+			`${apiBase}/auth/login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
