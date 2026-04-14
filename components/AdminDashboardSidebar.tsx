@@ -50,11 +50,6 @@ const navItems: NavItem[] = [
     href: "/admin/support",
     icon: <MessageSquare className="w-5 h-5" />,
   },
-  {
-    label: "Cấu hình hệ thống",
-    href: "/admin/settings",
-    icon: <Settings className="w-5 h-5" />,
-  },
 ];
 
 export default function AdminDashboardSidebar() {

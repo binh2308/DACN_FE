@@ -6,8 +6,14 @@ import { useRouter } from "next/navigation";
 import { CalendarClock, MapPin, Trash2, Users, Clock } from "lucide-react";
 import { useRequest } from "ahooks";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import {
   Select,
   SelectContent,
@@ -17,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import {
   deleteBooking,
-  getBookingsByEmployee,
+  getBookingsOfEmployee,
   type BookingByRoom,
+  type BookingDetailDto,
 } from "@/services/DACN/Booking";
 import { getRooms, type Room } from "@/services/DACN/Rooms";
 
@@ -37,18 +44,79 @@ const formatTimeRange = (startIso: string, endIso: string) => {
   return { date, time: `${startTime} - ${endTime}` };
 };
 
-type BookingSlot = { id: string; roomId: string; roomName: string; organizer: string; start: string; end: string; };
+type BookingSlot = {
+  id: string;
+  roomId: string;
+  roomName: string;
+  organizer: string;
+  start: string;
+  end: string;
+  attendees: Array<{ id: string; name: string; email?: string }>;
+};
 
 const isPast = (slot: BookingSlot, now: number) => new Date(slot.end).getTime() < now;
 
-function normalizeBookingsByEmployeeResponse(data: unknown): BookingByRoom[] {
-    if (!data) return [];
-    if (Array.isArray(data)) return data as BookingByRoom[];
-    if (typeof data === "object" && data !== null && "data" in data) {
-        const arr = (data as any).data;
-        if (Array.isArray(arr)) return arr as BookingByRoom[];
-    }
-    return [];
+function formatPersonName(person: any) {
+  if (!person) return "";
+  const direct = String(person?.name ?? "").trim();
+  if (direct) return direct;
+  const parts = [person?.lastName, person?.middleName, person?.firstName]
+    .map((p: any) => String(p ?? "").trim())
+    .filter(Boolean);
+  if (parts.length) return parts.join(" ");
+  return String(person?.email ?? "").trim();
+}
+
+function getInitials(name: string) {
+  const value = String(name ?? "").trim();
+  if (!value) return "?";
+  const words = value.split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+function normalizeBookingsByEmployeeResponse(data: unknown): Array<BookingByRoom | BookingDetailDto> {
+  if (!data) return [];
+  const payload = (data as any)?.data ?? data;
+  if (Array.isArray(payload)) return payload as any[];
+  if (typeof payload === "object" && payload !== null && Array.isArray((payload as any).data)) {
+    return (payload as any).data as any[];
+  }
+  return [];
+}
+
+function toSlot(b: any): BookingSlot | null {
+  // New backend shape
+  const roomName = String(b?.room?.name ?? b?.roomName ?? "").trim();
+  const roomId = String(b?.room?.id ?? "").trim();
+  const start = String(b?.start_time ?? b?.startTime ?? "").trim();
+  const end = String(b?.end_time ?? b?.endTime ?? "").trim();
+  const organizer =
+    String(b?.name ?? "").trim() ||
+    formatPersonName(b?.employee) ||
+    "-";
+
+  const id = String(b?.id ?? "").trim();
+  if (!id || !start || !end || !roomName) return null;
+
+  const attendeesRaw = Array.isArray(b?.attendees) ? b.attendees : [];
+  const attendees = attendeesRaw
+    .map((a: any) => ({
+      id: String(a?.id ?? "").trim(),
+      name: formatPersonName(a) || String(a?.email ?? "").trim() || "-",
+      email: String(a?.email ?? "").trim() || undefined,
+    }))
+    .filter((a: any) => a.id && a.name);
+
+  return {
+    id,
+    roomId: roomId || `room:${normalizeKey(roomName)}`,
+    roomName,
+    organizer,
+    start,
+    end,
+    attendees,
+  };
 }
 function normalizeRoomsResponse(data: unknown): Room[] {
     if (!data) return [];
@@ -69,7 +137,7 @@ export default function BookedRoomsPage() {
 
   React.useEffect(() => { setNow(Date.now()); }, []);
 
-  const { data: bookingsRaw, loading: bookingsLoading, error: bookingsError, refresh: refreshBookings } = useRequest(getBookingsByEmployee);
+  const { data: bookingsRaw, loading: bookingsLoading, error: bookingsError, refresh: refreshBookings } = useRequest(getBookingsOfEmployee);
   const { data: roomsRaw, loading: roomsLoading, error: roomsError } = useRequest(getRooms);
   const { runAsync: runDeleteBooking } = useRequest(deleteBooking, { manual: true });
 
@@ -93,11 +161,9 @@ export default function BookedRoomsPage() {
 
   const roomsWithBookings = React.useMemo(() => {
     if (now === null) return [];
-    const slots: BookingSlot[] = bookings.map((b) => {
-        const room = roomByName.get(normalizeKey(b.roomName || ""));
-        const roomId = room?.id ?? `room:${normalizeKey(b.roomName || "")}`;
-        return { id: b.id, roomId, roomName: b.roomName, organizer: b.name, start: b.startTime, end: b.endTime };
-    }).filter(Boolean);
+    const slots: BookingSlot[] = bookings
+      .map((b) => toSlot(b))
+      .filter(Boolean) as BookingSlot[];
 
     const filtered = slots.filter((slot) => {
         if (organizer !== "all" && slot.organizer !== organizer) return false;
@@ -243,20 +309,63 @@ export default function BookedRoomsPage() {
                     {slots.slice(0, 2).map((slot, index) => {
                       const { date, time } = formatTimeRange(slot.start, slot.end);
                       const past = isPast(slot, now!);
+                      const attendeeNames = slot.attendees
+                        .map((a) => a.name)
+                        .filter(Boolean);
+                      const attendeePreview = attendeeNames.slice(0, 3).join(", ");
+                      const extraCount = Math.max(0, attendeeNames.length - 3);
                       return (
                         <div 
                             key={slot.id} 
                             className={`group/slot relative flex items-start justify-between py-2 ${index !== slots.length -1 && index !== 1 ? 'border-b border-border/50' : ''}`}
                         >
                           <div className="min-w-0 pr-2">
-                             <div className="text-sm font-medium text-foreground truncate">
-                                {slot.organizer}
-                             </div>
+               <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 text-sm font-medium text-foreground truncate">
+                  {slot.organizer}
+                </div>
+                {slot.attendees.length > 0 ? (
+                  <div className="flex items-center -space-x-2">
+                    {slot.attendees.map((attendee) => {
+                      const displayName = String(attendee?.name ?? "").trim() || "-";
+                      return (
+                        <HoverCard key={attendee.id} openDelay={150} closeDelay={80}>
+                          <HoverCardTrigger asChild>
+                            <Avatar className="h-6 w-6 border border-background">
+                              <AvatarImage src={(attendee as any)?.avatar_url ?? (attendee as any)?.avatarUrl ?? ""} alt={displayName} />
+                              <AvatarFallback className="text-[10px]">
+                                {getInitials(displayName)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-auto">
+                            <div className="text-sm font-medium text-foreground">
+                              {displayName}
+                            </div>
+                            {attendee.email ? (
+                              <div className="text-xs text-muted-foreground">{attendee.email}</div>
+                            ) : null}
+                          </HoverCardContent>
+                        </HoverCard>
+                    );
+                  })}
+                  </div>
+                ) : null}
+               </div>
                              <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                                 <span className={past ? "line-through opacity-70" : ""}>{date}</span>
                                 <span className="text-[10px]">•</span> 
                                 <span className={past ? "opacity-70" : "text-[#4F7D7B] font-medium"}>{time}</span>
                              </div>
+                             {attendeeNames.length > 0 ? (
+                               <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1.5">
+                                 <Users className="h-3.5 w-3.5 shrink-0" />
+                                 <span className="truncate">
+                                   {attendeePreview}
+                                   {extraCount > 0 ? `, +${extraCount}` : ""}
+                                 </span>
+                               </div>
+                             ) : null}
                           </div>
                           
                           <Button

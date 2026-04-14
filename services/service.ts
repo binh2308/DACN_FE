@@ -6,7 +6,7 @@ type ApiErrorResponse = {
 };
 
 export const request = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_ENDPOINT,
+	baseURL: (process.env.NEXT_PUBLIC_API_ENDPOINT || "").replace(/\/+$/, ""),
   headers: {
     "Content-Type": "application/json",
   },

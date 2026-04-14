@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { getRooms, type Room } from "@/services/DACN/Rooms";
 
+// --- Xử lý dữ liệu API ---
 function normalizeRoomsResponse(data: unknown): Room[] {
 	if (!data) return [];
 	if (Array.isArray(data)) return data as Room[];
@@ -25,8 +26,24 @@ function normalizeRoomsResponse(data: unknown): Room[] {
 	return [];
 }
 
+type RoomApiStatus = "AVAILABLE" | "OCCUPIED" | "MAINTANANCE" | "MAINTENANCE";
+
+// Hàm chuẩn hóa trạng thái phòng
+function normalizeRoomStatus(value: unknown): RoomApiStatus | null {
+    const s = String(value ?? "").trim().toUpperCase();
+    if (!s) return null;
+    if (s === "AVAILABLE" || s === "OCCUPIED" || s === "MAINTANANCE" || s === "MAINTENANCE") {
+        return s as RoomApiStatus;
+    }
+    return null;
+}
+
 export default function BookingPage() {
-	const { data, loading, error, refresh } = useRequest(getRooms);
+	// Cấu hình Polling để cập nhật trạng thái thời gian thực mỗi 10s
+	const { data, loading, error, refresh } = useRequest(getRooms, {
+		pollingInterval: 10000,
+		pollingWhenHidden: false,
+	});
 	const rooms = React.useMemo(() => normalizeRoomsResponse(data), [data]);
 
 	const [searchText, setSearchText] = React.useState("");
@@ -65,7 +82,6 @@ export default function BookingPage() {
 	]);
 
 	React.useEffect(() => {
-		// When API data changes, keep slider bounds sane.
 		setSeatDraft([allMin, allMax]);
 		setSeatApplied([allMin, allMax]);
 	}, [allMin, allMax]);
@@ -156,17 +172,9 @@ export default function BookingPage() {
 						<h2 className="text-sm font-semibold text-muted-foreground">
 							{filteredRooms.length} Rooms Found
 						</h2>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							onClick={() => refresh()}
-							disabled={loading}
-						>
-							Refresh
-						</Button>
 					</div>
 
+					{/* SỬA LỖI CHỚP MÀN HÌNH BẰNG ĐIỀU KIỆN (!data && loading) */}
 					{error ? (
 						<div className="rounded-xl bg-white p-10 shadow-sm ring-1 ring-border">
 							<div className="text-base font-semibold text-foreground">
@@ -185,10 +193,10 @@ export default function BookingPage() {
 								</Button>
 							</div>
 						</div>
-					) : loading ? (
-						<div className="rounded-xl bg-white p-10 text-center shadow-sm ring-1 ring-border">
+					) : (!data && loading) ? (
+						<div className="rounded-xl bg-white p-10 text-center shadow-sm ring-1 ring-border animate-pulse">
 							<div className="text-base font-semibold text-foreground">
-								Đang tải rooms…
+								Đang tải danh sách phòng…
 							</div>
 							<div className="mt-2 text-sm text-muted-foreground">
 								Vui lòng chờ một chút.
@@ -205,51 +213,80 @@ export default function BookingPage() {
 						</div>
 					) : (
 						<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-							{filteredRooms.map((room) => (
-								<div
-									key={room.id}
-									className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-border"
-								>
-									<div className="aspect-[16/9] w-full bg-muted">
-										{room.imageUrl ? (
-											<img
-												src={room.imageUrl}
-												alt={room.name}
-												className="h-full w-full object-cover"
-												loading="lazy"
-											/>
-										) : null}
+							{filteredRooms.map((room) => {
+								// TÍNH TOÁN TRẠNG THÁI TỪ API
+								const apiStatus = normalizeRoomStatus((room as any).status) ?? "AVAILABLE";
+                                const statusType =
+                                    apiStatus === "AVAILABLE"
+                                        ? "available"
+                                        : apiStatus === "OCCUPIED"
+                                            ? "busy"
+                                            : "maintenance";
+
+								return (
+									<div
+										key={room.id}
+										className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-border hover:shadow-md transition-shadow relative"
+									>
+										{/* Hình ảnh và Huy hiệu trạng thái */}
+										<div className="relative aspect-[16/9] w-full bg-muted">
+											{room.imageUrl ? (
+												<img
+													src={room.imageUrl}
+													alt={room.name}
+													className="h-full w-full object-cover"
+													loading="lazy"
+												/>
+											) : null}
+											
+											{/* Badge overlay hiển thị trạng thái */}
+                                            <div className="absolute top-3 right-3 z-10">
+                                                {statusType === 'available' && <span className="bg-[#10B981] text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">Trống</span>}
+                                                {statusType === 'busy' && <span className="bg-[#EF4444] text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">Đang sử dụng</span>}
+                                                {statusType === 'maintenance' && <span className="bg-[#F97316] text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">Bảo trì</span>}
+                                            </div>
+										</div>
+
+										<div className="bg-muted/40 px-4 pb-4 pt-3">
+											<div className="mb-1 text-lg font-semibold text-foreground">
+												{room.name}
+											</div>
+											<div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
+												<MapPin className="h-4 w-4" />
+												<span>{room.location || "No location"}</span>
+											</div>
+
+											<div className="mb-4 text-xs text-muted-foreground">
+												Capacity : {room.capacity}
+											</div>
+
+											<Button
+												asChild
+												className={`w-full rounded-md font-medium transition-colors ${
+													statusType === 'maintenance' 
+														? 'bg-gray-200 text-gray-500 hover:bg-gray-200 cursor-not-allowed' 
+														: 'bg-[#4F7D7B] hover:bg-[#436d6b] text-white'
+												}`}
+											>
+												<Link 
+													href={`/user/booking/${room.id}`}
+													onClick={(e) => {
+														// Chặn không cho bấm nếu phòng đang bận hoặc bảo trì
+														if (statusType === 'maintenance') e.preventDefault();
+													}}
+												>
+													{statusType === 'available' || statusType === 'busy' ? 'More Info' : 'Đang bảo trì'}
+												</Link>
+											</Button>
+										</div>
 									</div>
-
-									<div className="bg-muted/40 px-4 pb-4 pt-3">
-										<div className="mb-1 text-lg font-semibold text-foreground">
-											{room.name}
-										</div>
-										<div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
-											<MapPin className="h-4 w-4" />
-											<span>{room.location || "No location"}</span>
-										</div>
-
-										<div className="mb-3 text-xs text-muted-foreground">
-											Capacity : {room.capacity}
-										</div>
-
-										{/* Keep equipment for search/filter; screenshot layout is cleaner so we don't render all badges here. */}
-
-										<Button
-											asChild
-											className="w-full rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
-										>
-											<Link href={`/user/booking/${room.id}`}>More Info</Link>
-										</Button>
-									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</section>
 
-				<aside className="h-fit rounded-xl bg-white p-5 shadow-sm ring-1 ring-border">
+				<aside className="h-fit rounded-xl bg-white p-5 shadow-sm ring-1 ring-border sticky top-6">
 					<div className="space-y-6">
 						<div>
 							<div className="mb-2 text-sm font-semibold text-muted-foreground">
@@ -270,14 +307,14 @@ export default function BookingPage() {
 							<div className="mb-3 text-sm font-semibold text-muted-foreground">
 								Filter by Location:
 							</div>
-							<div className="space-y-2">
+							<div className="space-y-2 max-h-48 overflow-y-auto">
 								{locationOptions.length === 0 ? (
 									<div className="text-sm text-muted-foreground">No location</div>
 								) : (
 									locationOptions.map((loc) => (
 										<label
 											key={loc}
-											className="flex cursor-pointer items-center gap-3 text-sm text-foreground"
+											className="flex cursor-pointer items-center gap-3 text-sm text-foreground hover:bg-gray-50 p-1 -ml-1 rounded"
 										>
 											<Checkbox
 												checked={selectedLocations.has(loc)}
@@ -294,14 +331,14 @@ export default function BookingPage() {
 							<div className="mb-3 text-sm font-semibold text-muted-foreground">
 								Filter by Equipment:
 							</div>
-							<div className="space-y-2">
+							<div className="space-y-2 max-h-48 overflow-y-auto">
 								{equipmentOptions.length === 0 ? (
 									<div className="text-sm text-muted-foreground">No equipment</div>
 								) : (
 									equipmentOptions.map((eq) => (
 										<label
 											key={eq}
-											className="flex cursor-pointer items-center gap-3 text-sm text-foreground"
+											className="flex cursor-pointer items-center gap-3 text-sm text-foreground hover:bg-gray-50 p-1 -ml-1 rounded"
 										>
 											<Checkbox
 												checked={selectedEquipment.has(eq)}
@@ -336,13 +373,13 @@ export default function BookingPage() {
 									<div className="rounded-md bg-white px-3 py-2 text-center text-xs ring-1 ring-border">
 										<div className="text-muted-foreground">Min Limit</div>
 										<div className="font-semibold text-foreground">
-											{seatApplied[0]}
+											{seatDraft[0]}
 										</div>
 									</div>
 									<div className="rounded-md bg-white px-3 py-2 text-center text-xs ring-1 ring-border">
 										<div className="text-muted-foreground">Max Limit</div>
 										<div className="font-semibold text-foreground">
-											{seatApplied[1]}
+											{seatDraft[1]}
 										</div>
 									</div>
 								</div>
@@ -356,7 +393,7 @@ export default function BookingPage() {
 										type="button"
 										onClick={applySeat}
 										size="sm"
-										className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
+										className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b] text-white"
 									>
 										Apply
 									</Button>
