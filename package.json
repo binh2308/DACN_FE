@@ -20,12 +20,15 @@
     "storybook:build": "storybook build"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@mantine/charts": "^8.3.12",
     "@mantine/core": "^8.3.12",
     "@mantine/dates": "^8.3.16",
     "@mantine/form": "^8.1.2",
     "@mantine/hooks": "^8.3.12",
     "@mantine/notifications": "^8.3.16",
+    "@mui/material": "^9.0.0",
     "@next/bundle-analyzer": "^15.3.3",
     "@tabler/icons-react": "^3.34.0",
     "@tailwindcss/postcss": "^4.1.17",

@@ -88,5 +88,24 @@ export declare namespace DACN {
     created_at: string;
     updated_at: string;
   };
-
-}
+  type AnnouncementCreateDto = {
+    title: string;
+    content: string;
+    category: "GENERAL" | "HR" | "IT" | "SALES" | "MARKETING";
+    pinned?: boolean;
+  };
+  type AnnouncementResponseDto = {
+    id: string;
+    employee: any;
+    title: string;
+    content: string;
+    category: "GENERAL" | "HR" | "IT" | "SALES" | "MARKETING";
+    pinned?: boolean;
+    image_urls: string[];
+    created_at: string;
+    likeCount: number;
+    commentCount: number;
+    likedByMe: boolean;
+    comments?: any[];
+  };
+  };
