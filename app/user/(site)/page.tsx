@@ -14,6 +14,7 @@ import {
 } from "@/services/DACN/attendance";
 import { getMyPayrollByMonth } from "@/services/DACN/Payroll";
 import { getMySchedule, type ScheduleItemDto } from "@/services/DACN/Management";
+import { getListAnnouncement } from "@/services/DACN/announcement";
 
 type AnyScheduleItem = ScheduleItemDto | any;
 
@@ -96,6 +97,9 @@ function overlapsDay(start: Date, end: Date, day: Date): boolean {
 export default function Index() {
   const router = useRouter();
 
+  // Thêm state để lưu ID của Announcement đang được mở rộng
+  const [expandedAnnouncementId, setExpandedAnnouncementId] = React.useState<string | null>(null);
+
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -105,7 +109,7 @@ export default function Index() {
   const yearEndStr = `${year}-12-31`;
   const today = React.useMemo(() => new Date(), []);
 
-  // 1) Lịch (meetings/leaves) - dùng để hiển thị số cuộc họp hôm nay trên Quick Actions.
+  // 1) Lịch
   const { data: scheduleRes } = useRequest(getMySchedule);
   const scheduleItems = React.useMemo(
     () => normalizeScheduleResponse(scheduleRes),
@@ -128,7 +132,7 @@ export default function Index() {
     return count;
   }, [scheduleItems, today]);
 
-  // 2) Leave requests của tôi (dùng cho widget Leave Days).
+  // 2) Leave requests
   const { data: myLeaveRes } = useRequest(() =>
     myRequests({ page: 1, pageSize: 1000, fromDate: yearStartStr, toDate: yearEndStr }),
   );
@@ -158,20 +162,58 @@ export default function Index() {
     return { usedDays, pending };
   }, [myLeaveItems, yearStartStr, yearEndStr]);
 
-  // 3) Chấm công tháng hiện tại (không có API daily history -> hiển thị monthly summary).
+  // 3) Chấm công tháng
   const { data: monthlyAttendanceRes } = useRequest(() =>
     getMyAttendanceMonthlySummary({ year, month }),
   );
   const monthlyAttendance: MonthlyAttendanceSummaryDto | null =
     (monthlyAttendanceRes as any)?.data ?? null;
 
-  // 4) Payslip tháng hiện tại.
+  // 4) Payslip tháng
   const { data: payrollRes } = useRequest(() => getMyPayrollByMonth({ year, month }));
   const payroll = React.useMemo(() => {
     const response = (payrollRes as any)?.data ?? payrollRes;
     const p = (response as any)?.data ?? response;
     return p && typeof p === "object" ? (p as any) : null;
   }, [payrollRes]);
+
+  // 5) Announcements
+  const { data: announcementsRes } = useRequest(() =>
+    getListAnnouncement({ page: 1, pageSize: 20 }),
+  );
+  const announcements = React.useMemo(() => {
+    const payload = (announcementsRes as any)?.data ?? announcementsRes;
+    if (Array.isArray(payload)) return payload as any[];
+    if (Array.isArray((payload as any)?.items)) return (payload as any).items as any[];
+    if (Array.isArray((payload as any)?.data?.items)) return (payload as any).data.items as any[];
+    if (Array.isArray((payload as any)?.data)) return (payload as any).data as any[];
+    if (Array.isArray((payload as any)?.data?.data?.items)) return (payload as any).data.data.items as any[];
+    return [] as any[];
+  }, [announcementsRes]);
+
+  const announcementsForWidget = React.useMemo(() => {
+    const items = [...announcements];
+    items.sort((a, b) => {
+      const ap = Boolean((a as any)?.pinned);
+      const bp = Boolean((b as any)?.pinned);
+      if (ap !== bp) return ap ? -1 : 1;
+
+      const ad = new Date((a as any)?.created_at ?? 0).getTime();
+      const bd = new Date((b as any)?.created_at ?? 0).getTime();
+      return (Number.isFinite(bd) ? bd : 0) - (Number.isFinite(ad) ? ad : 0);
+    });
+
+    return items.slice(0, 20).map((it) => {
+      const title = String((it as any)?.title ?? "").trim();
+      const content = String((it as any)?.content ?? "").trim();
+      return {
+        id: String((it as any)?.id ?? title),
+        title: title || "(No title)",
+        description: content || undefined,
+        highlighted: Boolean((it as any)?.pinned),
+      };
+    });
+  }, [announcements]);
 
   const payrollComputed = React.useMemo(() => {
     if (!payroll) return null;
@@ -203,8 +245,6 @@ export default function Index() {
     [todayMeetingsCount],
   );
 
-  // NOTE: Chưa có API leave balance theo loại (Annual/Sick/Compassionate).
-  // Tạm thời giữ quota mock, chỉ lấy số ngày đã nghỉ từ API leave-requests/my.
   const leaveQuota = React.useMemo(
     () => ({ annual: 60, sick: 10, compassionate: 15 }),
     [],
@@ -368,7 +408,6 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Thay thế widget To-dos thành Lịch sử chấm công */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50 flex flex-col">
             <h3 className="text-lg font-semibold text-grey-900 mb-3">
               Chấm công tháng này
@@ -442,52 +481,45 @@ export default function Index() {
             <h3 className="text-lg font-semibold text-grey-900 mb-2">
               Announcement(s)
             </h3>
-            <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-              {[
-                {
-                  title: "Welcome aarons - We have a new staff joining us",
-                  type: "welcome",
-                },
-                {
-                  title:
-                    "Semiforth for Project Manager : Kindly gather at the meeting hall",
-                  description:
-                    "We are holding a farewell gathering for our Project Manager: Daniel Lopez, to thank him for his work and dedication.",
-                  type: "event",
-                  highlighted: true,
-                },
-                {
-                  title: "Marriage Alert",
-                  type: "alert",
-                },
-                {
-                  title: "Office Space Update",
-                  type: "update",
-                },
-              ].map((announcement, idx) => (
-                <div
-                  key={idx}
-                  className={`p-2 rounded-lg border transition-colors hover:border-main-600 cursor-pointer ${
-                    announcement.highlighted
-                      ? "bg-main-50 border-main-600"
-                      : "bg-white border-grey-50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-1">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-grey-900 font-medium line-clamp-2">
-                        {announcement.title}
-                      </p>
-                      {announcement.description && (
-                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                          {announcement.description}
+            {/* Thêm pb-2 để tránh việc đổ bóng của phần tử cuối cùng bị cắt mất do overflow */}
+            <div className="space-y-3 max-h-40 overflow-y-auto pr-2 pb-2">
+              {announcementsForWidget.map((announcement) => {
+                const isExpanded = expandedAnnouncementId === announcement.id;
+                
+                return (
+                  <div
+                    key={announcement.id}
+                    onClick={() => setExpandedAnnouncementId(isExpanded ? null : announcement.id)}
+                    className={`p-3 rounded-lg border transition-all cursor-pointer shadow-md hover:shadow-lg ${
+                      isExpanded || announcement.highlighted
+                        ? "bg-main-50 border-main-600"
+                        : "bg-white border-grey-50 hover:border-main-600"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-grey-900 font-medium">
+                          {announcement.title}
                         </p>
-                      )}
+                        
+                        {/* Nội dung chi tiết chỉ hiển thị khi isExpanded = true */}
+                        {isExpanded && announcement.description && (
+                          <p className="text-sm text-main-600 mt-2">
+                            {announcement.description}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Icon mũi tên sẽ xoay 90 độ cắm xuống dưới khi được mở rộng */}
+                      <ChevronRight 
+                        className={`w-4 h-4 text-grey-900 flex-shrink-0 mt-0.5 transition-transform duration-200 ${
+                          isExpanded ? "rotate-90" : ""
+                        }`} 
+                      />
                     </div>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0 mt-0.5" />
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
