@@ -94,6 +94,19 @@ export function addCommentToAnnouncement(
   });
 }
 
+export function togglePinnedAnnouncement(
+  id: string,
+  options?: { [key: string]: any },
+) {
+  return request(`/announcements/${id}/pin`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
 export function getAnnouncementInteractions(
   id: string,
   options?: { [key: string]: any },

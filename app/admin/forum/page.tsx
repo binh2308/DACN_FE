@@ -27,6 +27,7 @@ import {
   getListAnnouncement,
   createAnnouncement,
   uploadImageForAnnouncement,
+  togglePinnedAnnouncement,
 } from "@/services/DACN/announcement";
 import { notifications } from "@mantine/notifications";
 import { DACN } from "@/services/DACN/typings";
@@ -116,13 +117,14 @@ export default function ForumPage() {
     if (view === "list") {
       fetchAnnouncements();
     }
-  }, [view]);
+  }, [view, posts]);
 
   return (
     <div className="bg-white min-h-screen p-6 font-sans">
       {view === "list" ? (
         <ForumListView
           posts={posts}
+          setPosts={setPosts}
           setView={setView}
           onNavigateCreate={() => setView("create")}
         />
@@ -138,16 +140,33 @@ export default function ForumPage() {
 // ============================================================================
 function ForumListView({
   posts,
+  setPosts,
   onNavigateCreate,
   setView,
 }: {
   posts: DACN.AnnouncementResponseDto[];
+  setPosts: React.Dispatch<
+    React.SetStateAction<DACN.AnnouncementResponseDto[]>
+  >;
   onNavigateCreate: () => void;
   setView: (view: "list" | "create") => void;
 }) {
   const [activeTab, setActiveTab] = useState("General");
   const tabs = ["General", "HR Updates", "Events"];
   const router = useRouter();
+
+  const handleTogglePin = async (id: string) => {
+    try {
+      await togglePinnedAnnouncement(id);
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === id ? { ...post, pinned: !post.pinned } : post,
+        ),
+      );
+    } catch (error) {
+      console.error("Error toggling pin:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -220,7 +239,12 @@ function ForumListView({
                     </h3>
                     {post.pinned && (
                       <span className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded border border-gray-200">
-                        <Pin size={10} className="fill-current" /> Unpin
+                        <Pin
+                          size={10}
+                          className="fill-current"
+                          onClick={() => handleTogglePin(post?.id)}
+                        />{" "}
+                        Unpin
                       </span>
                     )}
                     {!post.pinned && (
