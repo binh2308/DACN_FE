@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
-  CalendarClock,
   CircleCheck,
-  CircleDot,
   Clock,
   Headphones,
   Lock,
@@ -12,6 +11,20 @@ import {
   Package,
   Users,
 } from "lucide-react";
+
+import { useRequest } from "ahooks";
+
+import { getRooms, type Room } from "@/services/DACN/Rooms";
+import { getBookings, type BookingByRoom } from "@/services/DACN/Booking";
+import { getAssets, type Asset } from "@/services/DACN/asset";
+import { getAllEmployees, type EmployeeDto } from "@/services/DACN/employee";
+import { extractEmployeesFromResponseData } from "@/lib/employee-ui";
+import { getDepartmentLeaveRequests } from "@/services/DACN/request";
+import {
+  getManagementTickets,
+  type ManagementTicketDto,
+  type ManagementTicketStatus,
+} from "@/services/DACN/Tickets";
 
 type Tone = "blue" | "purple" | "green" | "red";
 
@@ -155,107 +168,73 @@ function ProgressLine({
   );
 }
 
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseApiDate(value: unknown): Date | null {
+  if (typeof value !== "string") return null;
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function pickBookingStart(b: any): Date | null {
+  return parseApiDate(b?.startTime ?? b?.start_time);
+}
+
+function pickBookingEnd(b: any): Date | null {
+  return parseApiDate(b?.endTime ?? b?.end_time);
+}
+
+function formatTime(d: Date) {
+  return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function actorDisplayName(actor: any): string {
+  if (!actor) return "";
+  const direct = String(actor?.name ?? "").trim();
+  if (direct) return direct;
+  const parts = [actor?.lastName, actor?.middleName ?? "", actor?.firstName]
+    .map((x: any) => String(x ?? "").trim())
+    .filter(Boolean);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function statusBadgeMeta(status: ManagementTicketStatus) {
+  switch (status) {
+    case "OPEN":
+      return {
+        label: "Mới",
+        className: "bg-blue-50 text-blue-700 border-blue-200",
+      };
+    case "IN_PROGRESS":
+      return {
+        label: "Đang xử lý",
+        className: "bg-amber-50 text-amber-700 border-amber-200",
+      };
+    case "RESOLVED":
+      return {
+        label: "Đã xử lý",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      };
+    case "DEFERRED":
+      return {
+        label: "Tạm hoãn",
+        className: "bg-neutral-50 text-neutral-700 border-neutral-200",
+      };
+  }
+}
+
 export default function AdminDashboardPage() {
-  const summary = React.useMemo(
-    () => [
-      {
-        tone: "blue" as const,
-        title: "Phòng họp",
-        value: "3/10",
-        subtitle: "Đang sử dụng",
-        hint: "↑ 7 Phòng trống",
-        hintTone: "good" as const,
-        icon: <Monitor className="h-4 w-4" />,
-      },
-      {
-        tone: "purple" as const,
-        title: "Tổng tài sản",
-        value: "1,250",
-        subtitle: "Thiết bị",
-        hint: "▲ 5 Cần bảo trì",
-        hintTone: "bad" as const,
-        icon: <Package className="h-4 w-4" />,
-      },
-      {
-        tone: "green" as const,
-        title: "Nhân sự",
-        value: "145",
-        subtitle: "Nhân viên",
-        hint: "● 3 Nghỉ phép hôm nay",
-        hintTone: "warn" as const,
-        icon: <Users className="h-4 w-4" />,
-      },
-      {
-        tone: "red" as const,
-        title: "Ticket hỗ trợ",
-        value: "12",
-        subtitle: "Đang chờ xử lý",
-        hint: "● 2 Quá hạn (Overdue)",
-        hintTone: "bad" as const,
-        icon: <Headphones className="h-4 w-4" />,
-      },
-    ],
-    [],
-  );
+  const router = useRouter();
+  const now = new Date();
+  const todayStr = toISODate(now);
 
-  const rooms = React.useMemo(
-    () => [
-      {
-        name: "Phòng A (Lớn)",
-        capacity: 20,
-        state: "occupied" as const,
-        detail: "Đang họp (MKT)",
-        time: "Đến: 11:30 AM",
-      },
-      {
-        name: "Phòng B (Vừa)",
-        capacity: 10,
-        state: "available" as const,
-        detail: "Trống",
-        time: "Trống đến 14:00",
-      },
-      {
-        name: "Phòng Training",
-        capacity: 50,
-        state: "upcoming" as const,
-        detail: "Sắp diễn ra",
-        time: "Bắt đầu sau 15p",
-      },
-      {
-        name: "Phòng C",
-        capacity: 5,
-        state: "available" as const,
-        detail: "Trống",
-        time: "",
-      },
-    ],
-    [],
-  );
-
-  const requests = React.useMemo(
-    () => [
-      {
-        title: "Wifi tầng 3 yếu",
-        owner: "Nguyễn Văn A - IT",
-        badge: "Cao",
-        badgeTone: "bg-rose-50 text-rose-700 border-rose-200",
-      },
-      {
-        title: "Cấp màn hình mới",
-        owner: "Trần Thị B - Facility",
-        badge: "Mới",
-        badgeTone: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-      {
-        title: "Lỗi máy chấm công",
-        owner: "Lê C - HR",
-        badge: "Đang xử lý",
-        badgeTone: "bg-amber-50 text-amber-700 border-amber-200",
-      },
-    ],
-    [],
-  );
-
+  // NOTE: Chưa có API phù hợp cho danh sách vắng mặt theo người.
+  // Giữ lại UI + mock data để sau này thay thế dễ dàng.
   const absences = React.useMemo(
     () => [
       {
@@ -275,6 +254,289 @@ export default function AdminDashboardPage() {
     ],
     [],
   );
+
+  const { data: roomsRes } = useRequest(getRooms, {
+    pollingInterval: 5000,
+    pollingWhenHidden: false,
+  });
+  // `request` interceptor đã trả về payload (res.data) nên `roomsRes` chính là RoomsResponse.
+  const roomsAll: Room[] = Array.isArray((roomsRes as any)?.data)
+    ? (((roomsRes as any).data ?? []) as Room[])
+    : [];
+
+  const { data: bookingsRes } = useRequest(getBookings, {
+    pollingInterval: 15000,
+    pollingWhenHidden: false,
+  });
+  const bookingsAll: BookingByRoom[] =
+    (bookingsRes as any)?.data && Array.isArray((bookingsRes as any).data)
+      ? ((bookingsRes as any).data as BookingByRoom[])
+      : [];
+
+  const { data: assetsRes } = useRequest(() => getAssets({ page: 1, pageSize: 5000 }));
+  const assetsAll: Asset[] = Array.isArray((assetsRes as any)?.data?.items)
+    ? ((assetsRes as any).data.items as Asset[])
+    : Array.isArray((assetsRes as any)?.items)
+      ? ((assetsRes as any).items as Asset[])
+      : [];
+
+  const { data: employeesRes } = useRequest(() => getAllEmployees({ page: 1, pageSize: 5000 }));
+  const employeesAll: EmployeeDto[] = extractEmployeesFromResponseData((employeesRes as any)?.data ?? employeesRes);
+
+  const { data: leaveTodayRes } = useRequest(() =>
+    getDepartmentLeaveRequests({
+      page: 1,
+      pageSize: 500,
+      fromDate: todayStr,
+      toDate: todayStr,
+    }),
+  );
+  const leaveTodayItems = (leaveTodayRes as any)?.data?.items ?? [];
+  const absentTodayCount = React.useMemo(() => {
+    return (leaveTodayItems as any[]).filter((it: any) => {
+      const from = String(it?.date_from ?? "");
+      const to = String(it?.date_to ?? "");
+      const status = String(it?.status ?? "").toUpperCase();
+      const overlaps = from <= todayStr && todayStr <= to;
+      return overlaps && status !== "REJECTED";
+    }).length;
+  }, [leaveTodayItems, todayStr]);
+
+  const { data: ticketsOpenRes } = useRequest(() =>
+    getManagementTickets({ status: "OPEN", page: 1, limit: 1 }),
+  );
+  const { data: ticketsInProgressRes } = useRequest(() =>
+    getManagementTickets({ status: "IN_PROGRESS", page: 1, limit: 1 }),
+  );
+
+  const ticketsUnresolved =
+    Number((ticketsOpenRes as any)?.total ?? 0) + Number((ticketsInProgressRes as any)?.total ?? 0);
+
+  const { data: latestTicketsRes } = useRequest(() =>
+    getManagementTickets({
+      page: 1,
+      limit: 3,
+      sort_by: "created_at",
+      sort_order: "DESC",
+    }),
+  );
+  const latestTicketsPayload: any = (latestTicketsRes as any)?.data ?? latestTicketsRes;
+  const latestTickets: ManagementTicketDto[] = Array.isArray(latestTicketsPayload?.items)
+    ? (latestTicketsPayload.items as ManagementTicketDto[])
+    : [];
+
+  const roomsForCards = React.useMemo(() => {
+    const byRoomName = new Map<string, BookingByRoom[]>();
+    for (const b of bookingsAll) {
+      const roomName = String((b as any)?.roomName ?? "").trim();
+      if (!roomName) continue;
+      const arr = byRoomName.get(roomName) ?? [];
+      arr.push(b);
+      byRoomName.set(roomName, arr);
+    }
+    for (const [, arr] of byRoomName) {
+      arr.sort((a, b) => {
+        const sa = pickBookingStart(a)?.getTime() ?? 0;
+        const sb = pickBookingStart(b)?.getTime() ?? 0;
+        return sa - sb;
+      });
+    }
+
+    const nowMs = now.getTime();
+    const upcomingThresholdMs = 15 * 60 * 1000;
+
+    const result = roomsAll.slice(0, 4).map((r) => {
+      const bookings = byRoomName.get(r.name) ?? [];
+      const current = bookings.find((b) => {
+        const s = pickBookingStart(b);
+        const e = pickBookingEnd(b);
+        if (!s || !e) return false;
+        const sm = s.getTime();
+        const em = e.getTime();
+        return sm <= nowMs && nowMs < em;
+      });
+      const next = bookings.find((b) => {
+        const s = pickBookingStart(b);
+        if (!s) return false;
+        return s.getTime() > nowMs;
+      });
+
+      const roomStatus = String((r as any)?.status ?? "").toUpperCase();
+
+      if (roomStatus === "OCCUPIED" || current) {
+        const end = pickBookingEnd(current) ?? null;
+        return {
+          name: r.name,
+          capacity: r.capacity,
+          state: "occupied" as const,
+          detail: current?.name ? `Đang họp: ${current.name}` : "Đang sử dụng",
+          time: end ? `Đến: ${formatTime(end)}` : "",
+        };
+      }
+
+      if (next) {
+        const start = pickBookingStart(next);
+        const msUntil = start ? start.getTime() - nowMs : Number.POSITIVE_INFINITY;
+        if (msUntil <= upcomingThresholdMs) {
+          return {
+            name: r.name,
+            capacity: r.capacity,
+            state: "upcoming" as const,
+            detail: next?.name ? `Sắp diễn ra: ${next.name}` : "Sắp diễn ra",
+            time: start ? `Bắt đầu: ${formatTime(start)}` : "",
+          };
+        }
+
+        return {
+          name: r.name,
+          capacity: r.capacity,
+          state: "available" as const,
+          detail: "Trống",
+          time: start ? `Trống đến ${formatTime(start)}` : "",
+        };
+      }
+
+      const maintenance = roomStatus === "MAINTENANCE";
+      return {
+        name: r.name,
+        capacity: r.capacity,
+        state: maintenance ? ("occupied" as const) : ("available" as const),
+        detail: maintenance ? "Đang bảo trì" : "Trống",
+        time: "",
+      };
+    });
+
+    return result;
+  }, [roomsAll, bookingsAll, now]);
+
+  const roomOccupancyCounts = React.useMemo(() => {
+    const byRoomName = new Map<string, BookingByRoom[]>();
+    for (const b of bookingsAll) {
+      const roomName = String((b as any)?.roomName ?? "").trim();
+      if (!roomName) continue;
+      const arr = byRoomName.get(roomName) ?? [];
+      arr.push(b);
+      byRoomName.set(roomName, arr);
+    }
+
+    const nowMs = now.getTime();
+    let occupied = 0;
+
+    for (const r of roomsAll) {
+      const roomStatus = String((r as any)?.status ?? "").toUpperCase();
+      if (roomStatus === "OCCUPIED") {
+        occupied += 1;
+        continue;
+      }
+      const bookings = byRoomName.get(r.name) ?? [];
+      const hasCurrent = bookings.some((b) => {
+        const s = pickBookingStart(b);
+        const e = pickBookingEnd(b);
+        if (!s || !e) return false;
+        return s.getTime() <= nowMs && nowMs < e.getTime();
+      });
+      if (hasCurrent) occupied += 1;
+    }
+
+    const total = roomsAll.length;
+    const available = Math.max(0, total - occupied);
+    return { occupied, total, available };
+  }, [roomsAll, bookingsAll, now]);
+
+  const assetCounts = React.useMemo(() => {
+    const total = assetsAll.length;
+    const countNew = assetsAll.filter((x) => x.condition === "NEW").length;
+    const countUsed = assetsAll.filter((x) => x.condition === "USED").length;
+    const countBroken = assetsAll.filter((x) => x.condition === "BROKEN").length;
+    const countMaintenance = assetsAll.filter((x) => x.condition === "UNDER_MAINTENANCE").length;
+    const good = countNew + countUsed;
+    const inStock = countNew;
+    const bad = countBroken + countMaintenance;
+    const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+    return {
+      total,
+      needMaintenance: bad,
+      pctGood: pct(good),
+      pctInStock: pct(inStock),
+      pctBad: pct(bad),
+    };
+  }, [assetsAll]);
+
+  const summary = React.useMemo(
+    () => [
+      {
+        tone: "blue" as const,
+        title: "Phòng họp",
+        value:
+          roomOccupancyCounts.total > 0
+            ? `${roomOccupancyCounts.occupied}/${roomOccupancyCounts.total}`
+            : "0/0",
+        subtitle: "Đang sử dụng",
+        hint:
+          roomOccupancyCounts.total > 0
+            ? `↑ ${roomOccupancyCounts.available} Phòng trống`
+            : undefined,
+        hintTone: "good" as const,
+        icon: <Monitor className="h-4 w-4" />,
+      },
+      {
+        tone: "purple" as const,
+        title: "Tổng tài sản",
+        value: String(assetCounts.total),
+        subtitle: "Thiết bị",
+        hint:
+          assetCounts.needMaintenance > 0
+            ? `▲ ${assetCounts.needMaintenance} Cần bảo trì`
+            : undefined,
+        hintTone: assetCounts.needMaintenance > 0 ? ("bad" as const) : undefined,
+        icon: <Package className="h-4 w-4" />,
+      },
+      {
+        tone: "green" as const,
+        title: "Nhân sự",
+        value: String(employeesAll.length),
+        subtitle: "Nhân viên",
+        hint: absentTodayCount > 0 ? `● ${absentTodayCount} Nghỉ phép hôm nay` : undefined,
+        hintTone: absentTodayCount > 0 ? ("warn" as const) : undefined,
+        icon: <Users className="h-4 w-4" />,
+      },
+      {
+        tone: "red" as const,
+        title: "Ticket hỗ trợ",
+        value: String(ticketsUnresolved),
+        subtitle: "Đang chờ xử lý",
+        hint:
+          Number((ticketsInProgressRes as any)?.total ?? 0) > 0
+            ? `● ${Number((ticketsInProgressRes as any)?.total ?? 0)} Đang xử lý`
+            : undefined,
+        hintTone: Number((ticketsInProgressRes as any)?.total ?? 0) > 0 ? ("warn" as const) : undefined,
+        icon: <Headphones className="h-4 w-4" />,
+      },
+    ],
+    [
+      roomOccupancyCounts,
+      assetCounts,
+      employeesAll.length,
+      absentTodayCount,
+      ticketsUnresolved,
+      ticketsInProgressRes,
+    ],
+  );
+
+  const requests = React.useMemo(() => {
+    return latestTickets.map((t) => {
+      const badge = statusBadgeMeta(t.status);
+      const ownerName = actorDisplayName(t.employee) || (t.employee?.email ?? "");
+      const dept = (t.category as any)?.name ? String((t.category as any).name) : "";
+      return {
+        id: t.id,
+        title: t.title,
+        owner: [ownerName, dept ? `- ${dept}` : ""].join(" ").trim(),
+        badge: badge.label,
+        badgeTone: badge.className,
+      };
+    });
+  }, [latestTickets]);
 
   return (
     <div className="min-h-screen bg-neutral-background p-6">
@@ -312,7 +574,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              {rooms.map((r) => {
+              {roomsForCards.map((r) => {
                 const meta = roomStateMeta(r.state);
                 return (
                   <div
@@ -354,7 +616,7 @@ export default function AdminDashboardPage() {
             <div className="mt-4 space-y-4">
               {requests.map((t) => (
                 <div
-                  key={t.title}
+                  key={t.id}
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="min-w-0">
@@ -377,6 +639,7 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               className="mt-5 w-full text-center text-xs font-medium text-blue-600 hover:text-blue-700"
+              onClick={() => router.push("/admin/support")}
             >
               Xem tất cả ticket
             </button>
@@ -396,32 +659,32 @@ export default function AdminDashboardPage() {
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-grey-900">
                   <div>Đang hoạt động tốt</div>
-                  <div className="font-medium">85%</div>
+                  <div className="font-medium">{assetCounts.pctGood}%</div>
                 </div>
-                <ProgressLine percent={85} tone="blue" />
+                <ProgressLine percent={assetCounts.pctGood} tone="blue" />
               </div>
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-grey-900">
                   <div>Trong kho (Chưa dùng)</div>
-                  <div className="font-medium">10%</div>
+                  <div className="font-medium">{assetCounts.pctInStock}%</div>
                 </div>
-                <ProgressLine percent={10} tone="green" />
+                <ProgressLine percent={assetCounts.pctInStock} tone="green" />
               </div>
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-grey-900">
                   <div>Hỏng / Đang sửa chữa</div>
-                  <div className="font-medium text-rose-600">5%</div>
+                  <div className="font-medium text-rose-600">{assetCounts.pctBad}%</div>
                 </div>
-                <ProgressLine percent={5} tone="red" />
+                <ProgressLine percent={assetCounts.pctBad} tone="red" />
               </div>
             </div>
           </section>
 
           <section className="rounded-xl border border-grey-50 bg-white p-5 shadow-sm">
             <div className="text-sm font-semibold text-grey-900">
-              Nhân sự vắng mặt hôm nay (3)
+              Nhân sự vắng mặt hôm nay ({absences.length})
             </div>
 
             <div className="mt-4 space-y-4">
@@ -455,6 +718,7 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               className="mt-5 text-xs font-medium text-blue-600 hover:text-blue-700"
+              onClick={() => router.push("/admin/employee")}
             >
               &gt;&gt; Xem thêm
             </button>
