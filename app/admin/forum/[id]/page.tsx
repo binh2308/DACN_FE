@@ -154,14 +154,11 @@ export default function ForumDetailPage() {
     if (params == null) return;
     const fetchData = async () => {
       try {
-        setLoading(true);
         const res = await getAnnouncementById(String(params.id));
         setDetailPost(res?.data ?? null);
         setLiked(res?.data?.likedByMe ?? false);
       } catch (error) {
         console.error("Error fetching announcement:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
