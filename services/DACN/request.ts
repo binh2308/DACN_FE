@@ -96,14 +96,17 @@ export async function getDepartmentLeaveRequests(
   params?: DepartmentLeaveRequestsParams,
   options?: { [key: string]: any },
 ) {
-  return request<DepartmentLeaveRequestsResponse>("/leave-requests/department", {
+  return request<DepartmentLeaveRequestsResponse, DepartmentLeaveRequestsResponse>(
+    "/leave-requests/department",
+    {
     method: "GET",
     params,
     headers: {
       "Content-Type": "application/json",
     },
     ...(options || {}),
-  });
+    },
+  );
 }
 
 //Tạo đơn xin nghỉ mới

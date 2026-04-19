@@ -11,6 +11,7 @@ import { extractEmployeesFromResponseData } from "@/lib/employee-ui";
 import { getDepartmentLeaveRequests } from "@/services/DACN/request";
 import { getManagementTickets } from "@/services/DACN/Tickets";
 import { getBookings, type BookingByRoom } from "@/services/DACN/Booking";
+import { getDepartmentTodayCheckinStatus } from "@/services/DACN/attendance";
 
 function toISODate(d: Date) {
   // Trích xuất YYYY-MM-DD chuẩn theo giờ Việt Nam (Local Time)
@@ -39,6 +40,14 @@ function parseApiDate(value: unknown): Date | null {
   if (typeof value !== "string") return null;
   const d = new Date(value);
   return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function normalizeApiDateToISODateOnly(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return null;
+  return toISODate(d);
 }
 
 function pickBookingStart(b: any): Date | null {
@@ -215,13 +224,38 @@ export default function ManagerIndex() {
   const absentToday = useMemo(() => {
     // Count các đơn có khoảng ngày bao phủ hôm nay, loại REJECTED
     return leaveTodayItems.filter((it: any) => {
-      const from = String(it?.date_from ?? "");
-      const to = String(it?.date_to ?? "");
+      const from = normalizeApiDateToISODateOnly(it?.date_from);
+      const to = normalizeApiDateToISODateOnly(it?.date_to);
+      if (!from || !to) return false;
       const status = String(it?.status ?? "").toUpperCase();
       const overlaps = from <= todayStr && todayStr <= to;
       return overlaps && status !== "REJECTED";
     }).length;
   }, [leaveTodayItems, todayStr]);
+
+  // 2b) Trạng thái check-in hôm nay (department)
+  const { data: checkinTodayRes } = useRequest(getDepartmentTodayCheckinStatus, {
+    pollingInterval: 10_000,
+    pollingWhenHidden: false,
+  });
+
+  const notCheckedInTodayCount = useMemo(() => {
+    const n = Number((checkinTodayRes as any)?.data?.notCheckedInCount);
+    return Number.isFinite(n) ? n : null;
+  }, [checkinTodayRes]);
+
+  const workedTodayByEmployeeId = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    const employees = (checkinTodayRes as any)?.data?.employees;
+    if (Array.isArray(employees)) {
+      for (const it of employees as any[]) {
+        const id = String(it?.employeeId ?? "");
+        if (!id) continue;
+        map[id] = Boolean(it?.worked);
+      }
+    }
+    return map;
+  }, [checkinTodayRes]);
 
   // 3) Đơn nghỉ phép đang chờ duyệt (department)
   const { data: leaveMonthRes } = useRequest(() =>
@@ -239,6 +273,29 @@ export default function ManagerIndex() {
       return s === "PENDING" || s === "SUBMITTED";
     }).length;
   }, [leaveMonthRes]);
+
+  const approvedLeaveReasonTodayByEmployeeId = useMemo(() => {
+    const items = (leaveMonthRes?.data?.items ?? []) as any[];
+    const map: Record<string, string> = {};
+    for (const it of items) {
+      const empId = String(it?.employee?.id ?? "").trim();
+      if (!empId) continue;
+
+      const status = String(it?.status ?? "").toUpperCase();
+      if (status !== "APPROVED") continue;
+
+      const from = normalizeApiDateToISODateOnly(it?.date_from);
+      const to = normalizeApiDateToISODateOnly(it?.date_to);
+      if (!from || !to) continue;
+
+      const overlaps = from <= todayStr && todayStr <= to;
+      if (!overlaps) continue;
+
+      const reason = String(it?.reason ?? "").trim();
+      if (reason) map[empId] = reason;
+    }
+    return map;
+  }, [leaveMonthRes, todayStr]);
 
   // 4) Tickets chưa xử lý = OPEN + IN_PROGRESS
   const { data: ticketsOpenRes } = useRequest(() =>
@@ -265,7 +322,7 @@ export default function ManagerIndex() {
       },
       {
         title: "Vắng/ nghỉ phép hôm nay",
-        value: absentToday,
+        value: notCheckedInTodayCount ?? absentToday,
         change: "0%",
         isPositive: true,
       },
@@ -282,7 +339,7 @@ export default function ManagerIndex() {
         isPositive: true,
       },
     ],
-    [genderCounts.total, absentToday, ticketsUnresolved, leavePending],
+    [genderCounts.total, absentToday, ticketsUnresolved, leavePending, notCheckedInTodayCount],
   );
 
   const getHeatmapColor = (val: number) => {
@@ -306,8 +363,9 @@ export default function ManagerIndex() {
       const empId = String(it?.employee?.id ?? "");
       if (!empId) continue;
 
-      const from = String(it?.date_from ?? "");
-      const to = String(it?.date_to ?? "");
+      const from = normalizeApiDateToISODateOnly(it?.date_from);
+      const to = normalizeApiDateToISODateOnly(it?.date_to);
+      if (!from || !to) continue;
       const status = String(it?.status ?? "").toUpperCase();
       if (status === "REJECTED") continue;
 
@@ -328,8 +386,9 @@ export default function ManagerIndex() {
       const empId = String(it?.employee?.id ?? "");
       if (!empId) continue;
 
-      const from = String(it?.date_from ?? "");
-      const to = String(it?.date_to ?? "");
+      const from = normalizeApiDateToISODateOnly(it?.date_from);
+      const to = normalizeApiDateToISODateOnly(it?.date_to);
+      if (!from || !to) continue;
       const status = String(it?.status ?? "").toUpperCase();
       const overlaps = from <= todayStr && todayStr <= to;
       if (overlaps && status !== "REJECTED") map[empId] = true;
@@ -562,9 +621,22 @@ export default function ManagerIndex() {
                 const pendingCount = leaveMonthStatsByEmployeeId.pendingById[e.id] ?? 0;
                 const isAbsentToday = Boolean(absentTodayByEmployeeId[e.id]);
 
-                const todayBadgeClass = isAbsentToday
-                  ? "bg-[#FEE2E2] text-[#991B1B]"
-                  : "bg-[#D1FAE5] text-[#065F46]";
+                const hasWorkedFlag = Object.prototype.hasOwnProperty.call(
+                  workedTodayByEmployeeId,
+                  e.id,
+                );
+                const workedToday = hasWorkedFlag
+                  ? Boolean(workedTodayByEmployeeId[e.id])
+                  : !isAbsentToday;
+
+                const absentReason = approvedLeaveReasonTodayByEmployeeId[e.id];
+                const todayLabel = workedToday ? "Đi làm" : absentReason || "Vắng";
+
+                const todayBadgeClass = workedToday
+                  ? "bg-emerald-50 text-emerald-700"
+                  : absentReason
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-rose-50 text-rose-700";
 
                 return (
                   <div
@@ -614,7 +686,7 @@ export default function ManagerIndex() {
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-medium leading-[140%] tracking-[0.12px] ${todayBadgeClass}`}
                       >
-                        {isAbsentToday ? "Nghỉ" : "Đi làm"}
+                        {todayLabel}
                       </span>
                     </div>
                   </div>

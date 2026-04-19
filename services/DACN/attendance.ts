@@ -29,6 +29,31 @@ export type MonthlyAttendanceSummaryResponse = {
 	data: MonthlyAttendanceSummaryDto;
 };
 
+export type DepartmentTodayCheckinEmployeeDto = {
+	employeeId: string;
+	email: string;
+	firstName: string;
+	middleName?: string | null;
+	lastName: string;
+	worked: boolean;
+};
+
+export type DepartmentTodayCheckinStatusDto = {
+	date: string; // YYYY-MM-DD
+	departmentId: string;
+	departmentName: string;
+	totalEmployees: number;
+	checkedInCount: number;
+	notCheckedInCount: number;
+	employees: DepartmentTodayCheckinEmployeeDto[];
+};
+
+export type DepartmentTodayCheckinStatusResponse = {
+	statusCode: number;
+	message?: string;
+	data: DepartmentTodayCheckinStatusDto;
+};
+
 // Check-in for current user (according to token/cookie)
 export async function checkIn(options?: { [key: string]: any }) {
 	return request<AttendanceActionResponse, AttendanceActionResponse>("/attendance/check-in", {
@@ -52,6 +77,21 @@ export async function getMyAttendanceMonthlySummary(
 ) {
 	return request<MonthlyAttendanceSummaryResponse, MonthlyAttendanceSummaryResponse>(
 		"/attendance/my-attendance/monthly-summary",
+		{
+			method: "GET",
+			params,
+			...(options || {}),
+		},
+	);
+}
+
+// Get today's check-in status for current user's department
+export async function getDepartmentTodayCheckinStatus(
+	params?: { date?: string },
+	options?: { [key: string]: any },
+) {
+	return request<DepartmentTodayCheckinStatusResponse, DepartmentTodayCheckinStatusResponse>(
+		"/attendance/department/today-checkin-status",
 		{
 			method: "GET",
 			params,

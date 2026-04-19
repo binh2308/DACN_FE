@@ -117,11 +117,14 @@ export async function getManagementTickets(
 	params: GetManagementTicketsQuery,
 	options?: { [key: string]: any },
 ) {
-	return request<GetManagementTicketsResponse>("/management/tickets", {
+	return request<GetManagementTicketsResponse, GetManagementTicketsResponse>(
+		"/management/tickets",
+		{
 		method: "GET",
 		params,
 		...(options || {}),
-	});
+		},
+	);
 }
 
 export async function getManagementTicketById(
