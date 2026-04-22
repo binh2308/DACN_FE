@@ -2,6 +2,7 @@ import { request } from "../service";
 
 export type NotificationStatus = "UNREAD" | "READ" | (string & {});
 export type NotificationType =
+	| "BOOKING"
 	| "TICKET"
 	| "LEAVE_REQUEST"
 	| "ASSET"
@@ -54,4 +55,22 @@ export async function getMyNotifications(
 			...(options || {}),
 		},
 	);
+}
+
+export type MarkAllMyNotificationsReadResponse = {
+	statusCode?: number;
+	message?: string;
+	data?: unknown;
+};
+
+export async function markAllMyNotificationsRead(
+	options?: { [key: string]: any },
+) {
+	return request<
+		MarkAllMyNotificationsReadResponse,
+		MarkAllMyNotificationsReadResponse
+	>("/notifications/my/read-all", {
+		method: "PATCH",
+		...(options || {}),
+	});
 }

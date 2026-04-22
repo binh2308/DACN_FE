@@ -3,7 +3,7 @@
 import { EllipsisVertical } from "lucide-react";
 import { DonutChart } from "@mantine/charts";
 import { StatCard } from "@/components/StatCard";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRequest } from "ahooks";
 
 import { getEmployees, type EmployeeDto } from "@/services/DACN/employee";
@@ -11,7 +11,10 @@ import { extractEmployeesFromResponseData } from "@/lib/employee-ui";
 import { getDepartmentLeaveRequests } from "@/services/DACN/request";
 import { getManagementTickets } from "@/services/DACN/Tickets";
 import { getBookings, type BookingByRoom } from "@/services/DACN/Booking";
-import { getDepartmentTodayCheckinStatus } from "@/services/DACN/attendance";
+import {
+  getDepartmentAttendanceMonthlySummary,
+  getDepartmentTodayCheckinStatus,
+} from "@/services/DACN/attendance";
 
 function toISODate(d: Date) {
   // Trích xuất YYYY-MM-DD chuẩn theo giờ Việt Nam (Local Time)
@@ -65,35 +68,6 @@ function fullNameFromApi(e: EmployeeDto) {
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function parseISODateOnlyToUtcMs(iso: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
-  const [y, m, d] = iso.split("-").map((x) => Number(x));
-  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
-  const ms = Date.UTC(y, m - 1, d);
-  return Number.isFinite(ms) ? ms : null;
-}
-
-function daysInclusiveBetweenISO(fromISO: string, toISO: string): number {
-  const fromMs = parseISODateOnlyToUtcMs(fromISO);
-  const toMs = parseISODateOnlyToUtcMs(toISO);
-  if (fromMs == null || toMs == null || toMs < fromMs) return 0;
-  return Math.floor((toMs - fromMs) / 86_400_000) + 1;
-}
-
-function overlappedLeaveDaysInRange(
-  fromISO: string,
-  toISO: string,
-  rangeFromISO: string,
-  rangeToISO: string,
-): number {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromISO)) return 0;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(toISO)) return 0;
-  const effectiveFrom = fromISO < rangeFromISO ? rangeFromISO : fromISO;
-  const effectiveTo = toISO > rangeToISO ? rangeToISO : toISO;
-  if (effectiveFrom > effectiveTo) return 0;
-  return daysInclusiveBetweenISO(effectiveFrom, effectiveTo);
 }
 
 function endOfMonth(d: Date) {
@@ -154,44 +128,33 @@ export default function ManagerIndex() {
     return d;
   }, [todayStr]);
 
-  const ymKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  const lateStorageKey = `manager_late_fines_v1_${ymKey}`;
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
 
-  const [lateHoursByEmployee, setLateHoursByEmployee] = useState<Record<string, number>>({});
+  const { data: deptMonthlySummaryRes, loading: loadingDeptMonthlySummary } = useRequest(() =>
+    getDepartmentAttendanceMonthlySummary({ year: currentYear, month: currentMonth }),
+  );
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(lateStorageKey);
-      if (!raw) {
-        setLateHoursByEmployee({});
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") {
-        setLateHoursByEmployee({});
-        return;
-      }
+  const deptMonthlySummaryOk = useMemo(
+    () => deptMonthlySummaryRes?.statusCode === 200,
+    [deptMonthlySummaryRes],
+  );
 
-      // Backward-compatible: có thể lưu dạng { id: { lateHours, status } } từ bản trước
-      const next: Record<string, number> = {};
-      for (const [k, v] of Object.entries(parsed as Record<string, any>)) {
-        if (typeof v === "number") next[k] = v;
-        else if (v && typeof v === "object") next[k] = Number(v.lateHours ?? 0) || 0;
-        else next[k] = 0;
-      }
-      setLateHoursByEmployee(next);
-    } catch {
-      setLateHoursByEmployee({});
+  const deptMonthlyAttendanceByEmployeeId = useMemo(() => {
+    const lateDaysById: Record<string, number> = {};
+    const absentDaysById: Record<string, number> = {};
+
+    if (deptMonthlySummaryRes?.statusCode !== 200) {
+      return { lateDaysById, absentDaysById };
     }
-  }, [lateStorageKey]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(lateStorageKey, JSON.stringify(lateHoursByEmployee));
-    } catch {
-      // ignore
+    for (const it of deptMonthlySummaryRes.data.employees) {
+      lateDaysById[it.employeeId] = it.lateDays;
+      absentDaysById[it.employeeId] = it.absentDays;
     }
-  }, [lateStorageKey, lateHoursByEmployee]);
+
+    return { lateDaysById, absentDaysById };
+  }, [deptMonthlySummaryRes]);
 
   // 1) Tổng nhân viên
   const { data: employeesData, loading: loadingEmployees } = useRequest(async () => {
@@ -351,35 +314,6 @@ export default function ManagerIndex() {
     return "#0B9F57";
   };
 
-  const monthStartStr = useMemo(() => toISODate(monthStart), [monthStart]);
-  const monthEndStr = useMemo(() => toISODate(monthEnd), [monthEnd]);
-
-  const leaveMonthStatsByEmployeeId = useMemo(() => {
-    const items = (leaveMonthRes?.data?.items ?? []) as any[];
-    const daysById: Record<string, number> = {};
-    const pendingById: Record<string, number> = {};
-
-    for (const it of items) {
-      const empId = String(it?.employee?.id ?? "");
-      if (!empId) continue;
-
-      const from = normalizeApiDateToISODateOnly(it?.date_from);
-      const to = normalizeApiDateToISODateOnly(it?.date_to);
-      if (!from || !to) continue;
-      const status = String(it?.status ?? "").toUpperCase();
-      if (status === "REJECTED") continue;
-
-      const days = overlappedLeaveDaysInRange(from, to, monthStartStr, monthEndStr);
-      if (days > 0) daysById[empId] = (daysById[empId] ?? 0) + days;
-
-      if (status === "PENDING" || status === "SUBMITTED") {
-        pendingById[empId] = (pendingById[empId] ?? 0) + 1;
-      }
-    }
-
-    return { daysById, pendingById };
-  }, [leaveMonthRes, monthStartStr, monthEndStr]);
-
   const absentTodayByEmployeeId = useMemo(() => {
     const map: Record<string, boolean> = {};
     for (const it of leaveTodayItems as any[]) {
@@ -395,25 +329,6 @@ export default function ManagerIndex() {
     }
     return map;
   }, [leaveTodayItems, todayStr]);
-
-  const editLateHours = (employeeId: string, employeeName: string) => {
-    const current = lateHoursByEmployee[employeeId] ?? 0;
-    const raw = window.prompt(
-      `Nhập số giờ đi muộn của "${employeeName}" (giờ).`,
-      String(current),
-    );
-    if (raw == null) return;
-    const next = Number(raw);
-    if (!Number.isFinite(next) || next < 0) {
-      alert("Số giờ không hợp lệ");
-      return;
-    }
-
-    setLateHoursByEmployee((prev) => ({
-      ...prev,
-      [employeeId]: next,
-    }));
-  };
 
   return (
     <div className="p-4 space-y-3">
@@ -586,9 +501,6 @@ export default function ManagerIndex() {
                 Tháng {(new Date().getMonth() + 1).toString().padStart(2, "0")}/
                 {new Date().getFullYear()}
               </div>
-              <div className="text-[10px] text-[#B8BDC5] mt-0.5 leading-[140%] tracking-[0.12px]">
-                Tip: bấm vào số giờ để nhập.
-              </div>
             </div>
             <button className="text-[#21252B] hover:text-[#0B9F57]" type="button">
               <EllipsisVertical />
@@ -598,7 +510,7 @@ export default function ManagerIndex() {
           <div className="mb-2">
             <div className="grid grid-cols-4 gap-3 text-[10px] font-semibold text-[#B8BDC5] uppercase pb-2 border-b border-[#E9EAEC] leading-[140%] tracking-[0.12px]">
               <div>Nhân viên</div>
-              <div className="text-center">Số giờ đi muộn</div>
+              <div className="text-center">Số ngày đi muộn</div>
               <div className="text-center">Nghỉ phép (tháng)</div>
               <div className="text-center">Hôm nay</div>
             </div>
@@ -616,9 +528,17 @@ export default function ManagerIndex() {
                   e.avatarUrl ||
                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(e.id)}`;
 
-                const lateHours = lateHoursByEmployee[e.id] ?? 0;
-                const leaveDaysMonth = leaveMonthStatsByEmployeeId.daysById[e.id] ?? 0;
-                const pendingCount = leaveMonthStatsByEmployeeId.pendingById[e.id] ?? 0;
+                const lateDaysDisplay = deptMonthlySummaryOk
+                  ? (deptMonthlyAttendanceByEmployeeId.lateDaysById[e.id] ?? 0)
+                  : loadingDeptMonthlySummary
+                    ? "…"
+                    : "—";
+
+                const absentDaysDisplay = deptMonthlySummaryOk
+                  ? (deptMonthlyAttendanceByEmployeeId.absentDaysById[e.id] ?? 0)
+                  : loadingDeptMonthlySummary
+                    ? "…"
+                    : "—";
                 const isAbsentToday = Boolean(absentTodayByEmployeeId[e.id]);
 
                 const hasWorkedFlag = Object.prototype.hasOwnProperty.call(
@@ -663,23 +583,11 @@ export default function ManagerIndex() {
                     </div>
 
                     <div className="flex items-center justify-center text-xs text-[#21252B] leading-[150%] tracking-[0.07px]">
-                      <button
-                        type="button"
-                        onClick={() => editLateHours(e.id, displayName)}
-                        className="px-2 py-1 rounded-md hover:bg-gray-50"
-                        title="Chỉnh sửa"
-                      >
-                        {lateHours}
-                      </button>
+                      <span className="px-2 py-1 rounded-md">{lateDaysDisplay}</span>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center text-xs text-[#21252B] leading-[150%] tracking-[0.07px]">
-                      <div>{leaveDaysMonth}</div>
-                      {pendingCount > 0 ? (
-                        <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-                          ({pendingCount} chờ duyệt)
-                        </div>
-                      ) : null}
+                    <div className="flex items-center justify-center text-xs text-[#21252B] leading-[150%] tracking-[0.07px]">
+                      <span className="px-2 py-1 rounded-md">{absentDaysDisplay}</span>
                     </div>
 
                     <div className="flex items-center justify-center">
