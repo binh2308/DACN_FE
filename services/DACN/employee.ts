@@ -35,7 +35,7 @@ export type EmployeeDto = {
   marriedStatus?: boolean | null;
   numberOfChildren?: number | null;
   childrenDescription?: string | null;
-  department?: DepartmentDto | null;
+  degrees?: string;
   avatarUrl?: string | null;
 };
 

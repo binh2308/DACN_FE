@@ -5,15 +5,15 @@ import { ChevronDown, Settings, Lock, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getEmployeeProfile, type EmployeeDetailDto } from "@/services/DACN/employee";
 
-function buildFullName(p: Pick<EmployeeDetailDto, "lastName" | "middleName" | "firstName">) {
+export function buildFullName(p: Pick<EmployeeDetailDto, "lastName" | "middleName" | "firstName">) {
   return [p.lastName, p.middleName, p.firstName].filter(Boolean).join(" ").trim();
 }
 
-function safeString(value: unknown) {
+export function safeString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function fallbackAvatar(seed: string) {
+export function fallbackAvatar(seed: string) {
   const cleanSeed = seed || "user";
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanSeed)}`;
 }

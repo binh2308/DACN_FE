@@ -108,4 +108,13 @@ export declare namespace DACN {
     likedByMe: boolean;
     comments?: any[];
   };
+  type ChatRequestDto = {
+    message: string;
+    sessionId?: string;
   };
+  type ChatResponseDto = {
+    reply: string;
+    source: string;
+    action?: string;
+  };
+}
