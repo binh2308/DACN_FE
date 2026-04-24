@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Settings, Lock, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getEmployeeProfile, type EmployeeDetailDto } from "@/services/DACN/employee";
+import ChangePasswordPage from "@/components/ChangePasswordPage";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export function buildFullName(p: Pick<EmployeeDetailDto, "lastName" | "middleName" | "firstName">) {
   return [p.lastName, p.middleName, p.firstName].filter(Boolean).join(" ").trim();
@@ -20,6 +22,7 @@ export function fallbackAvatar(seed: string) {
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -77,12 +80,24 @@ export default function ProfileDropdown() {
     setIsOpen(false);
   };
 
+  const handleChangePassword = () => {
+    setIsChangePasswordOpen(true);
+    setIsOpen(false);
+  };
+
   const fullName = profile ? buildFullName(profile) : "User";
   const email = safeString(profile?.email);
   const avatarUrl = safeString(profile?.avatarUrl) || fallbackAvatar(fullName || email || "user");
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
+      <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent className="p-0 border-0 bg-transparent shadow-none">
+          <ChangePasswordPage embedded />
+        </DialogContent>
+      </Dialog>
+
+      <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 hover:bg-neutral-background rounded-lg transition-colors p-1"
@@ -131,6 +146,7 @@ export default function ProfileDropdown() {
             </button>
 
             <button
+              onClick={handleChangePassword}
               className="w-full flex items-center gap-4 px-6 py-2 hover:bg-[#F5F6F8] transition-colors text-left"
             >
               <Lock className="w-6 h-6 text-[#21252B] flex-shrink-0" />
@@ -150,6 +166,7 @@ export default function ProfileDropdown() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -40,6 +40,33 @@ export async function getUserProfile(options?: { [key: string]: any }) {
   });
 }
 
+export type ChangePasswordRequest = {
+  newPassword: string;
+};
+
+export type ChangePasswordResponse = {
+  statusCode?: number;
+  message?: string;
+  data?: unknown;
+};
+
+export async function changePassword(
+  body: ChangePasswordRequest,
+  options?: { [key: string]: any },
+) {
+  return request<ChangePasswordResponse, ChangePasswordResponse>(
+    "/auth/change-password",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
 // Upload avatar via backend (multipart/form-data)
 export async function uploadAvatar(file: File, options?: { [key: string]: any }) {
   const form = new FormData();

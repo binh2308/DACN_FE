@@ -20,6 +20,7 @@ import { getAssets, type Asset } from "@/services/DACN/asset";
 import { getAllEmployees, type EmployeeDto } from "@/services/DACN/employee";
 import { extractEmployeesFromResponseData } from "@/lib/employee-ui";
 import { getDepartmentLeaveRequests } from "@/services/DACN/request";
+import { getDepartmentTodayCheckinStatus } from "@/services/DACN/attendance";
 import {
   getManagementTickets,
   type ManagementTicketDto,
@@ -27,6 +28,15 @@ import {
 } from "@/services/DACN/Tickets";
 
 type Tone = "blue" | "purple" | "green" | "red";
+
+type AbsenceRow = {
+  id: string;
+  initials: string;
+  name: string;
+  dept: string;
+  tag: string;
+  tagTone: string;
+};
 
 function toneClasses(tone: Tone) {
   switch (tone) {
@@ -203,6 +213,27 @@ function actorDisplayName(actor: any): string {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+function employeeDisplayName(actor: any): string {
+  if (!actor) return "";
+  const parts = [actor?.lastName, actor?.middleName ?? "", actor?.firstName]
+    .map((x: any) => String(x ?? "").trim())
+    .filter(Boolean);
+  const full = parts.join(" ").replace(/\s+/g, " ").trim();
+  return full || String(actor?.email ?? "").trim();
+}
+
+function employeeInitials(actor: any): string {
+  if (!actor) return "?";
+  const last = String(actor?.lastName ?? "").trim();
+  const first = String(actor?.firstName ?? "").trim();
+  const a = last ? last[0] : "";
+  const b = first ? first[0] : "";
+  const initials = (a + b).toUpperCase();
+  if (initials) return initials;
+  const email = String(actor?.email ?? "").trim();
+  return email ? (email[0] ?? "?").toUpperCase() : "?";
+}
+
 function statusBadgeMeta(status: ManagementTicketStatus) {
   switch (status) {
     case "OPEN":
@@ -233,27 +264,29 @@ export default function AdminDashboardPage() {
   const now = new Date();
   const todayStr = toISODate(now);
 
-  // NOTE: Chưa có API phù hợp cho danh sách vắng mặt theo người.
-  // Giữ lại UI + mock data để sau này thay thế dễ dàng.
-  const absences = React.useMemo(
-    () => [
-      {
-        initials: "PX",
-        name: "Phạm Văn X",
-        dept: "Phòng Marketing",
-        tag: "Nghỉ ốm",
-        tagTone: "bg-rose-50 text-rose-700 border-rose-200",
-      },
-      {
-        initials: "LY",
-        name: "Lê Thị Y",
-        dept: "Phòng HR",
-        tag: "Phép năm",
-        tagTone: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-    ],
-    [],
-  );
+  const { data: checkinTodayRes } = useRequest(getDepartmentTodayCheckinStatus, {
+    pollingInterval: 10_000,
+    pollingWhenHidden: false,
+  });
+
+  const absences = React.useMemo<AbsenceRow[]>(() => {
+    const payload: any = (checkinTodayRes as any)?.data ?? null;
+    const deptName = String(payload?.departmentName ?? "").trim();
+    const employees = Array.isArray(payload?.employees) ? payload.employees : [];
+    return employees
+      .filter((e: any) => !Boolean(e?.worked))
+      .map((e: any) => {
+        const id = String(e?.employeeId ?? e?.id ?? e?.email ?? "").trim();
+        return {
+          id: id || employeeDisplayName(e),
+          initials: employeeInitials(e),
+          name: employeeDisplayName(e),
+          dept: deptName || "—",
+          tag: "Chưa check-in",
+          tagTone: "bg-rose-50 text-rose-700 border-rose-200",
+        };
+      });
+  }, [checkinTodayRes]);
 
   const { data: roomsRes } = useRequest(getRooms, {
     pollingInterval: 5000,
@@ -688,31 +721,37 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="mt-4 space-y-4">
-              {absences.map((a) => (
-                <div
-                  key={a.name}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-background text-xs font-semibold text-grey-900">
-                      {a.initials}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-grey-900">
-                        {a.name}
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {a.dept}
-                      </div>
-                    </div>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold ${a.tagTone}`}
+              {absences.length > 0 ? (
+                absences.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between gap-3"
                   >
-                    {a.tag}
-                  </span>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-background text-xs font-semibold text-grey-900">
+                        {a.initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-grey-900">
+                          {a.name}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {a.dept}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold ${a.tagTone}`}
+                    >
+                      {a.tag}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  Hôm nay chưa ghi nhận nhân sự vắng.
                 </div>
-              ))}
+              )}
             </div>
 
             <button
