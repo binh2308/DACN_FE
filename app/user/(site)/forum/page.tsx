@@ -245,13 +245,6 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
             </div>
           ))}
         </div>
-
-        {/* Add New Button */}
-        <div className="flex justify-end mt-6">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#0B9F57] text-[#0B9F57] rounded-lg text-sm font-semibold hover:bg-green-50 transition-colors shadow-sm">
-            <Plus size={16} /> Add new
-          </button>
-        </div>
       </div>
     </div>
   );

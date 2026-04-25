@@ -2,22 +2,49 @@
 
 import {
   Filter,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   X,
   Calendar,
   RefreshCw,
   Plus,
+  Pin,
+  MessageSquare,
+  Heart,
 } from "lucide-react";
 import { useState, useRef, useEffect, use } from "react";
-import { Button, TextInput, Textarea } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { Button as MantineButton, TextInput } from "@mantine/core";
+import { useForm } from "react-hook-form";
 import { DatePickerInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { myRequests, createLeaveRequest } from "@/services/DACN/request";
-import { on } from "node:stream";
+import {
+  getMyAttendanceMonthlySummary,
+  type MonthlyAttendanceSummaryDto,
+} from "@/services/DACN/attendance";
+import { formatDate } from "@/lib/utils";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { FormDatePicker } from "@/components/FormDatePicker";
+import { Badge } from "@/components/ui/badge";
 // --- Types & Mock Data ---
 
 // 1. Định nghĩa kiểu cho trạng thái quyết định (Thêm phần này để sửa lỗi)
+const leaveSchema = z.object({
+  date_from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick a starting date"),
+  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick ending date"),
+  reason: z.string().min(3, "Reason is required").max(500),
+  description: z.string().min(5, "Description is required").max(500),
+});
+
+type LeaveFormData = z.infer<typeof leaveSchema>;
 type DecisionMap = Record<number, "approved" | "declined">;
 
 type LeaveFormValues = {
@@ -28,10 +55,37 @@ type LeaveFormValues = {
 };
 
 interface LeaveRequest {
+  id: string;
   date_from: string;
   date_to: string;
+  created_at?: string;
   status: string;
   reason: string;
+}
+
+function statusLabel(s: string) {
+  switch (s) {
+    case "APPROVED":
+      return "Approved";
+    case "PENDING":
+      return "Pending";
+    case "REJECTED":
+      return "Rejected";
+    default:
+      return s;
+  }
+}
+
+function statusVariant(s: string): "default" | "secondary" | "destructive" {
+  switch (s) {
+    case "REJECTED":
+      return "destructive";
+    case "PENDING":
+      return "secondary";
+    case "APPROVED":
+    default:
+      return "default";
+  }
 }
 
 const getFormattedDate = (dateStr: string) => {
@@ -206,176 +260,170 @@ function LeaveDetailModal({
   );
 }
 
-function LeaveCreateModal({ onClose }: { onClose: () => void }) {
-  const form = useForm<LeaveFormValues>({
-    initialValues: {
-      date_from: null,
-      date_to: null,
-      reason: "",
-      description: "",
-    },
+// function LeaveCreateModal({ onClose }: { onClose: () => void }) {
+//   const form = useForm<LeaveFormValues>({
+//     initialValues: {
+//       date_from: null,
+//       date_to: null,
+//       reason: "",
+//       description: "",
+//     },
 
-    validate: {
-      date_from: (value) => (!value ? "Vui lòng chọn ngày bắt đầu" : null),
-      date_to: (value, values) => {
-        if (!value) return "Vui lòng chọn ngày kết thúc";
-        if (values.date_from && value < values.date_from) {
-          return "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
-        }
-        return null;
-      },
-      reason: (value) =>
-        value.trim().length < 3 ? "Nhập lý do nghỉ phép" : null,
-    },
-  });
+//     validate: {
+//       date_from: (value) => (!value ? "Vui lòng chọn ngày bắt đầu" : null),
+//       date_to: (value, values) => {
+//         if (!value) return "Vui lòng chọn ngày kết thúc";
+//         if (values.date_from && value < values.date_from) {
+//           return "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
+//         }
+//         return null;
+//       },
+//       reason: (value) =>
+//         value.trim().length < 3 ? "Nhập lý do nghỉ phép" : null,
+//     },
+//   });
 
-  const handleSubmit = async (values: LeaveFormValues) => {
-    const data = {
-      date_from: values.date_from,
-      date_to: values.date_to,
-      reason: values.reason,
-      description: values.description,
-    };
-    try {
-      await createLeaveRequest(data);
-      notifications.show({
-        title: "Success",
-        message: "Leave request created successfully",
-        color: "green",
-      });
-      form.reset();
-      onClose();
-    } catch (error) {
-      notifications.show({
-        title: "Error",
-        message: "Failed to create leave request",
-        color: "red",
-      });
-    }
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Header Modal */}
-        <div className="p-6 pb-2">
-          <div className="flex items-start gap-3">
-            <div className="mt-1">
-              <RefreshCw size={32} className="text-gray-800" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Create Leave Request
-              </h2>
-              <p className="text-sm text-gray-500">
-                Fill in the details to create a new leave request
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="ml-auto text-gray-400 hover:text-gray-600"
-            >
-              <X size={24} />
-            </button>
-          </div>
-        </div>
-        <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-4">
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="relative">
-                  <DatePickerInput
-                    label="Start Date"
-                    labelProps={{
-                      className: "text-sm font-medium text-gray-600 mb-1",
-                    }}
-                    placeholder="Chọn ngày bắt đầu"
-                    valueFormat="DD/MM/YYYY"
-                    required
-                    rightSection={
-                      <Calendar size={16} className="text-gray-400" />
-                    }
-                    {...form.getInputProps("date_from")}
-                    onChange={(value) => {
-                      form.setFieldValue("date_from", value);
+//   const handleSubmit = async (values: LeaveFormValues) => {
+//     const data = {
+//       date_from: values.date_from,
+//       date_to: values.date_to,
+//       reason: values.reason,
+//       description: values.description,
+//     };
+//     try {
+//       await createLeaveRequest(data);
+//       notifications.show({
+//         title: "Success",
+//         message: "Leave request created successfully",
+//         color: "green",
+//       });
+//       form.reset();
+//       onClose();
+//     } catch (error) {
+//       notifications.show({
+//         title: "Error",
+//         message: "Failed to create leave request",
+//         color: "red",
+//       });
+//     }
+//   };
+//   return (
+//     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+//       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+//         {/* Header Modal */}
+//         <div className="p-6 pb-2">
+//           <div className="flex items-start gap-3">
+//             <div className="mt-1">
+//               <RefreshCw size={32} className="text-gray-800" />
+//             </div>
+//             <div>
+//               <h2 className="text-xl font-bold text-gray-900">
+//                 Create Leave Request
+//               </h2>
+//               <p className="text-sm text-gray-500">
+//                 Fill in the details to create a new leave request
+//               </p>
+//             </div>
+//             <button
+//               onClick={onClose}
+//               className="ml-auto text-gray-400 hover:text-gray-600"
+//             >
+//               <X size={24} />
+//             </button>
+//           </div>
+//         </div>
+//         <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-4">
+//           <div className="p-6 space-y-4">
+//             <div className="grid grid-cols-2 gap-4">
+//               <div>
+//                 <div className="relative">
+//                   <DatePickerInput
+//                     label="Start Date"
+//                     labelProps={{
+//                       className: "text-sm font-medium text-gray-600 mb-1",
+//                     }}
+//                     placeholder="Chọn ngày bắt đầu"
+//                     valueFormat="DD/MM/YYYY"
+//                     required
+//                     rightSection={
+//                       <Calendar size={16} className="text-gray-400" />
+//                     }
+//                     {...form.getInputProps("date_from")}
+//                     onChange={(value) => {
+//                       form.setFieldValue("date_from", value);
 
-                      const date_to = form.values.date_to;
-                      if (value && date_to && date_to < value) {
-                        form.setFieldValue("date_to", null);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="relative">
-                  <DatePickerInput
-                    label="End Date"
-                    labelProps={{
-                      className: "text-sm font-medium text-gray-600 mb-1",
-                    }}
-                    placeholder="Chọn ngày kết thúc"
-                    required
-                    valueFormat="DD/MM/YYYY"
-                    minDate={form.values.date_from ?? undefined}
-                    rightSection={
-                      <Calendar size={16} className="text-gray-400" />
-                    }
-                    {...form.getInputProps("date_to")}
-                  />
-                </div>
-              </div>
-            </div>
+//                       const date_to = form.values.date_to;
+//                       if (value && date_to && date_to < value) {
+//                         form.setFieldValue("date_to", null);
+//                       }
+//                     }}
+//                   />
+//                 </div>
+//               </div>
+//               <div>
+//                 <div className="relative">
+//                   <DatePickerInput
+//                     label="End Date"
+//                     labelProps={{
+//                       className: "text-sm font-medium text-gray-600 mb-1",
+//                     }}
+//                     placeholder="Chọn ngày kết thúc"
+//                     required
+//                     valueFormat="DD/MM/YYYY"
+//                     minDate={form.values.date_from ?? undefined}
+//                     rightSection={
+//                       <Calendar size={16} className="text-gray-400" />
+//                     }
+//                     {...form.getInputProps("date_to")}
+//                   />
+//                 </div>
+//               </div>
+//             </div>
 
-            <div>
-              <TextInput
-                label="Reason"
-                labelProps={{
-                  className: "block text-sm font-medium text-gray-600 mb-1",
-                }}
-                required
-                placeholder="Nhập lý do nghỉ phép"
-                {...form.getInputProps("reason")}
-              />
-            </div>
+//             <div>
+//               <TextInput
+//                 label="Reason"
+//                 labelProps={{
+//                   className: "block text-sm font-medium text-gray-600 mb-1",
+//                 }}
+//                 required
+//                 placeholder="Nhập lý do nghỉ phép"
+//                 {...form.getInputProps("reason")}
+//               />
+//             </div>
 
-            <div>
-              <Textarea
-                rows={3}
-                label="Description"
-                labelProps={{
-                  className: "block text-sm font-medium text-gray-600 mb-1",
-                }}
-                placeholder="Mô tả chi tiết"
-                {...form.getInputProps("description")}
-              />
-            </div>
-          </div>
+//             <div>
+//               <Textarea
+//                 rows={3}
+//                 label="Description"
+//                 labelProps={{
+//                   className: "block text-sm font-medium text-gray-600 mb-1",
+//                 }}
+//                 placeholder="Mô tả chi tiết"
+//                 {...form.getInputProps("description")}
+//               />
+//             </div>
+//           </div>
 
-          {/* Footer Buttons */}
-          <div className="px-6 py-3 pt-0">
-            {/* <button
-          type="submit"
-            className={`w-full bg-emerald-500 border border-emerald-500 text-white font-semibold py-2.5 rounded cursor-pointer`}
-          >
-            Submit
-          </button> */}
-            <Button fullWidth color="green.7" type="submit" h={45} fw={600}>
-              Submit
-            </Button>
-          </div>
-        </form>
-        <div className="p-6 pt-0">
-          <button
-            onClick={onClose}
-            className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+//           {/* Footer Buttons */}
+//           <div className="px-6 py-3 pt-0">
+//             <Button fullWidth color="green.7" type="submit" h={45} fw={600}>
+//               Submit
+//             </Button>
+//           </div>
+//         </form>
+//         <div className="p-6 pt-0">
+//           <button
+//             onClick={onClose}
+//             className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
+//           >
+//             Cancel
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 // 2. Main Page
 export default function LeaveManagementPage() {
@@ -383,23 +431,55 @@ export default function LeaveManagementPage() {
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [myLeaves, setMyLeaves] = useState<LeaveRequest[] | null>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPage, setTotalPage] = useState<number>(0);
   // Sử dụng type DecisionMap đã định nghĩa
-  const [decisions, setDecisions] = useState<DecisionMap>({});
+  const [render, setRender] = useState<boolean>(false);
   const actionRef = useRef<HTMLDivElement>(null);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+
+    watch,
+    formState: { errors, isSubmitted },
+    reset,
+  } = useForm<LeaveFormData>({
+    resolver: zodResolver(leaveSchema),
+  });
+
   useEffect(() => {
     async function fetchData() {
       try {
         const data = await myRequests();
         if (data) {
           setMyLeaves(data.data.items);
+          setTotalPage(Math.ceil(data.data.items.length / 4));
         }
       } catch (error) {
         console.error("Error fetching requests:", error);
       }
     }
-    fetchData();
-  }, []);
 
+    fetchData();
+  }, [isSubmitted]);
+  // useEffect(() => {
+  //   async function fetchAttendanceHistory() {
+  //     try {
+  //       const res = await getMyAttendanceMonthlySummary({
+  //         year: new Date().getFullYear(),
+  //         month: new Date().getMonth() + 1,
+  //       });
+  //       console.log("Attendance history : ", res);
+  //       setAttendanceHistory(res?.data);
+  //     } catch (error) {
+  //       console.error("Error fetching leave history:", error);
+  //     }
+  //   }
+
+  //   fetchAttendanceHistory();
+  // }, []);
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -414,27 +494,56 @@ export default function LeaveManagementPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const myLeaveAtPage = myLeaves?.slice(
+    currentPage * 4,
+    Math.min(currentPage * 4 + 4, myLeaves.length),
+  );
+
   const handleViewDetails = (leave: LeaveRequest) => {
     setSelectedLeave(leave);
     setActiveActionId(null);
   };
 
-  const handleApprove = (id: number) => {
-    setDecisions((prev) => ({ ...prev, [id]: "approved" }));
-    setActiveActionId(null);
-  };
+  // const handleApprove = (id: number) => {
+  //   setDecisions((prev) => ({ ...prev, [id]: "approved" }));
+  //   setActiveActionId(null);
+  // };
 
-  const handleDecline = (id: number) => {
-    setDecisions((prev) => ({ ...prev, [id]: "declined" }));
-    setActiveActionId(null);
+  // const handleDecline = (id: number) => {
+  //   setDecisions((prev) => ({ ...prev, [id]: "declined" }));
+  //   setActiveActionId(null);
+  // };
+
+  const onSubmit = async (data: LeaveFormData) => {
+    try {
+      await createLeaveRequest(data);
+      reset();
+      notifications.show({
+        title: "Request submitted",
+        message: "Your leave request has been submitted successfully.",
+        color: "green",
+      });
+    } catch (error) {
+      notifications.show({
+        title: "Failed to submit request",
+        message:
+          "An error occurred while submitting your request. Please try again.",
+        color: "red",
+      });
+    }
   };
 
   return (
     <div className="p-6 bg-white min-h-screen font-sans">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Leave History</h1>
-        <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[#21252B]">Request Tracking</h1>
+          <p className="text-sm text-gray-500">
+            Create leave request and view leave history
+          </p>
+        </div>
+        {/* <div className="flex items-center gap-3">
           <button className="p-2 hover:bg-gray-100 rounded text-gray-600">
             <Filter size={20} className="fill-current" />
           </button>
@@ -444,80 +553,227 @@ export default function LeaveManagementPage() {
           >
             New request <Plus size={16} />
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto pb-20">
-        {" "}
-        {/* pb-20 để chừa chỗ cho dropdown cuối bảng */}
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[#FFFF99] text-gray-800 text-sm font-bold">
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4 text-center">Duration(s)</th>
-              <th className="py-3 px-4">Start Date</th>
-              <th className="py-3 px-4">End Date</th>
-              <th className="py-3 px-4">Reason(s)</th>
-              <th className="py-3 px-4 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm text-gray-700">
-            {myLeaves.map((leave, index) => {
-              const decision = decisions[leave.id];
-              const textColor =
-                leave.status === "APPROVED"
-                  ? "text-emerald-500"
-                  : "text-amber-500";
-              const rowBg =
-                decision === "approved"
-                  ? "bg-[#CCFFCC]"
-                  : decision === "declined"
-                    ? "bg-[#FFBBBB]"
-                    : index % 2 === 1
-                      ? "bg-[#F9FAFB]"
-                      : "bg-white";
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
+        {/* <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
+          <h3 className="text-lg font-semibold text-grey-900 mb-3">
+            Attendance Tracking
+          </h3>
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-grey-900">Worked Days</span>
+                <span className="text-sm text-muted-foreground">
+                  {attendanceHistory?.workedDays} of{" "}
+                  {attendanceHistory?.requiredWorkingDays} day(s)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-main-600 rounded-full"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        attendanceHistory?.workedDays
+                          ? (attendanceHistory?.workedDays /
+                              attendanceHistory?.requiredWorkingDays) *
+                              100
+                          : 0,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
 
-              const rowHover = decision ? "" : "hover:bg-gray-50"; // tránh hover ghi đè màu đã chọn
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-grey-900">Absent</span>
+                <span className="text-sm text-muted-foreground">
+                  {attendanceHistory?.absentDays} of{" "}
+                  {attendanceHistory?.requiredWorkingDays} day(s)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-red-500 rounded-full"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        attendanceHistory?.absentDays
+                          ? (attendanceHistory?.requiredWorkingDays /
+                              attendanceHistory?.requiredWorkingDays) *
+                              100
+                          : 0,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div> */}
 
-              const rowAccent =
-                decision === "approved"
-                  ? "border-l-4 border-l-[#0B9F57]"
-                  : decision === "declined"
-                    ? "border-l-4 border-l-[#FF5A5A]"
-                    : "";
+        <div className="col-span-2 bg-white rounded-lg p-4 shadow-sm border border-grey-50 flex flex-col">
+          <h3 className="text-lg font-semibold text-grey-900">
+            Create leave request
+          </h3>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-2">
+              <div>
+                <Label>
+                  Start date <span className="text-red-500">*</span>
+                </Label>
+                <FormDatePicker
+                  control={control}
+                  name="date_from"
+                  placeholder="dd/mm/yyyy"
+                  className="mt-1"
+                />
+                {errors.date_from && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.date_from.message}
+                  </p>
+                )}
+              </div>
 
-              return (
-                <tr
+              <div>
+                <Label>
+                  End date <span className="text-red-500">*</span>
+                </Label>
+                <FormDatePicker
+                  control={control}
+                  name="date_to"
+                  placeholder="dd/mm/yyyy"
+                  className="mt-1"
+                />
+                {errors.date_to && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.date_to.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="col-span-2">
+                <Label>
+                  Reason <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  {...register("reason")}
+                  min={0}
+                  max={100}
+                  className="mt-1 bg-white"
+                />
+                {errors.reason && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.reason.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="col-span-2">
+                <Label>
+                  Description <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  className="mt-1"
+                  {...register("description")}
+                  rows={5}
+                  placeholder="Mô tả chi tiết"
+                />
+                {errors.description && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.description.message}
+                  </p>
+                )}
+              </div>
+
+              <Button className="col-span-2" type="submit">
+                Submit
+              </Button>
+            </div>
+          </form>
+        </div>
+        <div className="col-span-2 border border-gray-200 rounded-xl p-6 min-h-[600px] relative flex flex-col">
+          <div className="flex mb-4">
+            <span className="text-sm font-semibold text-gray-600">
+              Leave History
+            </span>
+          </div>
+
+          {/* List Posts */}
+          {!myLeaves && <div className="text-center">Loading ...</div>}
+          {myLeaves && (
+            <div className="space-y-4 flex-1">
+              {myLeaveAtPage.map((leave) => (
+                <div
                   key={leave.id}
-                  className={`border-b border-gray-100 transition-colors ${rowBg} ${rowHover} ${rowAccent}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedLeave(leave)}
+                  className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
                 >
-                  <td className={`py-3 px-4 font-medium ${textColor}`}>
-                    {leave.status}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {getDuration(leave.date_from, leave.date_to)}
-                  </td>
-                  <td className="py-3 px-4">
-                    {getFormattedDate(leave.date_from)}
-                  </td>
-                  <td className="py-3 px-4">
-                    {getFormattedDate(leave.date_to)}
-                  </td>
-                  <td className="py-3 px-4">{leave.reason}</td>
-                  <td className="py-3 px-4 text-center relative">
-                    <button
-                      onClick={() => handleViewDetails(leave)}
-                      className="inline-flex items-center gap-1 bg-[#536E68] text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-[#3E524D] transition-colors"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  {/* Green Left Border Accent */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0B9F57] rounded-l-lg"></div>
+
+                  <div className="pl-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-gray-800">
+                          # {leave.id.slice(0, 5)}
+                        </h3>
+                      </div>
+                      <Badge
+                        variant={statusVariant(leave.status)}
+                        className="rounded-full"
+                      >
+                        {statusLabel(leave.status)}
+                      </Badge>
+                    </div>
+
+                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                      {leave.reason}
+                    </p>
+
+                    <div className="flex items-center justify-between text-[10px] text-gray-500">
+                      <div className="flex gap-2">
+                        <span className="font-medium text-gray-700">
+                          {formatDate(leave.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-center gap-3">
+            <ChevronLeft
+              className="cursor-pointer hover:shadow-md"
+              onClick={() => {
+                if (currentPage > 0) setCurrentPage(currentPage - 1);
+              }}
+            />
+            <span>
+              {currentPage + 1} / {totalPage}
+            </span>
+            <ChevronRight
+              className="cursor-pointer hover:shadow-md"
+              onClick={() => {
+                if (currentPage < totalPage - 1)
+                  setCurrentPage(currentPage + 1);
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Render Modal if selected */}
@@ -526,9 +782,6 @@ export default function LeaveManagementPage() {
           data={selectedLeave}
           onClose={() => setSelectedLeave(null)}
         />
-      )}
-      {openCreateModal && (
-        <LeaveCreateModal onClose={() => setOpenCreateModal(false)} />
       )}
     </div>
   );

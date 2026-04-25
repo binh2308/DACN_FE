@@ -298,295 +298,313 @@ export default function Index() {
   }, [monthlyAttendance, month, year]);
 
   return (
-      <div className="p-4 space-y-5">
-        <section>
-          <h2 className="text-base font-semibold text-grey-900 mb-2">
-            Quick Actions
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {quickActions.map((action) => (
-              <Button
-                key={action.id}
-                variant="outline"
-                className="bg-white rounded-full px-4 py-1 h-auto text-xs font-normal text-grey-900 border-grey-50 hover:bg-neutral-background"
-                onClick={() => router.push(action.href)}
-              >
-                {action.label}
-              </Button>
-            ))}
-          </div>
-        </section>
+    <div className="p-4 space-y-5">
+      <section>
+        <h2 className="text-base font-semibold text-grey-900 mb-2">
+          Quick Actions
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map((action) => (
+            <Button
+              key={action.id}
+              variant="outline"
+              className="bg-white rounded-full px-4 py-1 h-auto text-xs font-normal text-grey-900 border-grey-50 hover:bg-neutral-background"
+              onClick={() => router.push(action.href)}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
-            <h3 className="text-lg font-semibold text-grey-900 mb-3">
-              Available Leave Days
-            </h3>
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-grey-900">Annual Leave</span>
-                  <span className="text-sm text-muted-foreground">
-                    {leaveUsed.annual} of {leaveQuota.annual} day(s)
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-main-600 rounded-full"
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          leaveQuota.annual
-                            ? (leaveUsed.annual / leaveQuota.annual) * 100
-                            : 0,
-                        ),
-                      )}%`,
-                    }}
-                  />
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
+          <h3 className="text-lg font-semibold text-grey-900 mb-3">
+            Available Leave Days
+          </h3>
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-grey-900">Annual Leave</span>
+                <span className="text-sm text-muted-foreground">
+                  {leaveUsed.annual} of {leaveQuota.annual} day(s)
+                </span>
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-grey-900">Sick Leave</span>
-                  <span className="text-sm text-muted-foreground">
-                    {leaveUsed.sick} of {leaveQuota.sick} day(s)
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-main-600 rounded-full"
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          leaveQuota.sick
-                            ? (leaveUsed.sick / leaveQuota.sick) * 100
-                            : 0,
-                        ),
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-grey-900">
-                    Compassionate Leave
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {leaveUsed.compassionate} of {leaveQuota.compassionate} day(s)
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-main-600 rounded-full"
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          leaveQuota.compassionate
-                            ? (leaveUsed.compassionate / leaveQuota.compassionate) * 100
-                            : 0,
-                        ),
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {leaveStats.pending > 0 ? (
-                <div className="text-xs text-muted-foreground">
-                  Pending requests: {leaveStats.pending}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50 flex flex-col">
-            <h3 className="text-lg font-semibold text-grey-900 mb-3">
-              Chấm công tháng này
-            </h3>
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-              {(attendanceRows ??
-                [
-                  {
-                    title: "Thứ 6, 17/04",
-                    subtitle: "In: 07:58 — Out: 17:05",
-                    status: "Đúng giờ",
-                    type: "success",
-                  },
-                  {
-                    title: "Thứ 5, 16/04",
-                    subtitle: "In: 08:15 — Out: 17:00",
-                    status: "Đi muộn",
-                    type: "warning",
-                  },
-                  {
-                    title: "Thứ 4, 15/04",
-                    subtitle: "In: 07:50 — Out: 17:30",
-                    status: "Đúng giờ",
-                    type: "success",
-                  },
-                  {
-                    title: "Thứ 3, 14/04",
-                    subtitle: "In: 08:00 — Out: 17:00",
-                    status: "Đúng giờ",
-                    type: "success",
-                  },
-                  {
-                    title: "Thứ 2, 13/04",
-                    subtitle: "In: --:-- — Out: --:--",
-                    status: "Nghỉ phép",
-                    type: "neutral",
-                  },
-                ])
-                .map((log, idx) => (
+              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
                 <div
-                  key={idx}
-                  className="flex items-center justify-between p-2 rounded-lg border border-grey-50 hover:border-main-600 transition-colors bg-white group cursor-default"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-grey-900 group-hover:text-main-600 transition-colors">
-                      {log.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {log.subtitle}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-[11px] font-medium px-2 py-1 rounded-full ${
-                      log.type === "success"
-                        ? "bg-green-50 text-green-600"
-                        : log.type === "warning"
-                        ? "bg-amber-50 text-amber-600"
-                        : "bg-neutral-background text-muted-foreground"
-                    }`}
-                  >
-                    {log.status}
-                  </span>
-                </div>
-              ))}
+                  className="h-full bg-main-600 rounded-full"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        leaveQuota.annual
+                          ? (leaveUsed.annual / leaveQuota.annual) * 100
+                          : 0,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-grey-900">Sick Leave</span>
+                <span className="text-sm text-muted-foreground">
+                  {leaveUsed.sick} of {leaveQuota.sick} day(s)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-main-600 rounded-full"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        leaveQuota.sick
+                          ? (leaveUsed.sick / leaveQuota.sick) * 100
+                          : 0,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-grey-900">
+                  Compassionate Leave
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {leaveUsed.compassionate} of {leaveQuota.compassionate} day(s)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-main-600 rounded-full"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        leaveQuota.compassionate
+                          ? (leaveUsed.compassionate /
+                              leaveQuota.compassionate) *
+                              100
+                          : 0,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {leaveStats.pending > 0 ? (
+              <div className="text-xs text-muted-foreground">
+                Pending requests: {leaveStats.pending}
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
-            <h3 className="text-lg font-semibold text-grey-900 mb-2">
-              Announcement(s)
-            </h3>
-            {/* Thêm pb-2 để tránh việc đổ bóng của phần tử cuối cùng bị cắt mất do overflow */}
-            <div className="space-y-3 max-h-40 overflow-y-auto pr-2 pb-2">
-              {announcementsForWidget.map((announcement) => {
-                const isExpanded = expandedAnnouncementId === announcement.id;
-                
-                return (
-                  <div
-                    key={announcement.id}
-                    onClick={() => setExpandedAnnouncementId(isExpanded ? null : announcement.id)}
-                    className={`p-3 rounded-lg border transition-all cursor-pointer shadow-md hover:shadow-lg ${
-                      isExpanded || announcement.highlighted
-                        ? "bg-main-50 border-main-600"
-                        : "bg-white border-grey-50 hover:border-main-600"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-grey-900 font-medium">
-                          {announcement.title}
-                        </p>
-                        
-                        {/* Nội dung chi tiết chỉ hiển thị khi isExpanded = true */}
-                        {isExpanded && announcement.description && (
-                          <p className="text-sm text-main-600 mt-2">
-                            {announcement.description}
-                          </p>
-                        )}
-                      </div>
-                      
-                      {/* Icon mũi tên sẽ xoay 90 độ cắm xuống dưới khi được mở rộng */}
-                      <ChevronRight 
-                        className={`w-4 h-4 text-grey-900 flex-shrink-0 mt-0.5 transition-transform duration-200 ${
-                          isExpanded ? "rotate-90" : ""
-                        }`} 
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50 overflow-hidden flex flex-col">
-            <h3 className="text-lg font-semibold text-grey-900 mb-2">
-              {monthLabel} Pay Slip Breakdown
-            </h3>
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-grey-50">
-                    <th className="text-left py-2 px-2 font-medium text-grey-900">
-                      Earnings
-                    </th>
-                    <th className="text-right py-2 px-2 font-medium text-grey-900">
-                      Amount
-                    </th>
-                    <th className="text-right py-2 px-2 font-medium text-grey-900">
-                      Deductions
-                    </th>
-                    <th className="text-right py-2 px-2 font-medium text-grey-900">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-grey-50 bg-neutral-background">
-                    <td className="py-2 px-2 text-grey-900">Basic Wage</td>
-                    <td className="py-2 px-2 text-grey-900 text-right">
-                      {payrollComputed ? formatMoney(payrollComputed.basic) : "150,000"}
-                    </td>
-                    <td className="py-2 px-2 text-grey-900 text-right">0</td>
-                    <td className="py-2 px-2 text-grey-900 text-right">
-                      {payrollComputed ? formatMoney(payrollComputed.basic) : "150,000"}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-grey-50">
-                    <td className="py-2 px-2 text-grey-900">Allowance</td>
-                    <td className="py-2 px-2 text-grey-900 text-right">
-                      {payrollComputed ? formatMoney(payrollComputed.allowance) : "15,000"}
-                    </td>
-                    <td className="py-2 px-2 text-grey-900 text-right">0</td>
-                    <td className="py-2 px-2 text-grey-900 text-right">
-                      {payrollComputed ? formatMoney(payrollComputed.allowance) : "15,000"}
-                    </td>
-                  </tr>
-                  <tr className="bg-main-50">
-                    <td className="py-2 px-2 font-semibold text-grey-900">
-                      Total Earning
-                    </td>
-                    <td className="py-2 px-2 font-semibold text-grey-900 text-right">
-                      {payrollComputed ? formatMoney(payrollComputed.gross) : "150,000"}
-                    </td>
-                    <td className="py-2 px-2 font-semibold text-grey-900 text-right">
-                      {payrollComputed
-                        ? formatMoneySigned(-payrollComputed.totalDeductions)
-                        : "-50,000"}
-                    </td>
-                    <td className="py-2 px-2 font-semibold text-grey-900 text-right">
-                      {payrollComputed ? formatMoney(payrollComputed.net) : "114,000"}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50 flex flex-col">
+          <h3 className="text-lg font-semibold text-grey-900 mb-3">
+            Chấm công tháng này
+          </h3>
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+            {(
+              attendanceRows ?? [
+                {
+                  title: "Thứ 6, 17/04",
+                  subtitle: "In: 07:58 — Out: 17:05",
+                  status: "Đúng giờ",
+                  type: "success",
+                },
+                {
+                  title: "Thứ 5, 16/04",
+                  subtitle: "In: 08:15 — Out: 17:00",
+                  status: "Đi muộn",
+                  type: "warning",
+                },
+                {
+                  title: "Thứ 4, 15/04",
+                  subtitle: "In: 07:50 — Out: 17:30",
+                  status: "Đúng giờ",
+                  type: "success",
+                },
+                {
+                  title: "Thứ 3, 14/04",
+                  subtitle: "In: 08:00 — Out: 17:00",
+                  status: "Đúng giờ",
+                  type: "success",
+                },
+                {
+                  title: "Thứ 2, 13/04",
+                  subtitle: "In: --:-- — Out: --:--",
+                  status: "Nghỉ phép",
+                  type: "neutral",
+                },
+              ]
+            ).map((log, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2 rounded-lg border border-grey-50 hover:border-main-600 transition-colors bg-white group cursor-default"
+              >
+                <div>
+                  <p className="text-sm font-medium text-grey-900 group-hover:text-main-600 transition-colors">
+                    {log.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {log.subtitle}
+                  </p>
+                </div>
+                <span
+                  className={`text-[11px] font-medium px-2 py-1 rounded-full ${
+                    log.type === "success"
+                      ? "bg-green-50 text-green-600"
+                      : log.type === "warning"
+                        ? "bg-amber-50 text-amber-600"
+                        : "bg-neutral-background text-muted-foreground"
+                  }`}
+                >
+                  {log.status}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    );
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
+          <h3 className="text-lg font-semibold text-grey-900 mb-2">
+            Announcement(s)
+          </h3>
+          {/* Thêm pb-2 để tránh việc đổ bóng của phần tử cuối cùng bị cắt mất do overflow */}
+          <div className="space-y-3 max-h-40 overflow-y-auto pr-2 pb-2">
+            {announcementsForWidget.map((announcement) => {
+              const isExpanded = expandedAnnouncementId === announcement.id;
+
+              return (
+                <div
+                  key={announcement.id}
+                  onClick={() =>
+                    setExpandedAnnouncementId(
+                      isExpanded ? null : announcement.id,
+                    )
+                  }
+                  className={`p-3 rounded-lg border transition-all cursor-pointer shadow-md hover:shadow-lg ${
+                    isExpanded || announcement.highlighted
+                      ? "bg-main-50 border-main-600"
+                      : "bg-white border-grey-50 hover:border-main-600"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-grey-900 font-medium">
+                        {announcement.title}
+                      </p>
+
+                      {/* Nội dung chi tiết chỉ hiển thị khi isExpanded = true */}
+                      {isExpanded && announcement.description && (
+                        <p className="text-sm text-main-600 mt-2">
+                          {announcement.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Icon mũi tên sẽ xoay 90 độ cắm xuống dưới khi được mở rộng */}
+                    <ChevronRight
+                      className={`w-4 h-4 text-grey-900 flex-shrink-0 mt-0.5 transition-transform duration-200 ${
+                        isExpanded ? "rotate-90" : ""
+                      }`}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50 overflow-hidden flex flex-col">
+          <h3 className="text-lg font-semibold text-grey-900 mb-2">
+            {monthLabel} Pay Slip Breakdown
+          </h3>
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-grey-50">
+                  <th className="text-left py-2 px-2 font-medium text-grey-900">
+                    Earnings
+                  </th>
+                  <th className="text-right py-2 px-2 font-medium text-grey-900">
+                    Amount
+                  </th>
+                  <th className="text-right py-2 px-2 font-medium text-grey-900">
+                    Deductions
+                  </th>
+                  <th className="text-right py-2 px-2 font-medium text-grey-900">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-grey-50 bg-neutral-background">
+                  <td className="py-2 px-2 text-grey-900">Basic Wage</td>
+                  <td className="py-2 px-2 text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoney(payrollComputed.basic)
+                      : "150,000"}
+                  </td>
+                  <td className="py-2 px-2 text-grey-900 text-right">0</td>
+                  <td className="py-2 px-2 text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoney(payrollComputed.basic)
+                      : "150,000"}
+                  </td>
+                </tr>
+                <tr className="border-b border-grey-50">
+                  <td className="py-2 px-2 text-grey-900">Allowance</td>
+                  <td className="py-2 px-2 text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoney(payrollComputed.allowance)
+                      : "15,000"}
+                  </td>
+                  <td className="py-2 px-2 text-grey-900 text-right">0</td>
+                  <td className="py-2 px-2 text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoney(payrollComputed.allowance)
+                      : "15,000"}
+                  </td>
+                </tr>
+                <tr className="bg-main-50">
+                  <td className="py-2 px-2 font-semibold text-grey-900">
+                    Total Earning
+                  </td>
+                  <td className="py-2 px-2 font-semibold text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoney(payrollComputed.gross)
+                      : "150,000"}
+                  </td>
+                  <td className="py-2 px-2 font-semibold text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoneySigned(-payrollComputed.totalDeductions)
+                      : "-50,000"}
+                  </td>
+                  <td className="py-2 px-2 font-semibold text-grey-900 text-right">
+                    {payrollComputed
+                      ? formatMoney(payrollComputed.net)
+                      : "114,000"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
