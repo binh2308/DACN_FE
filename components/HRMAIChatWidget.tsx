@@ -6,12 +6,14 @@ import { DACN } from "@/services/DACN/typings";
 import { getUserProfile } from "@/services/DACN/auth";
 import { buildFullName, safeString, fallbackAvatar } from "./ProfileDropdown";
 import { GetResponseFromAI } from "@/services/DACN/AI";
+import AnimatedBotMessage from "./AnimatedBotMessage";
 
 type Message = {
   id: string;
   role: "user" | "bot";
   content: string;
   isLoading?: boolean;
+  isAnimated?: boolean;
 };
 
 function TypingDots() {
@@ -44,7 +46,7 @@ function WelcomeBlock() {
   return (
     <div className="mt-2 flex flex-col items-center justify-center px-3 text-center">
       <Sparkles className="mb-2 h-7 w-7 text-[#18b33e]" strokeWidth={2.5} />
-      <p className="max-w-[360px] text-[13px] leading-4 text-neutral-700">
+      <p className="max-w-[360px] text-[13px] leading-4 text-neutral-800 font-medium">
         Xin chào, tôi là trợ lý AI của hệ thống HRM
         <br />
         Bạn cần tôi trợ giúp gì không ?
@@ -146,6 +148,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
                 ...msg,
                 content: botReply,
                 isLoading: false,
+                isAnimated: true,
               }
             : msg,
         ),
@@ -179,8 +182,8 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
   return (
     <div
       className="
-        fixed bottom-15 right-10 z-[60]
-        h-[400px] w-[300px]
+        fixed bottom-7 right-10 z-[60]
+        h-[500px] w-[400px]
         overflow-hidden rounded-[18px]
         border border-[#d9d9d9]
         bg-[#f3f3f3] shadow-2xl
@@ -190,7 +193,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
       <div className="flex h-[50px] items-center justify-between bg-[#18b33e] px-3">
         <div className="flex items-center gap-4">
           <Sparkles className="h-7 w-7 text-white" strokeWidth={2.5} />
-          <h2 className="text-[15px] font-bold text-white">HRM AI</h2>
+          <h2 className="text-[15px] font-bold text-white">HRM Bot</h2>
         </div>
 
         <button
@@ -223,7 +226,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
                         className="
                           rounded-[16px] rounded-br-[6px]
                           bg-[#d9d9dd] px-3 py-1
-                          text-[13px] text-neutral-800
+                          text-[14px] text-neutral-800 font-medium
                           shadow-sm
                         "
                       >
@@ -241,8 +244,8 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
                     <BotAvatar />
                     <div
                       className={`
-                        rounded-[16px] rounded-bl-[6px] px-3 py-1 text-[13px]
-                        shadow-sm
+                        rounded-[16px] rounded-bl-[6px] px-3 py-1 text-[14px]
+                        shadow-sm text-neutral-800 font-medium
                         ${
                           msg.isLoading
                             ? "min-w-[76px] bg-[#18b33e]"
@@ -250,7 +253,25 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
                         }
                       `}
                     >
-                      {msg.isLoading ? <TypingDots /> : msg.content}
+                      {msg.isLoading ? (
+                        <TypingDots />
+                      ) : msg.isAnimated ? (
+                        <AnimatedBotMessage
+                          content={msg.content}
+                          speed={80}
+                          onDone={() => {
+                            setMessages((prev) =>
+                              prev.map((item) =>
+                                item.id === msg.id
+                                  ? { ...item, isAnimated: false }
+                                  : item,
+                              ),
+                            );
+                          }}
+                        />
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                   </div>
                 </div>
@@ -270,7 +291,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
             placeholder="Nhập nội dung..."
             rows={1}
             className="
-          flex-1 max-w-[215px]
+          flex-1 max-w-full
           resize-none overflow-y-auto bg-transparent
           text-[14px] leading-5 outline-none
           placeholder:text-neutral-400

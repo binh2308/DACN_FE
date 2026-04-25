@@ -146,8 +146,8 @@ export default function ForumDetailPage() {
 
   const [detailPost, setDetailPost] =
     React.useState<DACN.AnnouncementResponseDto | null>(null);
-  const [loading, setLoading] = React.useState(false);
   const [liked, setLiked] = React.useState(false);
+  const [likeCount, setLikeCount] = React.useState<number>(0);
   const [commentDraft, setCommentDraft] = React.useState("");
   const [addingComment, setAddingComment] = React.useState(false);
   React.useEffect(() => {
@@ -163,12 +163,18 @@ export default function ForumDetailPage() {
     };
 
     fetchData();
-  }, [liked, addingComment]);
+  }, [addingComment]);
 
   const handleToggleLike = async () => {
     const likedData = !liked;
+    if (liked === true) {
+      setLiked(likedData);
+      setLikeCount(likeCount - 1);
+    } else {
+      setLiked(likedData);
+      setLikeCount(likeCount + 1);
+    }
     await toggleLikeAnnouncement(String(params?.id));
-    setLiked(likedData);
   };
 
   const onSubmitComment = async () => {
@@ -178,7 +184,7 @@ export default function ForumDetailPage() {
     setAddingComment(false);
   };
 
-  if (loading) {
+  if (!detailPost) {
     return (
       <div className="bg-white min-h-screen p-6">
         <div className="max-w-[1100px] mx-auto">
@@ -319,9 +325,7 @@ export default function ForumDetailPage() {
                 }
               />
               <span>Like</span>
-              <span className="text-gray-400">
-                {formatCount(detailPost?.likeCount as number)}
-              </span>
+              <span className="text-gray-400">{formatCount(likeCount)}</span>
             </button>
 
             <button
