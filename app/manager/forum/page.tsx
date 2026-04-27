@@ -16,6 +16,8 @@ import {
   RotateCcw,
   LogOut,
   X,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { ImageItem } from "@/lib/utils";
 import Switch from "@mui/material/Switch";
@@ -40,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Center, Loader } from "@mantine/core";
 
 // --- Types ---
 interface Post {
@@ -67,39 +70,11 @@ dayjs.extend(relativeTime);
 type AnnounceFormData = z.infer<typeof announceSchema>;
 
 // --- Mock Data Ban Đầu ---
-const initialPosts: Post[] = [
-  {
-    id: 1,
-    title: "Q1 Planning Session",
-    content:
-      "Join us for the Q1 planning session next Monday at 2 PM. We will discuss goals, priorities, and resource allocation.",
-    author: "Sarah Anderson",
-    time: "2 hours ago",
-    likes: 21600,
-    comments: 231,
-    views: 250000,
-    isPinned: true,
-    tags: ["General"],
-  },
-  {
-    id: 2,
-    title: "Hr Updates - New Policy",
-    content:
-      "Please review the updated remote work policy attached below. Effective from next month.",
-    author: "John Doe",
-    time: "5 hours ago",
-    likes: 1200,
-    comments: 45,
-    views: 5000,
-    isPinned: false,
-    tags: ["HR Updates"],
-  },
-];
 
 export default function ForumPage() {
   const [view, setView] = useState<"list" | "create">("list");
   const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[]>([]);
-
+  const [totalPage, setTotalPage] = useState<number>(0);
   // Hàm xử lý lưu bài viết mới
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -109,6 +84,7 @@ export default function ForumPage() {
           pageSize: 20,
         });
         setPosts(res.data?.items);
+        setTotalPage(Math.ceil(res.data?.items.length / 4));
       } catch (error) {
         console.error("Error fetching announcements:", error);
       }
@@ -124,6 +100,7 @@ export default function ForumPage() {
       {view === "list" ? (
         <ForumListView
           posts={posts}
+          totalPage={totalPage}
           setPosts={setPosts}
           setView={setView}
           onNavigateCreate={() => setView("create")}
@@ -140,11 +117,13 @@ export default function ForumPage() {
 // ============================================================================
 function ForumListView({
   posts,
+  totalPage,
   setPosts,
   onNavigateCreate,
   setView,
 }: {
   posts: DACN.AnnouncementResponseDto[];
+  totalPage: number;
   setPosts: React.Dispatch<
     React.SetStateAction<DACN.AnnouncementResponseDto[]>
   >;
@@ -153,16 +132,16 @@ function ForumListView({
 }) {
   const [activeTab, setActiveTab] = useState("General");
   const tabs = ["General", "HR Updates", "Events"];
+  const [currentPage, setCurrentPage] = useState<number>(0);
   const router = useRouter();
-
   const handleTogglePin = async (id: string) => {
     try {
-      await togglePinnedAnnouncement(id);
       setPosts((prev) =>
         prev.map((post) =>
           post.id === id ? { ...post, pinned: !post.pinned } : post,
         ),
       );
+      await togglePinnedAnnouncement(id);
     } catch (error) {
       console.error("Error toggling pin:", error);
     }
@@ -212,98 +191,127 @@ function ForumListView({
           </span>
         </div>
 
+        {posts.length === 0 && (
+          <Center style={{ height: "50vh" }}>
+            <Loader color="green" />
+          </Center>
+        )}
         {/* List Posts */}
         <div className="space-y-4 flex-1">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => router.push(`/manager/forum/${post.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  router.push(`/manager/forum/${post.id}`);
-                }
-              }}
-              className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
-            >
-              {/* Green Left Border Accent */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0B9F57] rounded-l-lg"></div>
+          {posts.length > 0 &&
+            posts.slice(currentPage * 4, currentPage * 4 + 4).map((post) => (
+              <div
+                key={post.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/manager/forum/${post.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/manager/forum/${post.id}`);
+                  }
+                }}
+                className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
+              >
+                {/* Green Left Border Accent */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0B9F57] rounded-l-lg"></div>
 
-              <div className="pl-3">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-gray-800">
-                      {post.title}
-                    </h3>
-                    {post.pinned && (
-                      <span className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded border border-gray-200">
-                        <Pin
-                          size={10}
-                          className="fill-current"
-                          onClick={() => handleTogglePin(post?.id)}
-                        />{" "}
-                        Unpin
-                      </span>
-                    )}
-                    {!post.pinned && (
-                      <span className="flex items-center gap-1 bg-white text-gray-400 text-[10px] px-2 py-0.5 rounded border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <Pin size={10} /> Pin
-                      </span>
-                    )}
-                  </div>
-                  <Link
-                    href={`/manager/forum/${post.id}`}
-                    className="text-blue-500 text-xs hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {">> See more"}
-                  </Link>
-                </div>
-
-                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                  {post.content}
-                </p>
-
-                <div className="flex items-center justify-between text-[10px] text-gray-500">
-                  <div className="flex gap-2">
-                    <span className="font-medium text-gray-700">
-                      By {post.employee?.firstName} {post.employee?.middleName}{" "}
-                      {post.employee?.lastName}
-                    </span>
-                    <span>{dayjs(post.created_at).fromNow()}</span>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Heart size={12} className="text-red-500 fill-red-500" />
-                      <span>
-                        {post.likeCount >= 1000
-                          ? (post.likeCount / 1000).toFixed(1) + "k"
-                          : post.likeCount}
-                      </span>
+                <div className="pl-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-gray-800">
+                        {post.title}
+                      </h3>
+                      {post.pinned && (
+                        <span
+                          className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded border border-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePin(post?.id);
+                          }}
+                        >
+                          <Pin size={10} className="fill-current" /> Unpin
+                        </span>
+                      )}
+                      {!post.pinned && (
+                        <span
+                          className="flex items-center gap-1 bg-white text-gray-400 text-[10px] px-2 py-0.5 rounded border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePin(post?.id);
+                          }}
+                        >
+                          <Pin size={10} /> Pin
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <MessageSquare size={12} className="text-gray-400" />
-                      <span>{post.commentCount}</span>
+                    <Link
+                      href={`/manager/forum/${post.id}`}
+                      className="text-blue-500 text-xs hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      {">> See more"}
+                    </Link>
+                  </div>
+
+                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                    {post.content}
+                  </p>
+
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-700">
+                        By {post.employee?.firstName}{" "}
+                        {post.employee?.middleName} {post.employee?.lastName}
+                      </span>
+                      <span>{dayjs(post.created_at).fromNow()}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <Heart
+                          size={12}
+                          className="text-red-500 fill-red-500"
+                        />
+                        <span>
+                          {post.likeCount >= 1000
+                            ? (post.likeCount / 1000).toFixed(1) + "k"
+                            : post.likeCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageSquare size={12} className="text-gray-400" />
+                        <span>{post.commentCount}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
-
+        {posts.length > 0 && (
+          <div className="flex justify-center gap-3">
+            <ChevronLeft
+              className="cursor-pointer hover:shadow-md"
+              onClick={() => {
+                if (currentPage > 0) setCurrentPage(currentPage - 1);
+              }}
+            />
+            <span>
+              {currentPage + 1} / {totalPage}
+            </span>
+            <ChevronRight
+              className="cursor-pointer hover:shadow-md"
+              onClick={() => {
+                if (currentPage < totalPage - 1)
+                  setCurrentPage(currentPage + 1);
+              }}
+            />
+          </div>
+        )}
         {/* Add New Button */}
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={onNavigateCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#0B9F57] text-[#0B9F57] rounded-lg text-sm font-semibold hover:bg-green-50 transition-colors shadow-sm"
-          >
-            <Plus size={16} /> Add new
-          </button>
-        </div>
       </div>
     </div>
   );

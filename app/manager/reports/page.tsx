@@ -11,6 +11,8 @@ import {
   Search,
   Send,
   ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { DACN } from "@/services/DACN/typings";
 import { getListReports } from "@/services/DACN/report";
@@ -36,6 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { MyDatePicker } from "@/components/MyDatePicker";
 import { toDateOnlyUTC } from "@/lib/utils";
+import { Center, Loader } from "@mantine/core";
 
 type ReportStatus = "SUBMITTED" | "REVIEWED" | "DRAFT";
 
@@ -220,6 +223,8 @@ export default function WeeklyReportsPage() {
     [],
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [currentPage, setCurrentPage] = React.useState<number>(0);
+  const [totalPage, setTotalPage] = React.useState<number>(0);
   const [filters, setFilters] = React.useState<Filters>({
     q: "",
     status: "all",
@@ -265,7 +270,7 @@ export default function WeeklyReportsPage() {
 
   const filtered = React.useMemo(() => {
     const q = filters.q.trim().toLowerCase();
-    return reports
+    const filterReports = reports
       .filter((r) => {
         if (
           q.length > 0 &&
@@ -287,7 +292,9 @@ export default function WeeklyReportsPage() {
         return true;
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-  }, [reports, filters]);
+    setTotalPage(Math.ceil(filterReports.length / 4));
+    return filterReports.slice(currentPage * 4, currentPage * 4 + 4);
+  }, [reports, filters, currentPage]);
 
   const selected = React.useMemo(
     () => reports.find((r) => r.id === selectedId) ?? null,
@@ -680,11 +687,15 @@ export default function WeeklyReportsPage() {
             </div>
 
             <div className="space-y-3">
-              {filtered.length === 0 ? (
+              {filtered.length === 0 && reports.length > 0 ? (
                 <EmptyState
                   title="No weekly reports"
                   hint="Try adjusting filters or submit a new report."
                 />
+              ) : reports.length === 0 ? (
+                <Center style={{ height: "50vh" }}>
+                  <Loader color="green" />
+                </Center>
               ) : (
                 filtered.map((r) => {
                   const active = r.id === selectedId;
@@ -741,6 +752,26 @@ export default function WeeklyReportsPage() {
                 })
               )}
             </div>
+            {filtered.length > 0 && (
+              <div className="p-2 flex justify-end gap-3">
+                <ChevronLeft
+                  className="cursor-pointer hover:shadow-md"
+                  onClick={() => {
+                    if (currentPage > 0) setCurrentPage(currentPage - 1);
+                  }}
+                />
+                <span>
+                  {currentPage + 1} / {totalPage}
+                </span>
+                <ChevronRight
+                  className="cursor-pointer hover:shadow-md"
+                  onClick={() => {
+                    if (currentPage < totalPage - 1)
+                      setCurrentPage(currentPage + 1);
+                  }}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

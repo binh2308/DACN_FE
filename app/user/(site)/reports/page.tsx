@@ -8,6 +8,8 @@ import {
   Plus,
   Search,
   Send,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { ReadonlyTextarea } from "@/components/ReadonlyTextarea";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +41,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormDatePicker } from "@/components/FormDatePicker";
 import { MyDatePicker } from "@/components/MyDatePicker";
+import { report } from "process";
+import { Center, Loader } from "@mantine/core";
+import { fi } from "zod/v4/locales";
 
 const reportSchema = z.object({
   week_starting: z
@@ -240,7 +245,10 @@ function EmptyState({ title, hint }: { title: string; hint?: string }) {
 export default function WeeklyReportsPage() {
   const [reports, setReports] = React.useState<DACN.ReportResponseDto[]>([]);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState<number>(0);
+  const [totalPage, setTotalPage] = React.useState<number>(0);
   const [filters, setFilters] = React.useState<Filters>({
     q: "",
     status: "all",
@@ -270,8 +278,11 @@ export default function WeeklyReportsPage() {
         setSelectedId(res.data?.data[0]?.id ?? null);
       } catch (error) {
         console.error("Failed to fetch report:", error);
+      } finally {
+        setLoading(false);
       }
     };
+    setLoading(true);
     fetchReport();
   }, [createOpen]);
 
@@ -297,7 +308,7 @@ export default function WeeklyReportsPage() {
   const filtered = React.useMemo(() => {
     const q = filters.q.trim().toLowerCase();
 
-    return reports
+    const filteredReports = reports
       .filter((r) => {
         if (filters.status !== "all" && r.status !== filters.status)
           return false;
@@ -312,13 +323,14 @@ export default function WeeklyReportsPage() {
         return true;
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-  }, [reports, filters]);
+    setTotalPage(Math.ceil(filteredReports.length / 4));
+    return filteredReports.slice(currentPage * 4, currentPage * 4 + 4);
+  }, [reports, filters, currentPage]);
 
   const selected = React.useMemo(
     () => reports.find((r) => r.id === selectedId) ?? null,
     [reports, selectedId],
   );
-  console.log("Selected report:", selected);
   const counts = React.useMemo(() => {
     return {
       total: reports.length,
@@ -395,11 +407,6 @@ export default function WeeklyReportsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-full" type="button">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full" type="button">
@@ -624,11 +631,15 @@ export default function WeeklyReportsPage() {
             </div>
 
             <div className="space-y-3">
-              {filtered.length === 0 ? (
+              {filtered.length === 0 && !loading ? (
                 <EmptyState
                   title="No weekly reports"
                   hint="Try adjusting filters or submit a new report."
                 />
+              ) : loading ? (
+                <Center style={{ height: "50vh" }}>
+                  <Loader color="green" />
+                </Center>
               ) : (
                 filtered.map((r) => {
                   const active = r.id === selectedId;
@@ -676,6 +687,26 @@ export default function WeeklyReportsPage() {
                 })
               )}
             </div>
+            {filtered.length > 0 && (
+              <div className="flex justify-end gap-3">
+                <ChevronLeft
+                  className="cursor-pointer hover:shadow-md"
+                  onClick={() => {
+                    if (currentPage > 0) setCurrentPage(currentPage - 1);
+                  }}
+                />
+                <span>
+                  {currentPage + 1} / {totalPage}
+                </span>
+                <ChevronRight
+                  className="cursor-pointer hover:shadow-md"
+                  onClick={() => {
+                    if (currentPage < totalPage - 1)
+                      setCurrentPage(currentPage + 1);
+                  }}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
