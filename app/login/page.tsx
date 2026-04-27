@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import logo from "@/public/DATN_Logo.png";
 //import { useRequest } from "ahooks";
 
 import { Checkbox, Button, Text } from "@mantine/core";
@@ -65,9 +66,13 @@ export default function Login() {
 
       <div className="w-full lg:w-3/5 flex items-center justify-center px-4 py-4 bg-white lg:bg-[rgba(255,255,255,0.1)] overflow-y-auto">
         <div className="w-full max-w-[380px]">
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-center">
+              <img src={logo.src} alt="Logo" className="w-60 object-contain" />
+            </div>
+
             <div className="flex flex-col items-center gap-4">
-              <h1 className="text-black text-2xl font-semibold">Login</h1>
+              <h1 className="text-main-600 text-2xl font-semibold">LOGIN</h1>
 
               <form
                 onSubmit={handleSubmit}
@@ -103,6 +108,7 @@ export default function Login() {
                     <Checkbox
                       label="Remember me"
                       color="green"
+                      className="text-gray-500 font-medium"
                       checked={rememberMe}
                       onChange={() => setRememberMe(!rememberMe)}
                     />
@@ -129,7 +135,7 @@ export default function Login() {
 
           <div className="mt-4 lg:hidden">
             <div className="bg-[rgba(33,37,43,0.5)] rounded-lg px-4 py-4 backdrop-blur-sm">
-              <p className="text-[#E9EAEC] text-center text-xs font-semibold leading-[140%] tracking-[0.16px]">
+              <p className="text-main-600 text-center text-xs font-semibold leading-[140%] tracking-[0.16px]">
                 "Welcome to Human Resource management system."
               </p>
             </div>

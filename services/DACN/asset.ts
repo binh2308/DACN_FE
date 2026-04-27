@@ -13,6 +13,8 @@ export type AssetCategory = "Laptop / Máy tính" | "Màn hình" | "Thiết bị
 export type Asset = {
   id?: string;
   name: string;
+  assetTag: string;
+  serialNumber: string;
   type: AssetType;
   category?: AssetCategory;
   condition: AssetStatus;

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import logo from "@/public/DATN_Logo.png";
 import {
   LayoutGrid,
   Calendar,
@@ -107,13 +108,7 @@ export default function DashboardSidebar() {
   return (
     <aside className="w-60 h-screen bg-white border-r border-grey-50 flex flex-col flex-shrink-0">
       <div className="flex items-center justify-between px-5 py-3">
-        <h1
-          className="text-xl font-normal text-[#111] capitalize"
-          style={{ fontFamily: "'Irish Grover', cursive" }}
-        >
-          hRMS LOGO
-        </h1>
-
+        <img src={logo.src} alt="Logo" className="w-30 object-contain" />
       </div>
 
       <nav className="flex-1 overflow-y-auto">
@@ -128,34 +123,34 @@ export default function DashboardSidebar() {
               {section.items.map((item, itemIdx) => {
                 const active = pathname === "/user" + item.href;
                 return (
-                <Link
-                  key={itemIdx}
-                  href={"/user" + item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-normal whitespace-nowrap",
-                    active
-                      ? "bg-main-50 text-main-600 font-medium"
-                      : "text-grey-900 hover:bg-neutral-background"
-                  )}
-                >
-                  <span
+                  <Link
+                    key={itemIdx}
+                    href={"/user" + item.href}
                     className={cn(
-                      "flex-shrink-0",
-                      item.active ? "text-main-600" : "text-muted-foreground"
+                      "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-normal whitespace-nowrap",
+                      active
+                        ? "bg-main-50 text-main-600 font-medium"
+                        : "text-grey-900 hover:bg-neutral-background",
                     )}
                   >
-                    {item.icon && (
-                      <span style={{ width: "16px", height: "16px" }}>
-                        {item.icon}
-                      </span>
-                    )}
-                  </span>
-                  <span className="tracking-[0.07px] leading-[140%] text-sm">
-                    {item.label}
-                  </span>
-                </Link>
-              )
-              } )}
+                    <span
+                      className={cn(
+                        "flex-shrink-0",
+                        item.active ? "text-main-600" : "text-muted-foreground",
+                      )}
+                    >
+                      {item.icon && (
+                        <span style={{ width: "16px", height: "16px" }}>
+                          {item.icon}
+                        </span>
+                      )}
+                    </span>
+                    <span className="tracking-[0.07px] leading-[140%] text-sm">
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         ))}
