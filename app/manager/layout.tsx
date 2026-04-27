@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import ManagerDashboardSidebar from "@/components/ManagerDashboardSidebar";
+import FloatingAIButton from "@/components/AIButton";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <DashboardHeader />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
+      <FloatingAIButton />
     </div>
   );
 }
