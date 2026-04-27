@@ -162,12 +162,20 @@ export default function DashboardHeader() {
       setLoadingNotifications(true);
       setNotificationsError(null);
       try {
-        const res = await getMyNotifications({ page: 1, pageSize: 20 });
+        let total = 0;
+        try {
+          const metaRes = await getMyNotifications({ page: 1, pageSize: 1 });
+          total = Number((metaRes as any)?.data?.total ?? (metaRes as any)?.total ?? 0);
+        } catch {
+          total = 0;
+        }
+
+        const res = await getMyNotifications({ page: 1, pageSize: total > 0 ? total : 20 });
         if (cancelled) return;
         // FIX TS ERROR: Ép kiểu as any để truy xuất items an toàn
         const items = (res as any)?.data?.items ?? (res as any)?.items ?? [];
         setNotifications(items);
-        if (items.some((n: any) => n.status === "UNREAD")) setHasUnread(true);
+        setHasUnread(items.some((n: any) => n.status === "UNREAD"));
       } catch (err) {
         if (!cancelled) {
           const message =
@@ -248,7 +256,7 @@ export default function DashboardHeader() {
               <div className="text-sm font-semibold text-foreground">Thông báo</div>
             </div>
 
-            <ScrollArea className="max-h-[400px]">
+            <ScrollArea type="always" className="h-[400px]">
               <div className="py-1">
                 {loadingNotifications ? (
                   <div className="px-4 py-8 flex flex-col items-center justify-center text-sm text-muted-foreground gap-2">

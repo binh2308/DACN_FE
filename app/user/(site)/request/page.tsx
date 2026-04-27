@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect, use } from "react";
 import { Button as MantineButton, TextInput } from "@mantine/core";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { DatePickerInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { myRequests, createLeaveRequest } from "@/services/DACN/request";
@@ -30,7 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { FormDatePicker } from "@/components/FormDatePicker";
 import { Badge } from "@/components/ui/badge";
 // --- Types & Mock Data ---
 
@@ -181,7 +180,7 @@ function LeaveDetailModal({
               <div className="relative">
                 <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                   {getFormattedDate(data.date_from)}
-                  <Calendar size={16} className="text-gray-400" />
+                  {/* <Calendar size={16} className="text-gray-400" /> */}
                 </div>
               </div>
             </div>
@@ -192,7 +191,7 @@ function LeaveDetailModal({
               <div className="relative">
                 <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                   {getFormattedDate(data.date_to)}
-                  <Calendar size={16} className="text-gray-400" />
+                  {/* <Calendar size={16} className="text-gray-400" /> */}
                 </div>
               </div>
             </div>
@@ -449,6 +448,8 @@ export default function LeaveManagementPage() {
     resolver: zodResolver(leaveSchema),
   });
 
+  const dateFromValue = watch("date_from");
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -631,11 +632,25 @@ export default function LeaveManagementPage() {
                 <Label>
                   Start date <span className="text-red-500">*</span>
                 </Label>
-                <FormDatePicker
+                <Controller
                   control={control}
                   name="date_from"
-                  placeholder="dd/mm/yyyy"
-                  className="mt-1"
+                  render={({ field }) => (
+                    <div className="relative group mt-1">
+                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+                      <Input
+                        type="date"
+                        value={typeof field.value === "string" ? field.value : ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                        className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
+                        required
+                      />
+                    </div>
+                  )}
                 />
                 {errors.date_from && (
                   <p className="mt-1 text-sm text-red-500">
@@ -648,11 +663,26 @@ export default function LeaveManagementPage() {
                 <Label>
                   End date <span className="text-red-500">*</span>
                 </Label>
-                <FormDatePicker
+                <Controller
                   control={control}
                   name="date_to"
-                  placeholder="dd/mm/yyyy"
-                  className="mt-1"
+                  render={({ field }) => (
+                    <div className="relative group mt-1">
+                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+                      <Input
+                        type="date"
+                        value={typeof field.value === "string" ? field.value : ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        min={typeof dateFromValue === "string" && dateFromValue ? dateFromValue : undefined}
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                        className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
+                        required
+                      />
+                    </div>
+                  )}
                 />
                 {errors.date_to && (
                   <p className="mt-1 text-sm text-red-500">

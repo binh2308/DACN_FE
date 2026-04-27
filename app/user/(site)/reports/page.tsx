@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Calendar,
   Filter,
   RefreshCcw,
   MessageSquareText,
@@ -34,11 +35,9 @@ import { DACN } from "@/services/DACN/typings";
 import { createReport, getMyReport } from "@/services/DACN/report";
 import { Textarea } from "@/components/ui/textarea";
 import { toDateOnlyUTC } from "@/lib/utils";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormDatePicker } from "@/components/FormDatePicker";
-import { MyDatePicker } from "@/components/MyDatePicker";
 
 const reportSchema = z.object({
   week_starting: z
@@ -421,11 +420,25 @@ export default function WeeklyReportsPage() {
                     <Label>
                       Week start date <span className="text-red-500">*</span>
                     </Label>
-                    <FormDatePicker
+                    <Controller
                       control={control}
                       name="week_starting"
-                      placeholder="dd/mm/yyyy"
-                      className="mt-1"
+                      render={({ field }) => (
+                        <div className="relative group mt-1">
+                          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+                          <Input
+                            type="date"
+                            value={typeof field.value === "string" ? field.value : ""}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                            onClick={(e) => e.currentTarget.showPicker?.()}
+                            className="bg-white pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+                            required
+                          />
+                        </div>
+                      )}
                     />
                     {errors.week_starting && (
                       <p className="mt-1 text-sm text-red-500">
@@ -603,12 +616,18 @@ export default function WeeklyReportsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <MyDatePicker
-                value={filters.submittedAt}
-                onChange={(value) =>
-                  setFilters((p) => ({ ...p, submittedAt: value ?? "" }))
-                }
-              />
+              <div className="relative group">
+                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
+                <Input
+                  type="date"
+                  value={filters.submittedAt}
+                  onChange={(e) =>
+                    setFilters((p) => ({ ...p, submittedAt: e.target.value }))
+                  }
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="bg-white pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+                />
+              </div>
 
               {/* <div className="relative">
                 <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
