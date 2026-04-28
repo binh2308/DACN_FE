@@ -57,32 +57,55 @@ import {
 
 // --- 1. Cập nhật Type để khớp với ảnh ---
 
-const AssetSchema = z.object({
-  warranty_expiration_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày hết bảo hành"),
-  name: z.string().min(5, "Nhập tên tài sản").max(500),
-  assetTag: z.string().min(5, "Nhập mã quản lý").max(30),
-  serialNumber: z.string().min(5, "Nhập số seri").max(30),
-  type: z.enum(["PUBLIC", "PRIVATE"], {
-    required_error: "Asset type is required",
-  }),
-  condition: z.enum(["NEW", "USED", "BROKEN", "UNDER_MAINTENANCE", "RETIRED"], {
-    required_error: "Asset condition is required",
-  }),
-  purchase_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày mua"),
-  maintenance_schedule: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày bảo trì"),
-  location: z
-    .enum(["Kho IT (Tầng 3)", "Kho Tổng", "Phòng Hành Chính"])
-    .optional()
-    .nullable(),
-  ownerEmployeeId: z.string().max(100).optional().nullable(),
-});
+const AssetSchema = z
+  .object({
+    warranty_expiration_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày hết bảo hành"),
+    name: z.string().min(5, "Nhập tên tài sản").max(500),
+    assetTag: z.string().min(5, "Nhập mã quản lý").max(30),
+    serialNumber: z.string().min(5, "Nhập số seri").max(30),
+    type: z.enum(["PUBLIC", "PRIVATE"], {
+      required_error: "Asset type is required",
+    }),
+    condition: z.enum(
+      ["NEW", "USED", "BROKEN", "UNDER_MAINTENANCE", "RETIRED"],
+      {
+        required_error: "Asset condition is required",
+      },
+    ),
+    purchase_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày mua"),
+    maintenance_schedule: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày bảo trì"),
+    location: z
+      .enum(["Kho IT (Tầng 3)", "Kho Tổng", "Phòng Hành Chính"])
+      .optional()
+      .nullable(),
+    ownerEmployeeId: z.string().max(100).optional().nullable(),
+  })
+  .transform((data) => {
+    if (data.type === "PUBLIC") {
+      return {
+        ...data,
+        ownerEmployeeId: null,
+      };
+    }
+
+    if (data.type === "PRIVATE") {
+      return {
+        ...data,
+        location: null,
+      };
+    }
+
+    return data;
+  });
 
 type AssetFormData = z.infer<typeof AssetSchema>;
 const STORAGE_KEY = "admin_assets";
+
+type RoleType = "EMPLOYEE" | "MANAGER";
 
 function safeId(prefix = "as") {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -120,7 +143,7 @@ function statusMeta(ownStatus: string | null) {
       };
     default:
       return {
-        label: "Đang sử dụng",
+        label: "Đã được cấp",
         badge: "bg-blue-100 text-blue-700",
         dot: "bg-gray-500",
       };
@@ -159,16 +182,16 @@ function AssetFormContent({
   watch,
   errors,
   employees,
-  department,
-  setDepartment,
+  assignRole,
+  setAssignRole,
 }: {
   register: ReturnType<typeof useForm<AssetFormData>>["register"];
   control: ReturnType<typeof useForm<AssetFormData>>["control"];
   watch: ReturnType<typeof useForm<AssetFormData>>["watch"];
   errors: ReturnType<typeof useForm<AssetFormData>>["formState"]["errors"];
   employees: EmployeeDto[];
-  department?: DepartmentType;
-  setDepartment?: React.Dispatch<React.SetStateAction<DepartmentType>>;
+  assignRole: RoleType;
+  setAssignRole: React.Dispatch<React.SetStateAction<RoleType>>;
 }) {
   //console.log("Draft owner id:", draft.owner?.id);
   return (
@@ -225,17 +248,16 @@ function AssetFormContent({
                   Phòng ban <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  value={department}
-                  defaultValue="All"
-                  onValueChange={(e) => setDepartment(e as DepartmentType)}
+                  value={assignRole}
+                  defaultValue="EMPLOYEE"
+                  onValueChange={(e) => setAssignRole(e as RoleType)}
                 >
                   <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Chọn phòng ban" />
+                    <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">Tất cả</SelectItem>
-                    {/* <SelectItem value="Engineering">Phòng kỹ thuật</SelectItem>
-                    <SelectItem value="Sales">Phòng bán hàng</SelectItem> */}
+                    <SelectItem value="EMPLOYEE">Nhân viên</SelectItem>
+                    <SelectItem value="MANAGER">Quản lý</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -253,10 +275,9 @@ function AssetFormContent({
                       </SelectTrigger>
                       <SelectContent>
                         {employees
-                          // .filter((e) => {
-                          //   if (department === "All") return true;
-                          //   return e.department?.name === department;
-                          // })
+                          .filter((e) => {
+                            return e.roles === assignRole;
+                          })
                           .map((employee) => (
                             <SelectItem key={employee.id} value={employee.id}>
                               {getFullName(employee)} {employee.idCard ?? ""}
@@ -312,7 +333,7 @@ function AssetFormContent({
       {/* 2. TRẠNG THÁI & PHÂN BỐ */}
       <div>
         <h3 className="text-blue-600 text-sm font-bold uppercase mb-3 border-t pt-4">
-          2. Trạng thái & Phân bố
+          2. Trạng thái & Vị trí
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -334,8 +355,8 @@ function AssetFormContent({
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NEW">Trong kho</SelectItem>
-                    <SelectItem value="USED">Đang sử dụng</SelectItem>
+                    <SelectItem value="NEW">Mới</SelectItem>
+                    <SelectItem value="USED">Đã sử dụng</SelectItem>
                     <SelectItem value="UNDER_MAINTENANCE">
                       Đang bảo trì
                     </SelectItem>
@@ -353,7 +374,11 @@ function AssetFormContent({
               name="location"
               control={control}
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  disabled={watch("type") === "PRIVATE"}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="Chọn vị trí" />
                   </SelectTrigger>
@@ -435,9 +460,7 @@ export default function AdminAssetsPage() {
   const [q, setQ] = React.useState("");
   const [category, setCategory] = React.useState<"all" | AssetCategory>("all");
   const [employees, setEmployees] = React.useState<EmployeeDto[]>([]);
-  const [department, setDepartment] = React.useState<
-    DepartmentType | undefined
-  >(undefined);
+  const [assignRole, setAssignRole] = React.useState<RoleType>("EMPLOYEE");
   const [status, setStatus] = React.useState<"all" | AssetStatus>("all");
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
@@ -485,7 +508,9 @@ export default function AdminAssetsPage() {
   React.useEffect(() => {
     const getAllEmployeeData = async () => {
       try {
-        const response = await getAllEmployees();
+        const response = await getAllEmployees({
+          role: assignRole,
+        });
         const employeeData = Array.isArray(response.data)
           ? response.data
           : response.data.items;
@@ -496,7 +521,7 @@ export default function AdminAssetsPage() {
       }
     };
     getAllEmployeeData();
-  }, []);
+  }, [assignRole]);
 
   React.useEffect(() => {
     if (items.length) writeAssets(items);
@@ -530,7 +555,7 @@ export default function AdminAssetsPage() {
   }, [q, category, status]);
 
   const openCreate = () => {
-    setDepartment("All");
+    setAssignRole("EMPLOYEE");
     reset({
       name: "",
       assetTag: "",
@@ -551,7 +576,7 @@ export default function AdminAssetsPage() {
     if (!found) return;
     console.log("Editing asset:", found);
     setActiveId(id);
-    setDepartment("All");
+    setAssignRole(found.owner?.roles ?? "EMPLOYEE");
     reset({
       name: found.name,
       assetTag: found.assetTag,
@@ -566,7 +591,7 @@ export default function AdminAssetsPage() {
       purchase_date: found.purchase_date?.slice(0, 10),
       warranty_expiration_date:
         found.warranty_expiration_date?.slice(0, 10) ?? "",
-      maintenance_schedule: found.maintenance_schedule ?? "",
+      maintenance_schedule: found.maintenance_schedule.slice(0, 10) ?? "",
       ownerEmployeeId: found.owner?.id ?? "",
     });
     setEditOpen(true);
@@ -576,19 +601,8 @@ export default function AdminAssetsPage() {
     const found = items.find((x) => x.id === id);
     if (!found) return;
     setActiveId(id);
-    setDepartment(found.owner?.department?.name ?? "All");
+    setAssignRole(found.owner?.roles ?? "EMPLOYEE");
     setAssignId(found.owner?.id ?? null);
-    // setDraft({
-    //   name: found.name,
-    //   category: found.category ?? undefined,
-    //   condition: found.condition,
-    //   location: found.location as string,
-    //   type: found.type,
-    //   owner: found.owner ?? undefined,
-    //   purchase_date: found.purchase_date,
-    //   warranty_expiration_date: found.warranty_expiration_date ?? "",
-    //   maintenance_schedule: found.warranty_expiration_date ?? "",
-    // });
     setAssignOpen(true);
   };
 
@@ -894,7 +908,7 @@ export default function AdminAssetsPage() {
                 <th className="px-4 py-3 font-semibold">Loại</th>
                 <th className="px-4 py-3 font-semibold">Trạng thái</th>
                 <th className="px-4 py-3 font-semibold">Được cấp cho</th>
-                <th className="px-4 py-3 font-semibold">Ngày mua / BH</th>
+                <th className="px-4 py-3 font-semibold">Ngày mua</th>
                 <th className="px-4 py-3 font-semibold text-center">
                   Hành động
                 </th>
@@ -922,13 +936,13 @@ export default function AdminAssetsPage() {
                             {it.name}
                           </div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            --
+                            {it.assetTag || "--"}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-grey-700 font-mono text-[11px]">
-                      --
+                    <td className="px-4 py-3 text-[11px] text-grey-700 font-medium">
+                      {it.serialNumber || "--"}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {it.category}
@@ -1041,8 +1055,8 @@ export default function AdminAssetsPage() {
               watch={watch}
               errors={errors}
               employees={employees}
-              department={department}
-              setDepartment={setDepartment}
+              assignRole={assignRole}
+              setAssignRole={setAssignRole}
             />
             <DialogFooter className="mt-2">
               <Button
@@ -1079,8 +1093,8 @@ export default function AdminAssetsPage() {
               watch={watch}
               errors={errors}
               employees={employees}
-              department={department}
-              setDepartment={setDepartment}
+              assignRole={assignRole}
+              setAssignRole={setAssignRole}
             />
             <DialogFooter className="mt-2">
               <Button
@@ -1114,17 +1128,16 @@ export default function AdminAssetsPage() {
                 Phòng ban <span className="text-red-500">*</span>
               </label>
               <Select
-                value={department}
+                value={assignRole}
                 defaultValue="All"
-                onValueChange={(e) => setDepartment(e as DepartmentType)}
+                onValueChange={(e) => setAssignRole(e as RoleType)}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="Chọn phòng ban" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">Tất cả</SelectItem>
-                  <SelectItem value="Engineering">Phòng kỹ thuật</SelectItem>
-                  <SelectItem value="Sales">Phòng bán hàng</SelectItem>
+                  <SelectItem value="EMPLOYEE">Nhân viên</SelectItem>
+                  <SelectItem value="MANAGER">Quản lý</SelectItem>
                 </SelectContent>
               </Select>
             </div>

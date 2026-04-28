@@ -737,7 +737,8 @@ export default function LeaveManagementPage() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-gray-800">
-                          # {leave.id.slice(0, 5)}
+                          {formatDate(leave.date_from, "DD/MM/YYYY")} -{" "}
+                          {formatDate(leave.date_to, "DD/MM/YYYY")}
                         </h3>
                       </div>
                       <Badge

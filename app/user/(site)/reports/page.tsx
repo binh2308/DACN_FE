@@ -35,7 +35,7 @@ import { notifications } from "@mantine/notifications";
 import { DACN } from "@/services/DACN/typings";
 import { createReport, getMyReport } from "@/services/DACN/report";
 import { Textarea } from "@/components/ui/textarea";
-import { toDateOnlyUTC } from "@/lib/utils";
+import { toDateOnlyUTC, formatDate } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -656,7 +656,7 @@ export default function WeeklyReportsPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-semibold text-foreground">
-                            {`# ${r.id.slice(0, 5)}`}
+                            {formatDate(r.week_starting, "DD/MM/YYYY")}
                           </div>
                         </div>
                         <Badge
