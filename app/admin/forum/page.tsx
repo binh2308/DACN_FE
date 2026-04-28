@@ -58,7 +58,7 @@ interface Post {
 const announceSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
   content: z.string().min(5, "Content is required").max(500),
-  category: z.enum(["GENERAL", "HR", "IT", "SALES", "MARKETING"]),
+  category: z.enum(["GENERAL", "HR", "EVENTS"]),
   pinned: z.boolean(),
 });
 
@@ -219,11 +219,11 @@ function ForumListView({
               key={post.id}
               role="button"
               tabIndex={0}
-              onClick={() => router.push(`/admin/forum/${post.id}`)}
+              onClick={() => router.push(`/manager/forum/${post.id}`)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  router.push(`/admin/forum/${post.id}`);
+                  router.push(`/manager/forum/${post.id}`);
                 }
               }}
               className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
@@ -254,7 +254,7 @@ function ForumListView({
                     )}
                   </div>
                   <Link
-                    href={`/admin/forum/${post.id}`}
+                    href={`/manager/forum/${post.id}`}
                     className="text-blue-500 text-xs hover:underline"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -293,16 +293,6 @@ function ForumListView({
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Add New Button */}
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={onNavigateCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#0B9F57] text-[#0B9F57] rounded-lg text-sm font-semibold hover:bg-green-50 transition-colors shadow-sm"
-          >
-            <Plus size={16} /> Add new
-          </button>
         </div>
       </div>
     </div>
@@ -528,10 +518,8 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="GENERAL">Chung</SelectItem>
-                        <SelectItem value="HR">Nhân sự</SelectItem>
-                        <SelectItem value="IT">Công nghệ</SelectItem>
-                        <SelectItem value="SALES">Sales</SelectItem>
-                        <SelectItem value="MARKETING">Marketing</SelectItem>
+                        <SelectItem value="HR">HR Updates</SelectItem>
+                        <SelectItem value="EVENTS">Events</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

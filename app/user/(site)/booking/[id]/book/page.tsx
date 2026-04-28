@@ -170,24 +170,31 @@ export default function BookRoomPage() {
 			return;
 		}
 
-		const recurringEndDate = form.recurringEndDate || form.endDate;
-		if (!recurringEndDate) {
-			setSubmitError("Vui lòng chọn recurring end date.");
-			return;
-		}
-
-		const recurringEndIso = toIsoFromLocal(recurringEndDate, "23:59:59");
-
 		try {
-			await submitBooking({
+			const payload = {
 				room_id: room.id,
 				start_time: start,
 				end_time: end,
 				purpose: form.purpose,
 				attendee_ids: attendeeIds,
-				recurring_pattern: form.recurringPattern,
-				recurring_end_date: recurringEndIso,
-			});
+			};
+
+			if (form.recurringPattern !== "NONE") {
+				const recurringEndDate = form.recurringEndDate || form.endDate;
+				if (!recurringEndDate) {
+					setSubmitError("Vui lòng chọn recurring end date.");
+					return;
+				}
+
+				const recurringEndIso = toIsoFromLocal(recurringEndDate, "23:59:59");
+				await submitBooking({
+					...payload,
+					recurring_pattern: form.recurringPattern,
+					recurring_end_date: recurringEndIso,
+				});
+			} else {
+				await submitBooking(payload);
+			}
 			setSubmitted(true);
 			router.push(`/user/booking/${room.id}`);
 		} catch (err) {
@@ -328,10 +335,14 @@ export default function BookRoomPage() {
 										id="recurringPattern"
 										value={form.recurringPattern}
 										onChange={(e) =>
-											setForm((prev) => ({
-												...prev,
-												recurringPattern: e.target.value as RecurringPattern,
-											}))
+											setForm((prev) => {
+												const nextPattern = e.target.value as RecurringPattern;
+												return {
+													...prev,
+													recurringPattern: nextPattern,
+													recurringEndDate: nextPattern === "NONE" ? "" : prev.recurringEndDate,
+												};
+											})
 										}
 										className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:border-[#4F7D7B] transition-colors"
 									>
@@ -353,7 +364,8 @@ export default function BookRoomPage() {
 											onChange={onChange("recurringEndDate")}
 											onClick={(e) => e.currentTarget.showPicker?.()}
 											className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
-											required
+											required={form.recurringPattern !== "NONE"}
+											disabled={form.recurringPattern === "NONE"}
 										/>
 									</div>
 								</div>
