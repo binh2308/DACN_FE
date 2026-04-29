@@ -44,7 +44,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { notifications } from "@mantine/notifications";
-
+import { useForm, Controller, set } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -55,8 +57,55 @@ import {
 
 // --- 1. Cập nhật Type để khớp với ảnh ---
 
+const AssetSchema = z
+  .object({
+    warranty_expiration_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày hết bảo hành"),
+    name: z.string().min(5, "Nhập tên tài sản").max(500),
+    assetTag: z.string().min(5, "Nhập mã quản lý").max(30),
+    serialNumber: z.string().min(5, "Nhập số seri").max(30),
+    type: z.enum(["PUBLIC", "PRIVATE"], {
+      required_error: "Asset type is required",
+    }),
+    condition: z.enum(
+      ["NEW", "USED", "BROKEN", "UNDER_MAINTENANCE", "RETIRED"],
+      {
+        required_error: "Asset condition is required",
+      },
+    ),
+    purchase_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày mua"),
+    maintenance_schedule: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Nhập ngày bảo trì"),
+    location: z
+      .enum(["Kho IT (Tầng 3)", "Kho Tổng", "Phòng Hành Chính"])
+      .optional()
+      .nullable(),
+    ownerEmployeeId: z.string().max(100).optional().nullable(),
+  })
+  .transform((data) => {
+    if (data.type === "PUBLIC") {
+      return {
+        ...data,
+        ownerEmployeeId: null,
+      };
+    }
 
+    if (data.type === "PRIVATE") {
+      return {
+        ...data,
+        location: null,
+      };
+    }
+
+    return data;
+  });
+
+type AssetFormData = z.infer<typeof AssetSchema>;
 const STORAGE_KEY = "admin_assets";
+
+type RoleType = "EMPLOYEE" | "MANAGER";
 
 function safeId(prefix = "as") {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -64,10 +113,6 @@ function safeId(prefix = "as") {
     return `${prefix}_${(crypto as any).randomUUID()}`;
   }
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
 }
 
 function daysBetween(a: Date, b: Date) {
@@ -98,7 +143,7 @@ function statusMeta(ownStatus: string | null) {
       };
     default:
       return {
-        label: "Đang sử dụng",
+        label: "Đã được cấp",
         badge: "bg-blue-100 text-blue-700",
         dot: "bg-gray-500",
       };
@@ -106,18 +151,6 @@ function statusMeta(ownStatus: string | null) {
 }
 
 // --- 2. Cập nhật dữ liệu mẫu (Seed Data) ---
-
-function readAssets(): Asset[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Asset[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function writeAssets(items: Asset[]) {
   if (typeof window === "undefined") return;
@@ -129,34 +162,6 @@ function writeAssets(items: Asset[]) {
 }
 
 // --- 3. Cập nhật AssetDraft cho Form ---
-type AssetDraft = {
-  name: string;
-  code: string;
-  serialNumber: string;
-  category: AssetCategory;
-  condition: AssetStatus;
-  type?: AssetType;
-  owner?: any;
-  location: string;
-  purchase_date: string;
-  warranty_expiration_date: string;
-  maintenance_schedule: string;
-};
-
-const emptyDraft: AssetDraft = {
-  name: "",
-  code: "",
-  serialNumber: "",
-  category: "Laptop / Máy tính",
-  condition: "NEW",
-  location: "Kho IT (Tầng 3)",
-  type: undefined,
-  owner: null,
-  purchase_date: "",
-  warranty_expiration_date: "",
-  maintenance_schedule: "",
-};
-
 
 function assetIcon(category: AssetCategory) {
   switch (category) {
@@ -172,19 +177,23 @@ function assetIcon(category: AssetCategory) {
 }
 
 function AssetFormContent({
-  draft,
-  setDraft,
+  register,
+  control,
+  watch,
+  errors,
   employees,
-  department,
-  setDepartment,
+  assignRole,
+  setAssignRole,
 }: {
-  draft: AssetDraft;
-  setDraft: React.Dispatch<React.SetStateAction<AssetDraft>>;
+  register: ReturnType<typeof useForm<AssetFormData>>["register"];
+  control: ReturnType<typeof useForm<AssetFormData>>["control"];
+  watch: ReturnType<typeof useForm<AssetFormData>>["watch"];
+  errors: ReturnType<typeof useForm<AssetFormData>>["formState"]["errors"];
   employees: EmployeeDto[];
-  department?: DepartmentType;
-  setDepartment?: React.Dispatch<React.SetStateAction<DepartmentType>>;
+  assignRole: RoleType;
+  setAssignRole: React.Dispatch<React.SetStateAction<RoleType>>;
 }) {
-  console.log("Draft owner id:", draft.owner?.id);
+  //console.log("Draft owner id:", draft.owner?.id);
   return (
     <div className="grid gap-6 py-2">
       {/* 1. THÔNG TIN ĐỊNH DANH */}
@@ -194,86 +203,95 @@ function AssetFormContent({
         </h3>
         <div className="grid gap-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-1">
+            <div className="col-span-1 space-y-1">
               <label className="text-xs font-medium mb-1.5 block text-gray-700">
                 Tên tài sản <span className="text-red-500">*</span>
               </label>
               <Input
-                value={draft.name}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, name: e.target.value }))
-                }
+                {...register("name")}
                 placeholder="VD: MacBook Pro 14 inch"
                 className="h-9 text-sm"
               />
+              {errors?.name && (
+                <p className="text-sm text-red-500">{errors.name.message}</p>
+              )}
             </div>
-            <div className="col-span-1">
+            <div className="col-span-1 space-y-1">
               <label className="text-xs font-medium mb-1.5 block text-gray-700">
                 Loại thiết bị
               </label>
-              <Select
-                value={draft.type}
-                onValueChange={(v) =>
-                  setDraft((p) => ({ ...p, type: v as any }))
-                }
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PUBLIC">Công cộng</SelectItem>
-                  <SelectItem value="PRIVATE">Cá nhân</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLIC">Công cộng</SelectItem>
+                      <SelectItem value="PRIVATE">Cá nhân</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+
+              {errors?.type && (
+                <p className="text-sm text-red-500">{errors.type.message}</p>
+              )}
             </div>
           </div>
-          {draft.type === "PRIVATE" && (
+          {watch("type") === "PRIVATE" && (
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-1">
                 <label className="text-xs font-medium mb-1.5 block text-gray-700">
                   Phòng ban <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  value={department}
-                  defaultValue="All"
-                  onValueChange={(e) => setDepartment(e as DepartmentType)}
+                  value={assignRole}
+                  defaultValue="EMPLOYEE"
+                  onValueChange={(e) => setAssignRole(e as RoleType)}
                 >
                   <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Chọn phòng ban" />
+                    <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">Tất cả</SelectItem>
-                    <SelectItem value="Engineering">Phòng kỹ thuật</SelectItem>
-                    <SelectItem value="Sales">Phòng bán hàng</SelectItem>
+                    <SelectItem value="EMPLOYEE">Nhân viên</SelectItem>
+                    <SelectItem value="MANAGER">Quản lý</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-1">
+              <div className="col-span-1 space-y-1">
                 <label className="text-xs font-medium mb-1.5 block text-gray-700">
                   Nhân viên
                 </label>
-                <Select
-                  defaultValue={draft.owner?.id}
-                  onValueChange={(v) =>
-                    setDraft((p) => ({ ...p, owner: v as any }))
-                  }
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Chọn nhân viên" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees
-                      .filter((e) => {
-                        if (department === "All") return true;
-                        return e.department?.name === department;
-                      })
-                      .map((employee) => (
-                        <SelectItem key={employee.id} value={employee.id}>
-                          {getFullName(employee)} {employee.idCard ?? ""}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="ownerEmployeeId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Chọn nhân viên" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees
+                          .filter((e) => {
+                            return e.roles === assignRole;
+                          })
+                          .map((employee) => (
+                            <SelectItem key={employee.id} value={employee.id}>
+                              {getFullName(employee)} {employee.idCard ?? ""}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors?.ownerEmployeeId && (
+                  <p className="text-sm text-red-500">
+                    {errors?.ownerEmployeeId.message}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -283,26 +301,30 @@ function AssetFormContent({
                 Mã quản lý (Asset Tag)
               </label>
               <Input
-                value={draft.code}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, code: e.target.value }))
-                }
+                {...register("assetTag")}
                 placeholder="AST-001"
                 className="h-9 text-sm"
               />
+              {errors?.assetTag && (
+                <p className="text-sm text-red-500">
+                  {errors.assetTag.message}
+                </p>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium mb-1.5 block text-gray-700">
                 Số Serial (S/N)
               </label>
               <Input
-                value={draft.serialNumber}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, serialNumber: e.target.value }))
-                }
+                {...register("serialNumber")}
                 placeholder="SERIAL NUMBER"
                 className="h-9 text-sm"
               />
+              {errors?.serialNumber && (
+                <p className="text-sm text-red-500">
+                  {errors.serialNumber.message}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -311,54 +333,67 @@ function AssetFormContent({
       {/* 2. TRẠNG THÁI & PHÂN BỐ */}
       <div>
         <h3 className="text-blue-600 text-sm font-bold uppercase mb-3 border-t pt-4">
-          2. Trạng thái & Phân bố
+          2. Trạng thái & Vị trí
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-medium mb-1.5 block text-gray-700">
               Trạng thái hiện tại
             </label>
-            <Select
-              value={draft.condition ?? "NEW"}
-              onValueChange={(v) =>
-                setDraft((p) => ({ ...p, condition: v as any }))
-              }
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <div className="flex items-center gap-2">
-                  {/* Hiển thị chấm màu trong select giống ảnh */}
-                  <div
-                    className={`w-2 h-2 rounded-full ${statusMeta(draft.owner).dot}`}
-                  />
-                  <SelectValue />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NEW">Trong kho</SelectItem>
-                <SelectItem value="USED">Đang sử dụng</SelectItem>
-                <SelectItem value="UNDER_MAINTENANCE">Đang bảo trì</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="condition"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <div className="flex items-center gap-2">
+                      {/* Hiển thị chấm màu trong select giống ảnh */}
+                      <div
+                        className={`w-2 h-2 rounded-full ${statusMeta(watch("ownerEmployeeId")).dot}`}
+                      />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NEW">Mới</SelectItem>
+                    <SelectItem value="USED">Đã sử dụng</SelectItem>
+                    <SelectItem value="UNDER_MAINTENANCE">
+                      Đang bảo trì
+                    </SelectItem>
+                    <SelectItem value="BROKEN">Hỏng</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div>
             <label className="text-xs font-medium mb-1.5 block text-gray-700">
               Vị trí lưu kho
             </label>
-            <Select
-              value={draft.location}
-              onValueChange={(v) => setDraft((p) => ({ ...p, location: v }))}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Chọn vị trí" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Kho IT (Tầng 3)">Kho IT (Tầng 3)</SelectItem>
-                <SelectItem value="Kho Tổng">Kho Tổng</SelectItem>
-                <SelectItem value="Phòng Hành Chính">
-                  Phòng Hành Chính
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="location"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  disabled={watch("type") === "PRIVATE"}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Chọn vị trí" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Kho IT (Tầng 3)">
+                      Kho IT (Tầng 3)
+                    </SelectItem>
+                    <SelectItem value="Kho Tổng">Kho Tổng</SelectItem>
+                    <SelectItem value="Phòng Hành Chính">
+                      Phòng Hành Chính
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
       </div>
@@ -375,12 +410,14 @@ function AssetFormContent({
             </label>
             <Input
               type="date"
-              value={formatDate(draft.purchase_date, "YYYY-MM-DD")}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, purchase_date: e.target.value }))
-              }
+              {...register("purchase_date")}
               className="h-9 text-sm"
             />
+            {errors?.purchase_date && (
+              <p className="text-sm text-red-500">
+                {errors.purchase_date.message}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium mb-1.5 block text-gray-700">
@@ -388,15 +425,29 @@ function AssetFormContent({
             </label>
             <Input
               type="date"
-              value={formatDate(draft.warranty_expiration_date, "YYYY-MM-DD")}
-              onChange={(e) =>
-                setDraft((p) => ({
-                  ...p,
-                  warranty_expiration_date: e.target.value,
-                }))
-              }
+              {...register("warranty_expiration_date")}
               className="h-9 text-sm"
             />
+            {errors?.warranty_expiration_date && (
+              <p className="text-sm text-red-500">
+                {errors.warranty_expiration_date.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block text-gray-700">
+              Lịch bảo hành
+            </label>
+            <Input
+              type="date"
+              {...register("maintenance_schedule")}
+              className="h-9 text-sm"
+            />
+            {errors?.maintenance_schedule && (
+              <p className="text-sm text-red-500">
+                {errors.maintenance_schedule.message}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -409,19 +460,38 @@ export default function AdminAssetsPage() {
   const [q, setQ] = React.useState("");
   const [category, setCategory] = React.useState<"all" | AssetCategory>("all");
   const [employees, setEmployees] = React.useState<EmployeeDto[]>([]);
-  const [department, setDepartment] = React.useState<
-    DepartmentType | undefined
-  >(undefined);
+  const [assignRole, setAssignRole] = React.useState<RoleType>("EMPLOYEE");
   const [status, setStatus] = React.useState<"all" | AssetStatus>("all");
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
-
+  const {
+    register,
+    control,
+    watch,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+  } = useForm<AssetFormData>({
+    resolver: zodResolver(AssetSchema),
+    defaultValues: {
+      name: "",
+      assetTag: "",
+      serialNumber: "",
+      type: "PUBLIC",
+      condition: "NEW",
+      location: "Kho IT (Tầng 3)",
+      purchase_date: "",
+      warranty_expiration_date: "",
+      maintenance_schedule: "",
+      ownerEmployeeId: undefined,
+    },
+  });
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [assignOpen, setAssignOpen] = React.useState(false);
   const [activeId, setActiveId] = React.useState<string | null>(null);
-
-  const [draft, setDraft] = React.useState<AssetDraft>(emptyDraft);
+  const [assignId, setAssignId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const getAssetsData = async () => {
@@ -434,22 +504,24 @@ export default function AdminAssetsPage() {
       }
     };
     getAssetsData();
-  }, []);
+  }, [createOpen, editOpen, assignOpen]);
   React.useEffect(() => {
     const getAllEmployeeData = async () => {
       try {
-        const response = await getAllEmployees();
+        const response = await getAllEmployees({
+          role: assignRole,
+        });
         const employeeData = Array.isArray(response.data)
           ? response.data
           : response.data.items;
-        console.log("Fetched employees:", employeeData);
+        //console.log("Fetched employees:", employeeData);
         setEmployees(employeeData);
       } catch (error) {
         console.error("Failed to load employees:", error);
       }
     };
     getAllEmployeeData();
-  }, []);
+  }, [assignRole]);
 
   React.useEffect(() => {
     if (items.length) writeAssets(items);
@@ -483,26 +555,44 @@ export default function AdminAssetsPage() {
   }, [q, category, status]);
 
   const openCreate = () => {
-    setDraft(emptyDraft);
-    setDepartment("All");
+    setAssignRole("EMPLOYEE");
+    reset({
+      name: "",
+      assetTag: "",
+      serialNumber: "",
+      type: "PUBLIC",
+      condition: "NEW",
+      location: "Kho IT (Tầng 3)",
+      purchase_date: "",
+      warranty_expiration_date: "",
+      maintenance_schedule: "",
+      ownerEmployeeId: undefined,
+    });
     setCreateOpen(true);
   };
 
   const openEdit = (id: string) => {
     const found = items.find((x) => x.id === id);
     if (!found) return;
+    console.log("Editing asset:", found);
     setActiveId(id);
-    setDepartment(found.owner?.department?.name ?? "All");
-    setDraft({
+    setAssignRole(found.owner?.roles ?? "EMPLOYEE");
+    reset({
       name: found.name,
-      category: found.category ?? undefined,
-      condition: found.condition,
-      location: found.location as string,
+      assetTag: found.assetTag,
+      serialNumber: found.serialNumber,
       type: found.type,
-      owner: found.owner ?? undefined,
-      purchase_date: found.purchase_date,
-      warranty_expiration_date: found.warranty_expiration_date ?? "",
-      maintenance_schedule: found.warranty_expiration_date ?? "",
+      condition: found.condition,
+      location: found.location as
+        | "Kho IT (Tầng 3)"
+        | "Kho Tổng"
+        | "Phòng Hành Chính"
+        | undefined,
+      purchase_date: found.purchase_date?.slice(0, 10),
+      warranty_expiration_date:
+        found.warranty_expiration_date?.slice(0, 10) ?? "",
+      maintenance_schedule: found.maintenance_schedule.slice(0, 10) ?? "",
+      ownerEmployeeId: found.owner?.id ?? "",
     });
     setEditOpen(true);
   };
@@ -511,61 +601,21 @@ export default function AdminAssetsPage() {
     const found = items.find((x) => x.id === id);
     if (!found) return;
     setActiveId(id);
-    setDepartment(found.owner?.department?.name ?? "All");
-    setDraft({
-      name: found.name,
-      category: found.category ?? undefined,
-      condition: found.condition,
-      location: found.location as string,
-      type: found.type,
-      owner: found.owner ?? undefined,
-      purchase_date: found.purchase_date,
-      warranty_expiration_date: found.warranty_expiration_date ?? "",
-      maintenance_schedule: found.warranty_expiration_date ?? "",
-    });
+    setAssignRole(found.owner?.roles ?? "EMPLOYEE");
+    setAssignId(found.owner?.id ?? null);
     setAssignOpen(true);
   };
 
-  const handleCreate = async () => {
-    if (!draft.name.trim()) {
-      alert("Vui lòng nhập tên tài sản");
-      return;
-    }
-
+  const onSubmit = async (data: AssetFormData) => {
     try {
-      const newAssetData: DACN.CreateAssetDto = {
-        name: draft.name.trim(),
-        condition: draft.condition,
-        type: draft.type as string,
-        ownerEmployeeId:
-          draft.owner && draft.type === "PRIVATE" ? draft.owner : null,
-        location:
-          draft.owner && draft.type === "PRIVATE" ? null : draft.location,
-        purchase_date:
-          draft.purchase_date || new Date().toISOString().split("T")[0],
-        warranty_expiration_date: draft.warranty_expiration_date as string,
-        maintenance_schedule: draft.warranty_expiration_date ?? "",
-      };
-      await createAsset(newAssetData);
-      const newItem: Asset = {
-        id: safeId(),
-        name: draft.name.trim(),
-        type: "PRIVATE",
-        category: draft.category,
-        condition: draft.condition,
-        location: draft.location,
-        purchase_date:
-          draft.purchase_date || new Date().toISOString().split("T")[0],
-        warranty_expiration_date: draft.warranty_expiration_date || undefined,
-        maintenance_schedule: draft.maintenance_schedule || "",
-      };
-      setItems((prev) => [newItem, ...prev]);
+      await createAsset(data);
       notifications.show({
         title: "Thành công",
-        message: "Tài sản mới đã được thêm vào hệ thống.",
+        message: "Tài sản mới đã được tạo.",
         color: "green",
       });
       setCreateOpen(false);
+      // Optionally, you can refresh the asset list here by fetching from the server again
     } catch (error) {
       notifications.show({
         title: "Lỗi",
@@ -575,49 +625,14 @@ export default function AdminAssetsPage() {
     }
   };
 
-  const handleUpdate = async () => {
-    if (!activeId) return;
-    if (!draft.name.trim()) {
-      alert("Vui lòng nhập tên tài sản");
-      return;
-    }
+  const onUpdate = async (data: AssetFormData) => {
     try {
-      const updatedAssetData: DACN.UpdateAssetDto = {
-        name: draft.name.trim(),
-        condition: draft.condition,
-        type: draft.type as string,
-        ownerEmployeeId:
-          draft.owner && draft.type === "PRIVATE" ? draft.owner : null,
-        location:
-          draft.owner && draft.type === "PRIVATE" ? null : draft.location,
-        purchase_date: draft.purchase_date,
-        warranty_expiration_date: draft.warranty_expiration_date as string,
-        maintenance_schedule: draft.warranty_expiration_date ?? "",
-      };
-      const res = await updateAsset(activeId, updatedAssetData);
+      await updateAsset(activeId as string, data);
       notifications.show({
         title: "Thành công",
         message: "Thông tin tài sản đã được cập nhật.",
         color: "green",
       });
-      setItems((prev) =>
-        prev.map((x) =>
-          x.id !== activeId
-            ? x
-            : {
-                ...x,
-                name: draft.name.trim(),
-                category: draft.category,
-                condition: draft.condition,
-                location: draft.location,
-                owner: res.data?.owner,
-                purchase_date: draft.purchase_date,
-                warranty_expiration_date:
-                  draft.warranty_expiration_date || undefined,
-                maintenance_schedule: draft.warranty_expiration_date || "",
-              },
-        ),
-      );
       setEditOpen(false);
     } catch (error) {
       notifications.show({
@@ -628,30 +643,18 @@ export default function AdminAssetsPage() {
     }
   };
 
-  const handleAssign = async () => {
-    if (!activeId) return;
+  const onAssign = async () => {
     try {
-      const res = await assignAsset(activeId, {
-        employeeId: draft.owner as string,
+      await assignAsset(activeId as string, {
+        employeeId: assignId as string,
         assignmentDate: new Date().toISOString().split("T")[0],
       });
-      const assetData = res.data?.asset;
       notifications.show({
         title: "Thành công",
         message: "Tài sản đã được gán cho nhân viên.",
         color: "green",
       });
       setAssignOpen(false);
-      setItems((prev) =>
-        prev.map((x) =>
-          x.id !== activeId
-            ? x
-            : {
-                ...x,
-                owner: assetData?.owner,
-              },
-        ),
-      );
     } catch (error) {
       notifications.show({
         title: "Lỗi",
@@ -660,6 +663,91 @@ export default function AdminAssetsPage() {
       });
     }
   };
+  // const handleUpdate = async (data: AssetFormData) => {
+  //   if (!activeId) return;
+  //   if (!draft.name.trim()) {
+  //     alert("Vui lòng nhập tên tài sản");
+  //     return;
+  //   }
+  //   try {
+  //     const updatedAssetData: DACN.UpdateAssetDto = {
+  //       name: draft.name.trim(),
+  //       condition: draft.condition,
+  //       type: draft.type as string,
+  //       ownerEmployeeId:
+  //         draft.owner && draft.type === "PRIVATE" ? draft.owner : null,
+  //       location:
+  //         draft.owner && draft.type === "PRIVATE" ? null : draft.location,
+  //       purchase_date: draft.purchase_date,
+  //       warranty_expiration_date: draft.warranty_expiration_date as string,
+  //       maintenance_schedule: draft.warranty_expiration_date ?? "",
+  //     };
+  //     const res = await updateAsset(activeId, updatedAssetData);
+  //     notifications.show({
+  //       title: "Thành công",
+  //       message: "Thông tin tài sản đã được cập nhật.",
+  //       color: "green",
+  //     });
+  //     setItems((prev) =>
+  //       prev.map((x) =>
+  //         x.id !== activeId
+  //           ? x
+  //           : {
+  //               ...x,
+  //               name: draft.name.trim(),
+  //               category: draft.category,
+  //               condition: draft.condition,
+  //               location: draft.location,
+  //               owner: res.data?.owner,
+  //               purchase_date: draft.purchase_date,
+  //               warranty_expiration_date:
+  //                 draft.warranty_expiration_date || undefined,
+  //               maintenance_schedule: draft.warranty_expiration_date || "",
+  //             },
+  //       ),
+  //     );
+  //     setEditOpen(false);
+  //   } catch (error) {
+  //     notifications.show({
+  //       title: "Lỗi",
+  //       message: "Đã xảy ra lỗi khi cập nhật tài sản.",
+  //       color: "red",
+  //     });
+  //   }
+  // };
+
+  // const handleAssign = async () => {
+  //   if (!activeId) return;
+  //   try {
+  //     const res = await assignAsset(activeId, {
+  //       employeeId: draft.owner as string,
+  //       assignmentDate: new Date().toISOString().split("T")[0],
+  //     });
+  //     const assetData = res.data?.asset;
+  //     notifications.show({
+  //       title: "Thành công",
+  //       message: "Tài sản đã được gán cho nhân viên.",
+  //       color: "green",
+  //     });
+  //     setAssignOpen(false);
+  //     setItems((prev) =>
+  //       prev.map((x) =>
+  //         x.id !== activeId
+  //           ? x
+  //           : {
+  //               ...x,
+  //               owner: assetData?.owner,
+  //             },
+  //       ),
+  //     );
+  //   } catch (error) {
+  //     notifications.show({
+  //       title: "Lỗi",
+  //       message: "Đã xảy ra lỗi khi gán tài sản.",
+  //       color: "red",
+  //     });
+  //   }
+  // };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bạn có chắc muốn xóa tài sản này không?")) return;
@@ -820,7 +908,7 @@ export default function AdminAssetsPage() {
                 <th className="px-4 py-3 font-semibold">Loại</th>
                 <th className="px-4 py-3 font-semibold">Trạng thái</th>
                 <th className="px-4 py-3 font-semibold">Được cấp cho</th>
-                <th className="px-4 py-3 font-semibold">Ngày mua / BH</th>
+                <th className="px-4 py-3 font-semibold">Ngày mua</th>
                 <th className="px-4 py-3 font-semibold text-center">
                   Hành động
                 </th>
@@ -841,20 +929,20 @@ export default function AdminAssetsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-md bg-neutral-background border border-grey-50 flex items-center justify-center">
-                          {assetIcon(it.category)}
+                          {assetIcon("Thiết bị VP")}
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-grey-900 truncate">
                             {it.name}
                           </div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            --
+                            {it.assetTag || "--"}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-grey-700 font-mono text-[11px]">
-                      --
+                    <td className="px-4 py-3 text-[11px] text-grey-700 font-medium">
+                      {it.serialNumber || "--"}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {it.category}
@@ -958,30 +1046,35 @@ export default function AdminAssetsPage() {
             <DialogTitle>Thêm Tài sản mới</DialogTitle>
           </DialogHeader>
           {/* Sử dụng Component Form đã tách */}
-          <AssetFormContent
-            draft={draft}
-            setDraft={setDraft}
-            employees={employees}
-            department={department}
-            setDepartment={setDepartment}
-          />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCreateOpen(false)}
-              className="h-9"
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              type="button"
-              onClick={handleCreate}
-              className="h-9 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Thêm tài sản
-            </Button>
-          </DialogFooter>
+          <form
+            onSubmit={handleSubmit(onSubmit, (errors) => console.log(errors))}
+          >
+            <AssetFormContent
+              register={register}
+              control={control}
+              watch={watch}
+              errors={errors}
+              employees={employees}
+              assignRole={assignRole}
+              setAssignRole={setAssignRole}
+            />
+            <DialogFooter className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+                className="h-9"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="submit"
+                className="h-9 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Thêm tài sản
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -991,30 +1084,35 @@ export default function AdminAssetsPage() {
           <DialogHeader>
             <DialogTitle>Chỉnh sửa tài sản</DialogTitle>
           </DialogHeader>
-          <AssetFormContent
-            draft={draft}
-            setDraft={setDraft}
-            employees={employees}
-            department={department}
-            setDepartment={setDepartment}
-          />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditOpen(false)}
-              className="h-9"
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              type="button"
-              onClick={handleUpdate}
-              className="h-9 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Lưu thông tin
-            </Button>
-          </DialogFooter>
+          <form
+            onSubmit={handleSubmit(onUpdate, (errors) => console.log(errors))}
+          >
+            <AssetFormContent
+              register={register}
+              control={control}
+              watch={watch}
+              errors={errors}
+              employees={employees}
+              assignRole={assignRole}
+              setAssignRole={setAssignRole}
+            />
+            <DialogFooter className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditOpen(false)}
+                className="h-9"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="submit"
+                className="h-9 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Lưu thông tin
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -1030,17 +1128,16 @@ export default function AdminAssetsPage() {
                 Phòng ban <span className="text-red-500">*</span>
               </label>
               <Select
-                value={department}
+                value={assignRole}
                 defaultValue="All"
-                onValueChange={(e) => setDepartment(e as DepartmentType)}
+                onValueChange={(e) => setAssignRole(e as RoleType)}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="Chọn phòng ban" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">Tất cả</SelectItem>
-                  <SelectItem value="Engineering">Phòng kỹ thuật</SelectItem>
-                  <SelectItem value="Sales">Phòng bán hàng</SelectItem>
+                  <SelectItem value="EMPLOYEE">Nhân viên</SelectItem>
+                  <SelectItem value="MANAGER">Quản lý</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1049,20 +1146,18 @@ export default function AdminAssetsPage() {
                 Nhân viên
               </label>
               <Select
-                defaultValue={draft.owner?.id}
-                onValueChange={(v) =>
-                  setDraft((p) => ({ ...p, owner: v as any }))
-                }
+                defaultValue={assignId as string}
+                onValueChange={(v) => setAssignId(v)}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="Nhân viên" />
                 </SelectTrigger>
                 <SelectContent>
                   {employees
-                    .filter((e) => {
-                      if (department === "All") return true;
-                      return e.department?.name === department;
-                    })
+                    // .filter((e) => {
+                    //   if (department === "All") return true;
+                    //   return e.department?.name === department;
+                    // })
                     .map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {getFullName(employee)} {employee.idCard ?? ""}
@@ -1076,7 +1171,7 @@ export default function AdminAssetsPage() {
             <Button variant="outline" onClick={() => setAssignOpen(false)}>
               Hủy
             </Button>
-            <Button onClick={handleAssign}>Xác nhận</Button>
+            <Button onClick={onAssign}>Xác nhận</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

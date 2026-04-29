@@ -17,6 +17,7 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useForm } from "@mantine/form";
+import { Center, Loader } from "@mantine/core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ import {
 } from "@/lib/support/tickets";
 import { formatDate } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+import { set } from "react-hook-form";
 
 type TicketCreateValue = {
   category_id: string;
@@ -199,12 +201,14 @@ export default function SupportPage() {
     category: "all",
   });
   const [categoryData, setCategoryData] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
   const [limit, setLimit] = React.useState(6);
   const tabs = ["My Tickets", "My Assigned Tickets"];
   React.useEffect(() => {
     const fetchTickets = async () => {
       try {
+        setLoading(true);
         switch (activeTab) {
           case "My Tickets":
             const res = await getMyTickets();
@@ -219,6 +223,7 @@ export default function SupportPage() {
           default:
             break;
         }
+        setLoading(false);
       } catch (error) {
         console.error("Failed to fetch tickets:", error);
       }
@@ -333,56 +338,65 @@ export default function SupportPage() {
         </div>
       </div>
 
+      {loading && (
+        <Center style={{ height: "50vh" }}>
+          <Loader color="green" />
+        </Center>
+      )}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {visible.map((t) => (
-          <Link
-            key={t.id}
-            href={`/user/support/${activeTab === "My Tickets" ? "my-tickets" : "assigned-tickets"}/${t.id}`}
-            className="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
-                  <span className="text-sm font-bold">S</span>
+        {visible &&
+          !loading &&
+          visible.map((t) => (
+            <Link
+              key={t.id}
+              href={`/user/support/${activeTab === "My Tickets" ? "my-tickets" : "assigned-tickets"}/${t.id}`}
+              className="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                    <span className="text-sm font-bold">S</span>
+                  </div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {t.title}
+                  </div>
                 </div>
-                <div className="text-sm font-semibold text-foreground">
-                  {t.title}
-                </div>
+                <Badge
+                  variant={statusBadgeVariant(t.status)}
+                  className="rounded-full"
+                >
+                  {formatTicketStatus(t.status)}
+                </Badge>
               </div>
-              <Badge
-                variant={statusBadgeVariant(t.status)}
-                className="rounded-full"
-              >
-                {formatTicketStatus(t.status)}
-              </Badge>
-            </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
-              <div>
-                <div className="text-muted-foreground">User</div>
-                <div className="mt-1 font-semibold text-foreground">
-                  {t.employee.email}
+              <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
+                <div>
+                  <div className="text-muted-foreground">User</div>
+                  <div className="mt-1 font-semibold text-foreground">
+                    {t.employee.email}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Submitted</div>
+                  <div className="mt-1 font-semibold text-foreground">
+                    {formatDate(t.createdAt, "DD/MM/YYYY")}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Category</div>
+                  <div className="mt-1 font-semibold text-foreground">
+                    {t.category.name}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Ticket ID</div>
+                  <div className="mt-1 font-semibold text-foreground">
+                    {t.id}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-muted-foreground">Submitted</div>
-                <div className="mt-1 font-semibold text-foreground">
-                  {formatDate(t.createdAt, "DD/MM/YYYY")}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Category</div>
-                <div className="mt-1 font-semibold text-foreground">
-                  {t.category.name}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Ticket ID</div>
-                <div className="mt-1 font-semibold text-foreground">{t.id}</div>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
       </div>
 
       <div className="mt-8 flex justify-center">

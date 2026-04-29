@@ -14,8 +14,13 @@ import {
   Heart,
 } from "lucide-react";
 import { useState, useRef, useEffect, use } from "react";
-import { Button as MantineButton, TextInput } from "@mantine/core";
-import { Controller, useForm } from "react-hook-form";
+import {
+  Center,
+  Loader,
+  Button as MantineButton,
+  TextInput,
+} from "@mantine/core";
+import { set, useForm } from "react-hook-form";
 import { DatePickerInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { myRequests, createLeaveRequest } from "@/services/DACN/request";
@@ -429,7 +434,7 @@ export default function LeaveManagementPage() {
   const [activeActionId, setActiveActionId] = useState<number | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [myLeaves, setMyLeaves] = useState<LeaveRequest[] | null>([]);
+  const [myLeaves, setMyLeaves] = useState<LeaveRequest[] | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPage, setTotalPage] = useState<number>(0);
   // Sử dụng type DecisionMap đã định nghĩa
@@ -740,7 +745,11 @@ export default function LeaveManagementPage() {
           </div>
 
           {/* List Posts */}
-          {!myLeaves && <div className="text-center">Loading ...</div>}
+          {myLeaves === null && (
+            <Center style={{ height: "50vh" }}>
+              <Loader color="green" />
+            </Center>
+          )}
           {myLeaves && (
             <div className="space-y-4 flex-1">
               {myLeaveAtPage.map((leave) => (
@@ -758,7 +767,8 @@ export default function LeaveManagementPage() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-gray-800">
-                          # {leave.id.slice(0, 5)}
+                          {formatDate(leave.date_from, "DD/MM/YYYY")} -{" "}
+                          {formatDate(leave.date_to, "DD/MM/YYYY")}
                         </h3>
                       </div>
                       <Badge
@@ -785,24 +795,26 @@ export default function LeaveManagementPage() {
               ))}
             </div>
           )}
-          <div className="flex justify-center gap-3">
-            <ChevronLeft
-              className="cursor-pointer hover:shadow-md"
-              onClick={() => {
-                if (currentPage > 0) setCurrentPage(currentPage - 1);
-              }}
-            />
-            <span>
-              {currentPage + 1} / {totalPage}
-            </span>
-            <ChevronRight
-              className="cursor-pointer hover:shadow-md"
-              onClick={() => {
-                if (currentPage < totalPage - 1)
-                  setCurrentPage(currentPage + 1);
-              }}
-            />
-          </div>
+          {myLeaves && (
+            <div className="flex justify-center gap-3">
+              <ChevronLeft
+                className="cursor-pointer hover:shadow-md"
+                onClick={() => {
+                  if (currentPage > 0) setCurrentPage(currentPage - 1);
+                }}
+              />
+              <span>
+                {currentPage + 1} / {totalPage}
+              </span>
+              <ChevronRight
+                className="cursor-pointer hover:shadow-md"
+                onClick={() => {
+                  if (currentPage < totalPage - 1)
+                    setCurrentPage(currentPage + 1);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
