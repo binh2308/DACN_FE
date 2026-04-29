@@ -61,7 +61,7 @@ interface Post {
 const announceSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
   content: z.string().min(5, "Content is required").max(500),
-  category: z.enum(["GENERAL", "HR", "IT", "SALES", "MARKETING"]),
+  category: z.enum(["GENERAL", "HR", "EVENTS"]),
   pinned: z.boolean(),
 });
 
@@ -536,10 +536,8 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="GENERAL">Chung</SelectItem>
-                        <SelectItem value="HR">Nhân sự</SelectItem>
-                        <SelectItem value="IT">Công nghệ</SelectItem>
-                        <SelectItem value="SALES">Sales</SelectItem>
-                        <SelectItem value="MARKETING">Marketing</SelectItem>
+                        <SelectItem value="HR">HR Updates</SelectItem>
+                        <SelectItem value="EVENTS">Events</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

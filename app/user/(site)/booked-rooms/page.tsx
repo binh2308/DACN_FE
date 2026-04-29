@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClock, MapPin, Trash2, Users, Clock } from "lucide-react";
+import { CalendarClock, MapPin, Trash2, Users, Clock, Pencil } from "lucide-react";
 import { useRequest } from "ahooks";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -368,14 +368,27 @@ export default function BookedRoomsPage() {
                              ) : null}
                           </div>
                           
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover/slot:opacity-100 transition-opacity"
-                            onClick={() => onDelete(slot.id)}
-                            disabled={deletingId === slot.id}
-                          >
-                             <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:bg-[#4F7D7B]/10 hover:text-[#4F7D7B] opacity-100 sm:opacity-0 sm:group-hover/slot:opacity-100 transition-opacity"
+                              onClick={() => router.push(`/user/booking/${slot.id}/edit`)}
+                              aria-label="Edit booking"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover/slot:opacity-100 transition-opacity"
+                              onClick={() => onDelete(slot.id)}
+                              disabled={deletingId === slot.id}
+                              aria-label="Delete booking"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}

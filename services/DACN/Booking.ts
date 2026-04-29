@@ -34,8 +34,9 @@ export type CreateBookingRequest = {
 	end_time: string;
 	purpose: string;
 	attendee_ids?: string[];
-	recurring_pattern: RecurringPattern;
-	recurring_end_date: string;
+	// When recurring_pattern is NONE, backend accepts omitting recurring fields.
+	recurring_pattern?: RecurringPattern;
+	recurring_end_date?: string;
 };
 
 export type CreateBookingResponse = {
@@ -68,13 +69,31 @@ export type BookingDetailDto = {
 	room?: BookingRoomDto;
 	employee?: BookingEmployeeDto;
 	attendees?: BookingAttendeeDto[];
+	room_id?: string;
+	employee_id?: string;
 	start_time?: string;
 	end_time?: string;
 	purpose?: string;
 	status?: string;
+	recurring_pattern?: RecurringPattern;
+	recurring_end_date?: string;
 	created_at?: string;
 	updated_at?: string;
 };
+
+export type UpdateBookingRequest = {
+	status: string;
+	room_id: string;
+	start_time: string;
+	end_time: string;
+	purpose: string;
+	attendee_ids?: string[];
+	// When recurring_pattern is NONE, backend accepts omitting recurring fields.
+	recurring_pattern?: RecurringPattern;
+	recurring_end_date?: string;
+};
+
+export type UpdateBookingResponse = BookingDetailDto;
 
 export type AddBookingAttendeesRequest = {
 	attendee_ids: string[];
@@ -112,6 +131,22 @@ export async function getBookingsByRoomId(
 		},
 		...(options || {}),
 	});
+}
+
+export async function getBookingDetail(
+	bookingId: string,
+	options?: { [key: string]: any },
+) {
+	return request<BookingDetailDto>(
+		`/bookings/${bookingId}`.replace(/\/+/, "/"),
+		{
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			...(options || {}),
+		},
+	);
 }
 
 export async function getBookingsOfEmployee(options?: { [key: string]: any }) {
@@ -152,6 +187,24 @@ export async function deleteBooking(
 			headers: {
 				"Content-Type": "application/json",
 			},
+			...(options || {}),
+		},
+	);
+}
+
+export async function updateBooking(
+	bookingId: string,
+	body: UpdateBookingRequest,
+	options?: { [key: string]: any },
+) {
+	return request<UpdateBookingResponse>(
+		`/bookings/${bookingId}`.replace(/\/+/, "/"),
+		{
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			data: body,
 			...(options || {}),
 		},
 	);
