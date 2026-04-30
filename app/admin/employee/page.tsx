@@ -1,11 +1,11 @@
 "use client";
 
-import { Search, Plus, Filter, Trash2, Pencil } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Search, Plus, Filter, Trash2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequest } from "ahooks";
 
-import { deleteEmployee, getAllEmployees, type GetEmployeesResponse } from "@/services/DACN/employee";
+import { getAllEmployees, deleteEmployee, type GetEmployeesResponse } from "@/services/DACN/employee";
 import { getUserProfile } from "@/services/DACN/auth";
 import { employeeDtoToUI, extractEmployeesFromResponseData, type EmployeeUI } from "@/lib/employee-ui";
 
@@ -71,10 +71,14 @@ function getCurrentUserIdentifier(profile: unknown): { id?: string; email?: stri
   return { id: idCandidate, email: emailCandidate };
 }
 
+// --- CẤU HÌNH SỐ LƯỢNG HIỂN THỊ MỖI TRANG ---
+const ITEMS_PER_PAGE = 10;
+
 export default function EmployeeManage() {
   const router = useRouter();
-
+  
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     data: employeesData,
@@ -84,7 +88,8 @@ export default function EmployeeManage() {
   } = useRequest(async () => {
     const [profileResRaw, employeesResRaw] = await Promise.all([
       getUserProfile(),
-      getAllEmployees(),
+      // Ép kiểu as any và truyền pageSize lớn để ghi đè mặc định 20 của API, lấy toàn bộ danh sách
+      getAllEmployees({ page: 1, pageSize: 1000 } as any),
     ]);
 
     const profileRes = profileResRaw as unknown as ApiProfileResponse;
@@ -93,11 +98,8 @@ export default function EmployeeManage() {
     const all = extractEmployeesFromResponseData(employeesRes?.data);
 
     let { id: myId, email: myEmail } = getCurrentUserIdentifier(profileRes);
-    // Guard against accidentally picking non-employee UUIDs (e.g. department id)
     if (myId && !all.some((e) => e.id === myId)) myId = undefined;
     if (myEmail && !all.some((e) => (e.email || "").trim() === myEmail)) {
-      // Still OK; profile email might not match employee email field.
-      // We'll only use email filter if it matches someone in the list.
       myEmail = undefined;
     }
 
@@ -114,21 +116,32 @@ export default function EmployeeManage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this employee?")) return;
-
     try {
       await deleteEmployee(id);
       refresh();
-    } catch (error) {
-      console.error("Failed to delete employee", error);
+    } catch (err) {
+      console.error("Failed to delete employee", err);
       alert("Xóa nhân viên thất bại. Vui lòng thử lại.");
     }
   };
 
+  // --- LOGIC TÌM KIẾM VÀ PHÂN TRANG ---
   const filteredEmployees = employees.filter(
     (emp) =>
       emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.fullname.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Tự động quay về trang 1 nếu người dùng gõ tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   return (
     <div className="p-6 bg-white min-h-screen">
@@ -147,10 +160,7 @@ export default function EmployeeManage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/admin/employee/create")}
-            className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors"
-          >
+          <button onClick={() => router.push("/admin/employee/create")} className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors">
             <Plus className="w-4 h-4" />
             <span>Create Account</span>
           </button>
@@ -158,61 +168,101 @@ export default function EmployeeManage() {
       </div>
 
       {/* Table */}
-      <div className="border border-[#C1C7D0] rounded overflow-hidden">
+      <div className="border border-[#C1C7D0] rounded overflow-hidden flex flex-col">
         {isLoading ? (
             <div className="p-10 text-center text-gray-500 text-sm">Loading data from API...</div>
         ) : error ? (
           <div className="p-10 text-center text-red-600 text-sm">Failed to load employees. Please try again.</div>
         ) : (
+          <>
             <div className="overflow-x-auto">
-            <table className="w-full" style={{ fontFamily: "Poppins, sans-serif" }}>
-                <thead>
-                <tr className="border-b border-[#C1C7D0]">
-                    <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-16">No.</th>
-                    <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">ID</th>
-                    <th className="px-10 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-48">Fullname</th>
-                    <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Role</th>
-                    <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Phone</th>
-                    <th className="px-9 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-44">Email</th>
-                    <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-36">Sign Day</th>
-                    <th className="px-3 py-2.5 text-center text-sm font-normal text-black w-32">Action</th>
-                </tr>
-                </thead>
-                <tbody>
-                {filteredEmployees.length > 0 ? (
-                    filteredEmployees.map((employee, index) => (
-                    <tr
-                        key={employee.id} // Nên dùng ID làm key thay vì index/no nếu có thể
-                    onClick={() => router.push(`/admin/employee/${encodeURIComponent(employee.id)}`)}
-                        className="border-b border-[#C1C7D0] last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
-                    >
-                        <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{index + 1}</td>
-                        <td className="px-5 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.id}</td>
-                        <td className="px-10 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.fullname}</td>
-                        <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.role}</td>
-                        <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.phone}</td>
-                        <td className="px-9 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.email}</td>
-                        <td className="px-5 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.signDay}</td>
-                        <td className="px-3 py-2.5 text-center border-[#C1C7D0]">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); void handleDelete(employee.id); }}
+              <table className="w-full" style={{ fontFamily: "Poppins, sans-serif" }}>
+                  <thead>
+                  <tr className="border-b border-[#C1C7D0]">
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-16">No.</th>
+                      <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">ID</th>
+                      <th className="px-10 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-48">Fullname</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Role</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Phone</th>
+                      <th className="px-9 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-44">Email</th>
+                      <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-36">Sign Day</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black w-32">Action</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {paginatedEmployees.length > 0 ? (
+                      paginatedEmployees.map((employee, index) => (
+                      <tr
+                          key={employee.id}
+                          onClick={() => router.push(`/admin/employee/${encodeURIComponent(employee.id)}`)}
+                          className="border-b border-[#C1C7D0] last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
+                      >
+                          <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">
+                            {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                          </td>
+                          <td className="px-5 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.id}</td>
+                          <td className="px-10 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.fullname}</td>
+                          <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.role}</td>
+                          <td className="px-3 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.phone}</td>
+                          <td className="px-9 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.email}</td>
+                          <td className="px-5 py-2.5 text-center text-sm text-black border-r border-[#C1C7D0]">{employee.signDay}</td>
+                          <td className="px-3 py-2.5 text-center border-[#C1C7D0]">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); void handleDelete(employee.id); }}
                             className="inline-flex items-center justify-center hover:bg-red-50 rounded p-1 transition-colors"
-                        >
-                            <Trash2 className="w-5 h-5 text-red-600" />
-                        </button>
-                        </td>
-                    </tr>
-                    ))
-                ) : (
-                    <tr>
-                    <td colSpan={8} className="text-center py-8 text-gray-500 italic">
-                        No employees found.
-                    </td>
-                    </tr>
-                )}
-                </tbody>
-            </table>
+                          >
+                              <Trash2 className="w-5 h-5 text-red-600" />
+                          </button>
+                          </td>
+                      </tr>
+                      ))
+                  ) : (
+                      <tr>
+                      <td colSpan={8} className="text-center py-8 text-gray-500 italic">
+                          No employees found.
+                      </td>
+                      </tr>
+                  )}
+                  </tbody>
+              </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 items-center px-4 py-3 border-t border-[#C1C7D0] bg-white gap-4">
+                {/* Cột 1: Thông tin hiển thị (Nằm bên trái) */}
+                <div className="flex justify-center md:justify-start">
+                  <span className="text-sm text-gray-500" style={{ fontFamily: "Poppins, sans-serif" }}>
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredEmployees.length)} of {filteredEmployees.length} entries
+                  </span>
+                </div>
+                
+                {/* Cột 2: Các nút phân trang (Được đẩy vào chính giữa) */}
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1 rounded border border-[#C1C7D0] hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-700" />
+                  </button>
+                  <span className="text-sm text-gray-700 font-medium px-2" style={{ fontFamily: "Poppins, sans-serif" }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1 rounded border border-[#C1C7D0] hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-700" />
+                  </button>
+                </div>
+
+                {/* Cột 3: Khối trống để cân bằng lưới, giúp tránh icon chatbox ở góc phải */}
+                <div className="hidden md:block"></div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
