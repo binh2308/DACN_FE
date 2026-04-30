@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { relative } from "path";
 
 type ForumPost = {
   id: number;
@@ -131,7 +130,7 @@ function CommentItem({ item, depth = 0 }: { item: any; depth?: number }) {
 
       {item.replies?.length ? (
         <div className="mt-2">
-          {item.replies.map((r) => (
+          {item.replies.map((r: Comment) => (
             <CommentItem key={r.id} item={r} depth={depth + 1} />
           ))}
         </div>

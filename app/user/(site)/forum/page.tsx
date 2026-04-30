@@ -80,8 +80,6 @@ export default function ForumPage() {
         setPosts(res.data?.items);
       } catch (error) {
         console.error("Error fetching announcements:", error);
-      } finally {
-        setLoading(false);
       }
     };
 

@@ -325,15 +325,18 @@ export default function WeeklyReportsPage() {
     if (!draft.weekStart || !draft.weekEnd) return;
 
     const nowIso = new Date().toISOString();
-    const item: WeeklyReport = {
+    const item: DACN.ManagerReportResponseDto = {
       ...draft,
       id: safeId(),
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      progress: clampProgress(draft.progress),
-      hours: Number(draft.hours) || 0,
+      week_starting: draft.weekStart,
+      created_at: nowIso,
+      updated_at: nowIso,
+      accomplishment: draft.accomplishments,
+      employee: draft.employeeName,
+      in_progress: draft.inProgress,
+      plan: draft.planNextWeek,
+      progress_percentage: clampProgress(draft.progress),
       status: "SUBMITTED",
-      managerComment: "",
     };
     setReports((prev) => [item, ...prev]);
     setSelectedId(item.id);

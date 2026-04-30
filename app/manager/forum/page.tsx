@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -322,7 +322,7 @@ function ForumListView({
 // ============================================================================
 function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
   const [images, setImages] = useState<ImageItem[]>([]);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -344,12 +344,12 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
     fileInputRef.current?.click();
   };
 
-  const handleSelectImages = (e) => {
+  const handleSelectImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
     if (!files.length) return;
 
-    const newImages = files.map((file) => ({
+    const newImages = files.map((file: File) => ({
       id: `${file.name}-${file.lastModified}-${Math.random()}`,
       file,
       preview: URL.createObjectURL(file),
@@ -383,7 +383,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
   };
 
   const onSubmit = async (data: AnnounceFormData) => {
-    const newAnnouncement: DACN.AnnouncementCreateDto = {
+    const newAnnouncement: any = {
       ...data,
     };
     try {

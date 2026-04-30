@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 import { decodeJwt } from "jose";
 //import { CustomLoader } from "@/components/CustomLoader";
 
-export default function RootLayout() {
-  const token = cookies().get("access_token")?.value;
+export default async function RootLayout() {
+  const token = (await cookies()).get("access_token")?.value;
   if (!token) {
     return redirect("/login");
   }

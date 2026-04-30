@@ -269,7 +269,10 @@ function AssetFormContent({
                   name="ownerEmployeeId"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value ?? undefined}
+                      onValueChange={field.onChange}
+                    >
                       <SelectTrigger className="h-9 text-sm">
                         <SelectValue placeholder="Chọn nhân viên" />
                       </SelectTrigger>
@@ -349,7 +352,7 @@ function AssetFormContent({
                     <div className="flex items-center gap-2">
                       {/* Hiển thị chấm màu trong select giống ảnh */}
                       <div
-                        className={`w-2 h-2 rounded-full ${statusMeta(watch("ownerEmployeeId")).dot}`}
+                        className={`w-2 h-2 rounded-full ${statusMeta(watch("ownerEmployeeId") ?? null).dot}`}
                       />
                       <SelectValue />
                     </div>
@@ -376,7 +379,7 @@ function AssetFormContent({
               render={({ field }) => (
                 <Select
                   disabled={watch("type") === "PRIVATE"}
-                  value={field.value}
+                  value={field.value ?? undefined}
                   onValueChange={field.onChange}
                 >
                   <SelectTrigger className="h-9 text-sm">

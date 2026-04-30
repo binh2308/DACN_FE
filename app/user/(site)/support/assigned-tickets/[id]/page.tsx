@@ -125,7 +125,7 @@ export default function AssignedTicketDetailPage() {
       console.error("Error adding response:", error);
     }
 
-    setMessages((prev) => [
+    setMessages((prev: any[]) => [
       ...prev,
       {
         id: ticket?.id + "-resp-" + (prev.length + 1),
@@ -160,7 +160,9 @@ export default function AssignedTicketDetailPage() {
           variant="ghost"
           className="h-9 px-2"
           onClick={() =>
-            router.push(`/user/support?tab=${encodeURIComponent("My Assigned Tickets")}`)
+            router.push(
+              `/user/support?tab=${encodeURIComponent("My Assigned Tickets")}`,
+            )
           }
         >
           <ChevronLeft className="h-4 w-4" />
@@ -272,7 +274,7 @@ export default function AssignedTicketDetailPage() {
           </Card>
 
           <div className="space-y-4">
-            {messages.map((m) => {
+            {messages.map((m: any) => {
               const agent = m.from === "agent";
               return (
                 <MessageCard

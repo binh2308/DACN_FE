@@ -98,7 +98,7 @@ const initialPosts: Post[] = [
 
 export default function ForumPage() {
   const [view, setView] = useState<"list" | "create">("list");
-  const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
 
   // Hàm xử lý lưu bài viết mới
   useEffect(() => {
@@ -144,10 +144,8 @@ function ForumListView({
   onNavigateCreate,
   setView,
 }: {
-  posts: DACN.AnnouncementResponseDto[];
-  setPosts: React.Dispatch<
-    React.SetStateAction<DACN.AnnouncementResponseDto[]>
-  >;
+  posts: any[];
+  setPosts: React.Dispatch<React.SetStateAction<any[]>>;
   onNavigateCreate: () => void;
   setView: (view: "list" | "create") => void;
 }) {
@@ -304,7 +302,7 @@ function ForumListView({
 // ============================================================================
 function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
   const [images, setImages] = useState<ImageItem[]>([]);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -326,12 +324,12 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
     fileInputRef.current?.click();
   };
 
-  const handleSelectImages = (e) => {
+  const handleSelectImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
     if (!files.length) return;
 
-    const newImages = files.map((file) => ({
+    const newImages = files.map((file: File) => ({
       id: `${file.name}-${file.lastModified}-${Math.random()}`,
       file,
       preview: URL.createObjectURL(file),
@@ -365,7 +363,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
   };
 
   const onSubmit = async (data: AnnounceFormData) => {
-    const newAnnouncement: DACN.AnnouncementCreateDto = {
+    const newAnnouncement: any = {
       ...data,
     };
     try {

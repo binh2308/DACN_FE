@@ -132,7 +132,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
     try {
       const response = await GetResponseFromAI(sendMessage);
 
-      if (response?.statusCode !== 201) {
+      if (response?.status !== 201) {
         throw new Error("Không gọi được API chatbot");
       }
 

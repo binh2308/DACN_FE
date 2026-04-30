@@ -255,31 +255,28 @@ export async function getMyTickets(
 	params?: TicketParams,
 	options?: { [key: string]: any },
 ) {
-	return request<DACN.TicketResponseDto[]>("/management/tickets/me", {
-		method: "GET",
-		params,
-		headers: {
-			"Content-Type": "application/json",
-		},
-		...(options || {}),
-	});
+	return request<any>("/management/tickets/me", {
+    method: "GET",
+    params,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
 }
 
 export async function getMyAssignedTickets(
 	params?: TicketParams,
 	options?: { [key: string]: any },
 ) {
-	return request<DACN.TicketResponseDto[]>(
-		"/management/tickets/assigned/me",
-		{
-			method: "GET",
-			params,
-			headers: {
-				"Content-Type": "application/json",
-			},
-			...(options || {}),
-		},
-	);
+	return request<any>("/management/tickets/assigned/me", {
+    method: "GET",
+    params,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
 }
 
 export async function getTicketById(

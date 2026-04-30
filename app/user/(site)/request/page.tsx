@@ -20,7 +20,7 @@ import {
   Button as MantineButton,
   TextInput,
 } from "@mantine/core";
-import { set, useForm } from "react-hook-form";
+import { Controller, set, useForm } from "react-hook-form";
 import { DatePickerInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { myRequests, createLeaveRequest } from "@/services/DACN/request";
@@ -645,7 +645,9 @@ export default function LeaveManagementPage() {
                       <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
                       <Input
                         type="date"
-                        value={typeof field.value === "string" ? field.value : ""}
+                        value={
+                          typeof field.value === "string" ? field.value : ""
+                        }
                         onChange={(e) => field.onChange(e.target.value)}
                         onBlur={field.onBlur}
                         name={field.name}
@@ -676,12 +678,18 @@ export default function LeaveManagementPage() {
                       <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
                       <Input
                         type="date"
-                        value={typeof field.value === "string" ? field.value : ""}
+                        value={
+                          typeof field.value === "string" ? field.value : ""
+                        }
                         onChange={(e) => field.onChange(e.target.value)}
                         onBlur={field.onBlur}
                         name={field.name}
                         ref={field.ref}
-                        min={typeof dateFromValue === "string" && dateFromValue ? dateFromValue : undefined}
+                        min={
+                          typeof dateFromValue === "string" && dateFromValue
+                            ? dateFromValue
+                            : undefined
+                        }
                         onClick={(e) => e.currentTarget.showPicker?.()}
                         className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
                         required
@@ -752,7 +760,7 @@ export default function LeaveManagementPage() {
           )}
           {myLeaves && (
             <div className="space-y-4 flex-1">
-              {myLeaveAtPage.map((leave) => (
+              {myLeaveAtPage?.map((leave) => (
                 <div
                   key={leave.id}
                   role="button"

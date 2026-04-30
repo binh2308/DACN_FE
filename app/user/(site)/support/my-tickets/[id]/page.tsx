@@ -120,7 +120,7 @@ export default function MyTicketDetailPage() {
     if (!response.trim()) return;
     try {
       await addCommentToTicket(ticket.id, { note: response });
-      setMessages((prev) => [
+      setMessages((prev: any[]) => [
         ...prev,
         {
           id: ticket?.id + "-resp-" + (prev.length + 1),
@@ -259,7 +259,7 @@ export default function MyTicketDetailPage() {
           </Card>
 
           <div className="space-y-4">
-            {messages.map((m) => {
+            {messages.map((m: any) => {
               const agent = m.from === "agent";
               return (
                 <MessageCard

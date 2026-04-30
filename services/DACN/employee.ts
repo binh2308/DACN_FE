@@ -37,6 +37,7 @@ export type EmployeeDto = {
   childrenDescription?: string | null;
   degrees?: string;
   avatarUrl?: string | null;
+  department?: DepartmentDto | null;
 };
 
 export type GetEmployeesParams = {
@@ -67,6 +68,7 @@ export type DegreePayload = {
 
 export type EmployeeDetailDto = EmployeeDto & {
   degrees?: DegreeDto[];
+  department?: DepartmentDto | null;
 };
 
 export type CreateEmployeePayload = {
@@ -190,7 +192,7 @@ export async function getAllEmployees(
   params?: GetEmployeesParams,
   options?: { [key: string]: any },
 ) {
-  return request<GetEmployeesResponse>("/employee/all", {
+  return request<any>("/employee/all", {
     method: "GET",
     params,
     headers: {
