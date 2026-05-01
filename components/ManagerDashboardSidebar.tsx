@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import logo from "@/public/DATN_Logo_Manager.png";
 import {
   LayoutGrid,
   Calendar,
@@ -116,13 +117,8 @@ export default function ManagerDashboardSidebar() {
   const pathname = usePathname();
   return (
     <aside className="w-60 h-screen bg-[#2A3E4C] border-r border-grey-50 flex flex-col flex-shrink-0">
-      <div className="flex items-center justify-between px-5 py-3">
-        <h1
-          className="text-xl font-normal text-[#0B9F57] capitalize"
-          style={{ fontFamily: "'Irish Grover', cursive" }}
-        >
-          hRMS LOGO
-        </h1>
+      <div className="flex items-center justify-between px-5 pt-3">
+        <img src={logo.src} alt="Logo" className="w-30 object-contain" />
       </div>
 
       <nav className="flex-1 overflow-y-auto">
@@ -144,13 +140,13 @@ export default function ManagerDashboardSidebar() {
                       "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-normal whitespace-nowrap",
                       active
                         ? "bg-[#3D5F5E] text-[#0B9F57] font-medium"
-                        : "text-white hover:bg-[#3D5F5E]/50"
+                        : "text-white hover:bg-[#3D5F5E]/50",
                     )}
                   >
                     <span
                       className={cn(
                         "flex-shrink-0",
-                        item.active ? "text-[#0B9F57]" : "text-white"
+                        item.active ? "text-[#0B9F57]" : "text-white",
                       )}
                     >
                       {item.icon && (

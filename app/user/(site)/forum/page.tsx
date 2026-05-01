@@ -4,41 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Plus,
-  Search,
   Heart,
   MessageSquare,
-  Eye,
   Pin,
   Image as ImageIcon,
   Link as LinkIcon,
-  Save,
-  RotateCcw,
-  LogOut,
-  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { ImageItem } from "@/lib/utils";
-import Switch from "@mui/material/Switch";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import {
-  getListAnnouncement,
-  createAnnouncement,
-  uploadImageForAnnouncement,
-} from "@/services/DACN/announcement";
-import { notifications } from "@mantine/notifications";
+import { Center, Loader } from "@mantine/core";
+import { getListAnnouncement } from "@/services/DACN/announcement";
+
 import { DACN } from "@/services/DACN/typings";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // --- Types ---
 interface Post {
@@ -54,16 +33,7 @@ interface Post {
   tags: string[];
 }
 
-const announceSchema = z.object({
-  title: z.string().min(1, "Title is required").max(500),
-  content: z.string().min(5, "Content is required").max(500),
-  category: z.enum(["GENERAL", "HR", "IT", "SALES", "MARKETING"]),
-  pinned: z.boolean(),
-});
-
 dayjs.extend(relativeTime);
-
-type AnnounceFormData = z.infer<typeof announceSchema>;
 
 // --- Mock Data Ban Đầu ---
 const initialPosts: Post[] = [
@@ -110,6 +80,8 @@ export default function ForumPage() {
         setPosts(res.data?.items);
       } catch (error) {
         console.error("Error fetching announcements:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -132,7 +104,10 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
   const [activeTab, setActiveTab] = useState("General");
   const tabs = ["General", "HR Updates", "Events"];
   const router = useRouter();
-
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPage, setTotalPage] = useState<number>(
+    Math.ceil(posts.length / 4),
+  );
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -167,83 +142,117 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
             General Announcement
           </span>
         </div>
-
+        {posts.length === 0 && (
+          <Center style={{ height: "50vh" }}>
+            <Loader color="green" />
+          </Center>
+        )}
         {/* List Posts */}
         <div className="space-y-4 flex-1">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => router.push(`/user/forum/${post.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  router.push(`/user/forum/${post.id}`);
-                }
-              }}
-              className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
-            >
-              {/* Green Left Border Accent */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0B9F57] rounded-l-lg"></div>
+          {posts.length !== 0 &&
+            posts.slice(currentPage * 4, currentPage * 4 + 4).map((post) => (
+              <div
+                key={post.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/user/forum/${post.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/user/forum/${post.id}`);
+                  }
+                }}
+                className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
+              >
+                {/* Green Left Border Accent */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0B9F57] rounded-l-lg"></div>
 
-              <div className="pl-3">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-gray-800">
-                      {post.title}
-                    </h3>
-                    {post.pinned && (
-                      <span className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded border border-gray-200">
-                        <Pin size={10} className="fill-current" /> Unpin
-                      </span>
-                    )}
-                    {!post.pinned && (
-                      <span className="flex items-center gap-1 bg-white text-gray-400 text-[10px] px-2 py-0.5 rounded border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <Pin size={10} /> Pin
-                      </span>
-                    )}
-                  </div>
-                  <Link
-                    href={`/user/forum/${post.id}`}
-                    className="text-blue-500 text-xs hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {">> See more"}
-                  </Link>
-                </div>
-
-                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                  {post.content}
-                </p>
-
-                <div className="flex items-center justify-between text-[10px] text-gray-500">
-                  <div className="flex gap-2">
-                    <span className="font-medium text-gray-700">
-                      By {post.employee?.firstName} {post.employee?.middleName}{" "}
-                      {post.employee?.lastName}
-                    </span>
-                    <span>{dayjs(post.created_at).fromNow()}</span>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Heart size={12} className="text-red-500 fill-red-500" />
-                      <span>
-                        {post.likeCount >= 1000
-                          ? (post.likeCount / 1000).toFixed(1) + "k"
-                          : post.likeCount}
-                      </span>
+                <div className="pl-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-gray-800">
+                        {post.title}
+                      </h3>
+                      {post.pinned && (
+                        <span className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded border border-gray-200">
+                          <Pin size={10} className="fill-current" /> Unpin
+                        </span>
+                      )}
+                      {!post.pinned && (
+                        <span
+                          className="flex items-center gap-1 bg-white text-gray-400 text-[10px] px-2 py-0.5 rounded border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log("Pin clicked for post id:", post.id);
+                          }}
+                        >
+                          <Pin size={10} /> Pin
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <MessageSquare size={12} className="text-gray-400" />
-                      <span>{post.commentCount}</span>
+                    <Link
+                      href={`/user/forum/${post.id}`}
+                      className="text-blue-500 text-xs hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      {">> See more"}
+                    </Link>
+                  </div>
+
+                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                    {post.content}
+                  </p>
+
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-700">
+                        By {post.employee?.firstName}{" "}
+                        {post.employee?.middleName} {post.employee?.lastName}
+                      </span>
+                      <span>{dayjs(post.created_at).fromNow()}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <Heart
+                          size={12}
+                          className="text-red-500 fill-red-500"
+                        />
+                        <span>
+                          {post.likeCount >= 1000
+                            ? (post.likeCount / 1000).toFixed(1) + "k"
+                            : post.likeCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageSquare size={12} className="text-gray-400" />
+                        <span>{post.commentCount}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          <div className="flex justify-center gap-3">
+            <ChevronLeft
+              className="cursor-pointer hover:shadow-md"
+              onClick={() => {
+                if (currentPage > 0) setCurrentPage(currentPage - 1);
+              }}
+            />
+            <span>
+              {currentPage + 1} / {totalPage}
+            </span>
+            <ChevronRight
+              className="cursor-pointer hover:shadow-md"
+              onClick={() => {
+                if (currentPage < totalPage - 1)
+                  setCurrentPage(currentPage + 1);
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

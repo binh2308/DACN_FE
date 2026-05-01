@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import logo from "@/public/DATN_Logo_Manager.png";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -63,12 +64,7 @@ export default function AdminDashboardSidebar() {
   return (
     <aside className="w-64 h-screen bg-[#0D3B66] flex flex-col flex-shrink-0 transition-all duration-300">
       <div className="h-16 px-5 flex items-center justify-between">
-        <h1
-          className="text-xl font-bold text-[#3FBFBF] uppercase tracking-wide"
-          style={{ fontFamily: "serif" }}
-        >
-          HRMS LOGO
-        </h1>
+        <img src={logo.src} alt="Logo" className="w-30 object-contain" />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">

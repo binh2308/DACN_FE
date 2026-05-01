@@ -1,14 +1,76 @@
 /** @import must precede all other statements */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap')
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap")
 layer(base);
-@import url('https://fonts.googleapis.com/css2?family=Irish+Grover&display=swap')
+@import url("https://fonts.googleapis.com/css2?family=Irish+Grover&display=swap")
 layer(base);
 
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));
+
+/* ================== KEYFRAMES ================== */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-70%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(70%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-top {
+  from {
+    transform: translateY(-70%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(70%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ================== UTILITIES ================== */
+@utility animate-slide-in-left {
+  animation: slide-in-left 1.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility animate-slide-in-right {
+  animation: slide-in-right 1.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility animate-slide-in-top {
+  animation: slide-in-top 1.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility animate-slide-in-bottom {
+  animation: slide-in-bottom 1.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
 @utility container {
   margin-inline: auto;
@@ -192,7 +254,7 @@ layer(base);
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 152 89% 33%;
-    
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 152 89% 33%;
@@ -211,7 +273,12 @@ layer(base);
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, Roboto, Helvetica, sans-serif;
+    font-family:
+      "Inter",
+      -apple-system,
+      Roboto,
+      Helvetica,
+      sans-serif;
   }
 
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
