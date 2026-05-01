@@ -210,6 +210,24 @@ function SupportPage() {
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
   const [limit, setLimit] = React.useState(6);
   const tabs = ["My Tickets", "My Assigned Tickets"];
+
+  React.useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await getTicketCategories();
+        setCategoryData(
+          res?.data.map((item) => ({
+            value: item.id,
+            label: item.name,
+          })) || [],
+        );
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   React.useEffect(() => {
     const fetchTickets = async () => {
       try {
@@ -233,22 +251,9 @@ function SupportPage() {
         console.error("Failed to fetch tickets:", error);
       }
     };
-    const fetchCategories = async () => {
-      try {
-        const res = await getTicketCategories();
-        setCategoryData(
-          res?.data.map((item) => ({
-            value: item.id,
-            label: item.name,
-          })) || [],
-        );
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-      }
-    };
+
     fetchTickets();
-    fetchCategories();
-  }, [activeTab, openCreateModal]);
+  }, [activeTab, openCreateModal, limit]);
 
   const filtered = React.useMemo(() => {
     return tickets.filter((t) => {
