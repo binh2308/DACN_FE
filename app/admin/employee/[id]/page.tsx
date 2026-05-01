@@ -499,8 +499,13 @@ export default function EmployeeDetailPage() {
                     <input type="password" name="password" value={String(form.password)} readOnly className={inputBase} placeholder="••••••••" />
                   </FormRow>
 
+                  {/* SỬA LỖI ĐỔI TEXT NHẬP THÀNH DROP DOWN TẠI ĐÂY */}
                   <FormRow label="Roles">
-                    <input type="text" name="role" value={String(form.role)} onChange={onChange} className={inputBase} />
+                    <select name="role" value={String(form.role)} onChange={onChange} className={inputBase}>
+                      <option value="" disabled>-- Select Role --</option>
+                      <option value="EMPLOYEE">EMPLOYEE</option>
+                      <option value="MANAGER">MANAGER</option>
+                    </select>
                   </FormRow>
 
                   <FormRow label="Email">
@@ -543,27 +548,31 @@ export default function EmployeeDetailPage() {
                   </FormRow>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <FormRow label="ID Card *" required>
-                    <input type="text" name="idCard" value={String(form.idCard)} onChange={onChange} className={inputBase} />
-                  </FormRow>
-                  <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col md:flex-row gap-5">
+                  <div className="w-full md:w-1/4">
+                    <FormRow label="ID Card" required>
+                      <input type="text" name="idCard" value={String(form.idCard)} onChange={onChange} className={inputBase} />
+                    </FormRow>
+                  </div>
+                  <div className="w-full md:w-auto flex flex-col gap-1.5 flex-shrink-0">
                     <label className="text-sm font-medium text-gray-700">Family Status</label>
                     <div className="flex items-center gap-4 h-[38px] px-3 bg-gray-50 border border-gray-200 rounded-md">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" name="married" checked={Boolean(form.married)} onChange={onChange} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
-                        <span className="text-sm text-gray-700">Married</span>
+                        <span className="text-sm text-gray-700 whitespace-nowrap">Married</span>
                       </label>
                       <div className="w-px h-4 bg-gray-300"></div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-700">Children:</span>
+                        <span className="text-sm text-gray-700 whitespace-nowrap">Children:</span>
                         <input type="number" name="children" value={String(form.children)} onChange={onChange} className="w-16 px-2 py-1 text-sm border border-gray-300 rounded shadow-sm focus:ring-emerald-500 focus:border-emerald-500" />
                       </div>
                     </div>
                   </div>
-                  <FormRow label="Children Desc.">
-                     <input type="text" name="childrenDescription" value={String(form.childrenDescription)} onChange={onChange} className={inputBase} placeholder="Description..." />
-                  </FormRow>
+                  <div className="w-full md:flex-1">
+                    <FormRow label="Children Desc.">
+                       <input type="text" name="childrenDescription" value={String(form.childrenDescription)} onChange={onChange} className={inputBase} placeholder="Description..." />
+                    </FormRow>
+                  </div>
                 </div>
               </div>
 
