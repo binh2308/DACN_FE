@@ -426,15 +426,34 @@ export default function ManagerCalendarPage() {
                     }`}
                   >
                     {dayEvents.map((event) => {
-                      const segmentStart = event.start > dayStart ? event.start : dayStart;
-                      const segmentEnd = event.end < dayEnd ? event.end : dayEnd;
+                      let top = 0;
+                      let height = 24;
 
-                      // FIX: Đổi logic tính toán trục Y bằng Toán học tuyệt đối (Tổng số phút)
-                      const startDiffMinutes = (segmentStart.getTime() - dayStart.getTime()) / 60000;
-                      const endDiffMinutes = (segmentEnd.getTime() - dayStart.getTime()) / 60000;
-
-                      const top = startDiffMinutes * (80 / 60);
-                      const height = Math.max((endDiffMinutes - startDiffMinutes) * (80 / 60), 24);
+                      if (event.type === "LEAVE_REQUEST") {
+                        // Đơn nghỉ phép dài ngày: tính bằng thuật toán ngắt ngày (clamp)
+                        const segmentStart = event.start.getTime() > dayStart.getTime() ? event.start : dayStart;
+                        const segmentEnd = event.end.getTime() < dayEnd.getTime() ? event.end : dayEnd;
+                        const startDiffMinutes = (segmentStart.getTime() - dayStart.getTime()) / 60000;
+                        const endDiffMinutes = (segmentEnd.getTime() - dayStart.getTime()) / 60000;
+                        top = startDiffMinutes * (80 / 60);
+                        height = Math.max((endDiffMinutes - startDiffMinutes) * (80 / 60), 24);
+                      } else {
+                        // BOOKING (Lịch họp định kỳ): Chỉ quan tâm đúng số giờ/phút, bỏ qua sự sai lệch ngày
+                        const startMins = event.start.getHours() * 60 + event.start.getMinutes();
+                        let endMins = event.end.getHours() * 60 + event.end.getMinutes();
+                        
+                        // Đề phòng trường hợp lịch vắt ngang qua ngày mới (vd: 23:00 tới 01:00) 
+                        if (endMins <= startMins) {
+                          if (event.end.getTime() > event.start.getTime()) {
+                            endMins = 24 * 60; 
+                          } else {
+                            endMins = startMins + 60; // Fallback an toàn 1 tiếng
+                          }
+                        }
+                        
+                        top = startMins * (80 / 60);
+                        height = Math.max((endMins - startMins) * (80 / 60), 24);
+                      }
 
                       return (
                         <div

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Upload, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createEmployee } from "@/services/DACN/employee";
 
@@ -42,11 +42,12 @@ const splitFullname = (fullname: string) => {
   return { lastName, firstName, middleName };
 };
 
-const inputBase = "px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-green-500 transition-colors";
-const inputClass = `${inputBase} w-full`;
-const dateClass = `${inputBase} w-full pr-8`;
+// Updated standard input styling for modern HRM look
+const inputBase =
+  "block w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors duration-200";
 
-const FormRow = ({
+// Updated FormRow to use stacked layout for cleaner card presentation
+function FormRow({
   label,
   children,
   required = false,
@@ -54,14 +55,16 @@ const FormRow = ({
   label: string;
   children: React.ReactNode;
   required?: boolean;
-}) => (
-  <div className="flex items-center gap-3 mb-2">
-    <label className="w-32 shrink-0 text-xs font-medium text-gray-600">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <div className="flex-1 min-w-0">{children}</div>
-  </div>
-);
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 // --- COMPONENT CHÍNH ---
 export default function CreateEmployeePage() {
@@ -199,16 +202,21 @@ export default function CreateEmployeePage() {
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col font-sans">
-      {/* Header */}
+      {/* Sticky Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400">✎</span>
-          <h2 className="text-sm font-bold text-gray-700 uppercase">Create Employee</h2>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <span className="font-bold text-sm">+</span>
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-gray-800 leading-tight">Create Employee</h2>
+            <p className="text-xs text-gray-500 font-medium">Add a new employee record</p>
+          </div>
         </div>
         <button
           type="button"
-          onClick={() => router.push("/manager/employee")}
-          className="text-gray-400 hover:text-gray-700"
+          onClick={() => router.push(`/manager/employee`)}
+          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
           aria-label="Close"
           title="Close"
         >
@@ -216,249 +224,226 @@ export default function CreateEmployeePage() {
         </button>
       </div>
 
-      <form onSubmit={onSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px] mx-auto w-full">
-        
-        {/* ROW 1: Account Info & Main Info */}
-        <div className="grid grid-cols-12 gap-6">
-          
-          {/* Account Info (5 Cols) */}
-          <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
-            <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Account Info</h3>
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center gap-2 w-1/3">
-                <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center overflow-hidden border-2 border-green-500">
-                  <img
-                    src="https://i.pravatar.cc/150?u=new_emp"
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
-                  />
+      <form
+        onSubmit={onSubmit}
+        className="flex-1 overflow-y-auto p-6 max-w-[1200px] mx-auto w-full"
+      >
+        <fieldset disabled={isSubmitting} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* COLUMN 1: Profile & Account (Left Sidebar) */}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-6 flex flex-col items-center border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
+                  <div className="relative w-28 h-28 mb-4">
+                    <img
+                      src="https://i.pravatar.cc/150?u=new_emp"
+                      alt="Avatar"
+                      className="w-full h-full object-cover rounded-full shadow-sm border-4 border-white"
+                    />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 text-center">
+                    {form.fullname || "New Employee"}
+                  </h3>
+                  <span className="mt-1 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
+                    {form.role || "No Role"}
+                  </span>
                 </div>
-                <button type="button" className="flex items-center gap-1 text-[10px] font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">
-                  <Upload size={12} /> UPLOAD
-                </button>
-              </div>
 
-              <div className="flex-1 min-w-0 space-y-1">
-                <FormRow label="Employee ID">
-                  <input type="text" disabled className={`${inputClass} bg-gray-100 text-gray-400`} placeholder="(Auto-generated)" />
-                </FormRow>
+                <div className="p-6 space-y-4">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Account Details</h4>
+                  
+                  <FormRow label="Employee ID">
+                    <input type="text" disabled className={`${inputBase} bg-gray-50 text-gray-400`} placeholder="(Auto-generated upon save)" />
+                  </FormRow>
 
-                <FormRow label="Password" required>
-                  <input type="password" name="password" value={form.password} onChange={onChange} className={inputClass} placeholder="••••••••" />
-                </FormRow>
+                  <FormRow label="Password" required>
+                    <input type="password" name="password" value={form.password} onChange={onChange} className={inputBase} placeholder="••••••••" />
+                  </FormRow>
 
-                <FormRow label="Roles">
-                  <select name="role" value={form.role} onChange={onChange} className={inputClass}>
-                    <option value="EMPLOYEE">EMPLOYEE</option>
-                  </select>
-                </FormRow>
+                  <FormRow label="Roles">
+                    <select name="role" value={form.role} onChange={onChange} className={inputBase}>
+                      <option value="" disabled>-- Select Role --</option>
+                      <option value="EMPLOYEE">EMPLOYEE</option>
+                      <option value="MANAGER">MANAGER</option>
+                    </select>
+                  </FormRow>
 
-                <FormRow label="Email" required>
-                  <input type="email" name="email" value={form.email} onChange={onChange} className={inputClass} placeholder="user@example.com" />
-                </FormRow>
-
-                <FormRow label="Phone">
-                  <input type="text" name="phone" value={form.phone} onChange={onChange} className={inputClass} placeholder="+1234567890" />
-                </FormRow>
+                  <FormRow label="Email" required>
+                    <input type="email" name="email" value={form.email} onChange={onChange} className={inputBase} placeholder="user@example.com" />
+                  </FormRow>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Main Info (7 Cols) */}
-          <div className="col-span-12 lg:col-span-7 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
-            <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Main Info</h3>
-            <div className="space-y-1">
-              <FormRow label="Fullname" required>
-                <input type="text" name="fullname" value={form.fullname} onChange={onChange} className={inputClass} placeholder="John Michael Doe" />
-              </FormRow>
+            {/* COLUMN 2: Personal, Employment & Education (Main Content) */}
+            <div className="lg:col-span-8 space-y-6">
+              
+              {/* Personal Info Card */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h3 className="text-sm font-bold text-gray-800 mb-5 pb-2 border-b border-gray-100 flex items-center gap-2">
+                  Personal Information
+                </h3>
+                
+                <div className="mb-5">
+                  <FormRow label="Fullname" required>
+                    <input type="text" name="fullname" value={form.fullname} onChange={onChange} className={inputBase} placeholder="e.g. John Michael Doe" />
+                  </FormRow>
+                </div>
 
-              <div className="flex items-center gap-3 mb-2">
-                <label className="w-32 shrink-0 text-xs font-medium text-gray-600">Gender</label>
-                <div className="flex-1 min-w-0 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <select name="gender" value={form.gender} onChange={onChange} className={inputClass}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                  <FormRow label="Gender">
+                    <select name="gender" value={form.gender} onChange={onChange} className={inputBase}>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                     </select>
-                  </div>
+                  </FormRow>
+                  <FormRow label="Date of Birth">
+                    <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={onChange} className={inputBase} />
+                  </FormRow>
+                </div>
 
-                  <div className="flex items-center gap-2 min-w-[240px]">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase whitespace-nowrap">Birth Day</span>
-                    <div className="w-[170px]">
-                      <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={onChange} className={dateClass} />
+                <div className="flex flex-col md:flex-row gap-5">
+                  <div className="w-full md:w-1/4">
+                    <FormRow label="ID Card">
+                      <input type="text" name="idCard" value={form.idCard} onChange={onChange} className={inputBase} placeholder="123456789" />
+                    </FormRow>
+                  </div>
+                  <div className="w-full md:w-auto flex flex-col gap-1.5 flex-shrink-0">
+                    <label className="text-sm font-medium text-gray-700">Family Status</label>
+                    <div className="flex items-center gap-4 h-[38px] px-3 bg-gray-50 border border-gray-200 rounded-md">
+                      <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
+                        <input type="checkbox" name="married" checked={form.married} onChange={onChange} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                        <span className="text-sm text-gray-700 whitespace-nowrap">Married</span>
+                      </label>
+                      <div className="w-px h-4 bg-gray-300 flex-shrink-0"></div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-sm text-gray-700 whitespace-nowrap">Children:</span>
+                        <input type="number" name="children" value={form.children} onChange={onChange} className="w-16 px-2 py-1 text-sm border border-gray-300 rounded shadow-sm focus:ring-emerald-500 focus:border-emerald-500" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <FormRow label="Address">
-                <input type="text" name="address" value={form.address} onChange={onChange} className={inputClass} placeholder="123 Main St, City, Country" />
-              </FormRow>
-
-              <div className="flex items-center gap-3 mb-2">
-                <label className="w-32 shrink-0 text-xs font-medium text-gray-600">Sign Day</label>
-                <div className="flex-1 min-w-0 flex items-center gap-4">
-                  <div className="w-[190px]">
-                    <input type="date" name="signDay" value={form.signDay} onChange={onChange} className={dateClass} />
-                  </div>
-
-                  <div className="flex items-center gap-2 min-w-[240px]">
-                    <span className="text-[10px] font-bold text-red-500 uppercase whitespace-nowrap">Quit Day</span>
-                    <div className="w-[170px]">
-                      <input type="date" name="quitDay" value={form.quitDay} onChange={onChange} className={dateClass} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ROW 2: Other Info & Department/University */}
-        <div className="grid grid-cols-12 gap-6">
-          
-          {/* Other Info (5 Cols) */}
-          <div className="col-span-12 lg:col-span-5 bg-white p-4 rounded-lg border border-gray-200 shadow-sm h-fit">
-            <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Other Info</h3>
-            <div className="space-y-1">
-              <FormRow label="ID Card">
-                <input type="text" name="idCard" value={form.idCard} onChange={onChange} className={inputClass} placeholder="123456789" />
-              </FormRow>
-
-              <div className="flex items-center gap-3 mb-2">
-                <label className="w-32 shrink-0 text-xs font-medium text-gray-600">Married</label>
-                <div className="flex-1 min-w-0 flex items-center gap-6">
-                  <input
-                    type="checkbox"
-                    name="married"
-                    checked={form.married}
-                    onChange={onChange}
-                    className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600">Children</span>
-                    <input type="number" name="children" value={form.children} onChange={onChange} className={`${inputBase} w-16 text-xs text-center`} />
+                  <div className="w-full md:flex-1">
+                    <FormRow label="Children Desc.">
+                       <input type="text" name="childrenDescription" value={form.childrenDescription} onChange={onChange} className={inputBase} placeholder="Description..." />
+                    </FormRow>
                   </div>
                 </div>
               </div>
 
-              <FormRow label="Children Description">
-                <textarea
-                  name="childrenDescription"
-                  value={form.childrenDescription}
-                  onChange={onChange}
-                  rows={1}
-                  className={inputClass}
-                  placeholder="Two kids, ages 5 and 8"
-                />
-              </FormRow>
+              {/* Employment Details Card */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h3 className="text-sm font-bold text-gray-800 mb-5 pb-2 border-b border-gray-100">
+                  Employment Details
+                </h3>
 
-              <FormRow label="Gross Salary">
-                <input type="number" name="salaryGross" value={form.salaryGross} onChange={onChange} className={inputClass} placeholder="60000" />
-              </FormRow>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                  <FormRow label="Phone">
+                    <input type="text" name="phone" value={form.phone} onChange={onChange} className={inputBase} placeholder="+1234567890" />
+                  </FormRow>
+                  <FormRow label="Address">
+                    <input type="text" name="address" value={form.address} onChange={onChange} className={inputBase} placeholder="123 Main St, City, Country" />
+                  </FormRow>
+                </div>
 
-              <FormRow label="Basic Salary">
-                <input type="number" name="salaryBasic" value={form.salaryBasic} onChange={onChange} className={inputClass} placeholder="50000" />
-              </FormRow>
-            </div>
-          </div>
+                <div className="grid grid-cols-1 gap-5 mb-5">
+                  <FormRow label="Department Name">
+                    <input type="text" name="departmentName" value={form.departmentName} onChange={onChange} className={inputBase} placeholder="e.g. Sales, Engineering" />
+                  </FormRow>
+                </div>
 
-          {/* Department & University Info (7 Cols) */}
-          <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
-            
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">Department</h3>
-              <FormRow label="Department Name">
-                <input name="departmentName" value={form.departmentName} onChange={onChange} className={inputClass} placeholder="VD: Sales, Engineering" />
-              </FormRow>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                  <FormRow label="Sign Day">
+                    <input type="date" name="signDay" value={form.signDay} onChange={onChange} className={inputBase} />
+                  </FormRow>
+                  <FormRow label="Quit Day">
+                    <input type="date" name="quitDay" value={form.quitDay} onChange={onChange} className={inputBase} />
+                  </FormRow>
+                </div>
 
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">University</h3>
-
-              <div className="grid grid-cols-6 gap-2 mb-2">
-                <div className="text-[10px] font-bold text-gray-500 uppercase">Schools</div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase">Degree</div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase">Field of study</div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase">Graduation Year</div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase">Description</div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase text-center">Xóa</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <FormRow label="Basic Salary">
+                    <input type="number" name="salaryBasic" value={form.salaryBasic} onChange={onChange} className={inputBase} placeholder="50000" />
+                  </FormRow>
+                  <FormRow label="Gross Salary">
+                    <input type="number" name="salaryGross" value={form.salaryGross} onChange={onChange} className={inputBase} placeholder="60000" />
+                  </FormRow>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                {(form.degrees && form.degrees.length > 0 ? form.degrees : [emptyDegree()]).map((d, idx) => (
-                  <div key={`degree-${idx}`} className="grid grid-cols-6 gap-2 items-center">
-                    <input
-                      type="text"
-                      value={d.school}
-                      onChange={(e) => handleDegreeChange(idx, "school", e.target.value)}
-                      className={inputClass}
-                      placeholder="VD: MIT"
-                    />
-                    <input
-                      type="text"
-                      value={d.degree}
-                      onChange={(e) => handleDegreeChange(idx, "degree", e.target.value)}
-                      className={inputClass}
-                      placeholder="VD: Bachelor"
-                    />
-                    <input
-                      type="text"
-                      value={d.fieldOfStudy}
-                      onChange={(e) => handleDegreeChange(idx, "fieldOfStudy", e.target.value)}
-                      className={inputClass}
-                      placeholder="VD: CS"
-                    />
-                    <input
-                      type="number"
-                      value={d.graduationYear}
-                      onChange={(e) => handleDegreeChange(idx, "graduationYear", e.target.value)}
-                      className={inputClass}
-                      placeholder="2022"
-                    />
-                    <input
-                      type="text"
-                      value={d.description}
-                      onChange={(e) => handleDegreeChange(idx, "description", e.target.value)}
-                      className={inputClass}
-                      placeholder="Mô tả..."
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveDegree(idx)}
-                      className="h-8 w-full rounded border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"
-                      title="Xóa"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-
-                <div className="pt-2">
+              {/* Education / Degrees Card */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-6 pb-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-800">Education & Degrees</h3>
                   <button
                     type="button"
                     onClick={handleAddDegree}
-                    className="text-[10px] font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-emerald-200 text-xs font-semibold rounded-md text-emerald-700 bg-emerald-50 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
                   >
-                    + ADD DEGREE
+                    + Add Degree
                   </button>
                 </div>
+                <div className="overflow-x-auto p-6 pt-0 mt-4">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 rounded-md">
+                      <tr>
+                        <th className="px-3 py-3 font-semibold rounded-tl-md">School</th>
+                        <th className="px-3 py-3 font-semibold">Degree</th>
+                        <th className="px-3 py-3 font-semibold">Field</th>
+                        <th className="px-3 py-3 font-semibold w-24">Year</th>
+                        <th className="px-3 py-3 font-semibold">Description</th>
+                        <th className="px-3 py-3 font-semibold rounded-tr-md w-16 text-center">Act</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {(form.degrees && form.degrees.length > 0 ? form.degrees : [emptyDegree()]).map((d, idx) => (
+                        <tr key={`degree-${idx}`} className="hover:bg-gray-50/50">
+                          <td className="py-3 px-2">
+                            <input value={d.school} onChange={(e) => handleDegreeChange(idx, "school", e.target.value)} className={inputBase} placeholder="e.g. MIT" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input value={d.degree} onChange={(e) => handleDegreeChange(idx, "degree", e.target.value)} className={inputBase} placeholder="e.g. Bachelor" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input value={d.fieldOfStudy} onChange={(e) => handleDegreeChange(idx, "fieldOfStudy", e.target.value)} className={inputBase} placeholder="e.g. CS" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input type="number" value={d.graduationYear} onChange={(e) => handleDegreeChange(idx, "graduationYear", e.target.value)} className={inputBase} placeholder="2022" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input value={d.description} onChange={(e) => handleDegreeChange(idx, "description", e.target.value)} className={inputBase} placeholder="Desc..." />
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <button type="button" onClick={() => handleRemoveDegree(idx)} className="text-red-500 hover:text-red-700 font-medium text-xs p-2 rounded-md hover:bg-red-50 transition-colors" title="Remove">
+                              <X className="w-4 h-4 mx-auto" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
             </div>
-
           </div>
-        </div>
+        </fieldset>
 
-        <div className="h-8" />
-
-        {/* Footer Button */}
-        <div className="flex items-center justify-center pb-8">
+        {/* Form Actions */}
+        <div className="mt-8 flex justify-end pb-8">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-12 py-2 text-sm font-bold text-white bg-emerald-500 rounded shadow-md hover:bg-emerald-600 transition-all uppercase tracking-wider disabled:opacity-60"
+            className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all uppercase tracking-wider disabled:opacity-60 flex items-center gap-2"
           >
-            {isSubmitting ? "SAVING..." : "SAVE"}
+            {isSubmitting ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                CREATING...
+              </>
+            ) : (
+              "CREATE EMPLOYEE"
+            )}
           </button>
         </div>
       </form>

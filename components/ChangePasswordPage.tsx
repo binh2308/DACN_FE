@@ -102,6 +102,12 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
       return;
     }
 
+    // LOGIC THÊM VÀO: Kiểm tra mật khẩu mới không được trùng mật khẩu cũ
+    if (oldPw === newPw) {
+      setError("Mật khẩu mới không được giống với mật khẩu cũ.");
+      return;
+    }
+
     if (!profileEmail) {
       setError("Unable to determine your account email. Please log in again.");
       return;
