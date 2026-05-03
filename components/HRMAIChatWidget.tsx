@@ -130,9 +130,9 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
       el.style.height = "auto";
     });
     try {
-      const response = await GetResponseFromAI(sendMessage);
+      const response: any = await GetResponseFromAI(sendMessage);
 
-      if (response?.status !== 201) {
+      if (response?.statusCode !== 201) {
         throw new Error("Không gọi được API chatbot");
       }
 
@@ -154,6 +154,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
         ),
       );
     } catch (error) {
+      console.error("Error while sending message to chatbot", error);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === loadingMessageId
