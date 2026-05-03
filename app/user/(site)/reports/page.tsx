@@ -37,7 +37,7 @@ import { DACN } from "@/services/DACN/typings";
 import { createReport, getMyReport } from "@/services/DACN/report";
 import { Textarea } from "@/components/ui/textarea";
 import { toDateOnlyUTC, formatDate } from "@/lib/utils";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormDatePicker } from "@/components/FormDatePicker";

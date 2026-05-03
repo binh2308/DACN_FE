@@ -189,8 +189,8 @@ export default function Profile() {
       childrenDescription: null,
       department: null,
       avatarUrl: null,
-      degrees: [],
-    })
+      degrees: [emptyDegree()] as any,
+    }),
   );
 
   useEffect(() => {

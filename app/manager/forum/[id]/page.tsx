@@ -131,7 +131,7 @@ function CommentItem({ item, depth = 0 }: { item: any; depth?: number }) {
 
       {item.replies?.length ? (
         <div className="mt-2">
-          {item.replies.map((r) => (
+          {item.replies.map((r: Comment) => (
             <CommentItem key={r.id} item={r} depth={depth + 1} />
           ))}
         </div>

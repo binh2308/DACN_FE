@@ -14,7 +14,7 @@ export function getListAnnouncement(
   params?: AnnouncementParam,
   options?: { [key: string]: any },
 ) {
-  return request<DACN.AnnouncementResponseDto[]>(`/announcements`, {
+  return request<any>(`/announcements`, {
     method: "GET",
     params,
     headers: {
@@ -28,7 +28,7 @@ export function getAnnouncementById(
   id: string,
   options?: { [key: string]: any },
 ) {
-  return request<DACN.AnnouncementResponseDto>(`/announcements/${id}`, {
+  return request<any>(`/announcements/${id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -41,7 +41,7 @@ export function createAnnouncement(
   data: DACN.AnnouncementCreateDto,
   options?: { [key: string]: any },
 ) {
-  return request(`/announcements`, {
+  return request<any>(`/announcements`, {
     method: "POST",
     data,
     headers: {
@@ -56,7 +56,7 @@ export function uploadImageForAnnouncement(
   imageItem: ImageItem,
   options?: { [key: string]: any },
 ) {
-  return request(`/announcements/${announcementId}/upload-image`, {
+  return request<any>(`/announcements/${announcementId}/upload-image`, {
     method: "POST",
     data: { file: imageItem.file },
     headers: {

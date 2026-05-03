@@ -35,7 +35,7 @@ import {
 } from "@/lib/support/tickets";
 import { formatDate } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
-import { set } from "react-hook-form";
+import { DACN } from "@/services/DACN/typings";
 
 type TicketCreateValue = {
   category_id: string;
@@ -89,10 +89,13 @@ function TicketCreateModal({
       });
       form.reset();
       onClose();
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
       notifications.show({
         title: "Error",
-        message: error?.message || error,
+        message: errorMessage,
         color: "red",
       });
     }
@@ -190,12 +193,14 @@ function TicketCreateModal({
   );
 }
 
-export default function SupportPage() {
+function SupportPage() {
   const [tickets, setTickets] = React.useState<DACN.TicketResponseDto[]>([]);
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = React.useState(() => {
-    return searchParams?.get("tab") || "My Tickets";
-  });
+  const [activeTab, setActiveTab] = React.useState("My Tickets");
+  React.useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
   const [filters, setFilters] = React.useState<Filters>({
     status: "all",
     category: "all",
@@ -205,6 +210,24 @@ export default function SupportPage() {
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
   const [limit, setLimit] = React.useState(6);
   const tabs = ["My Tickets", "My Assigned Tickets"];
+
+  React.useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await getTicketCategories();
+        setCategoryData(
+          res?.data.map((item) => ({
+            value: item.id,
+            label: item.name,
+          })) || [],
+        );
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   React.useEffect(() => {
     const fetchTickets = async () => {
       try {
@@ -228,22 +251,9 @@ export default function SupportPage() {
         console.error("Failed to fetch tickets:", error);
       }
     };
-    const fetchCategories = async () => {
-      try {
-        const res = await getTicketCategories();
-        setCategoryData(
-          res?.data.map((item) => ({
-            value: item.id,
-            label: item.name,
-          })) || [],
-        );
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-      }
-    };
+
     fetchTickets();
-    fetchCategories();
-  }, [activeTab, openCreateModal]);
+  }, [activeTab, openCreateModal, limit]);
 
   const filtered = React.useMemo(() => {
     return tickets.filter((t) => {
@@ -417,5 +427,20 @@ export default function SupportPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function SupportPageWrapper() {
+  return (
+    <React.Suspense
+      fallback={
+        <Center style={{ height: "100vh" }}>
+          <Loader color="green" />
+        </Center>
+      }
+    >
+      {" "}
+      <SupportPage />;
+    </React.Suspense>
   );
 }

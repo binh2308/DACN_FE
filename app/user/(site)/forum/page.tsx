@@ -69,7 +69,6 @@ export default function ForumPage() {
   const [view, setView] = useState<"list">("list");
   const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[]>([]);
 
-  // Hàm xử lý lưu bài viết mới
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
@@ -80,8 +79,6 @@ export default function ForumPage() {
         setPosts(res.data?.items);
       } catch (error) {
         console.error("Error fetching announcements:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -108,6 +105,9 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
   const [totalPage, setTotalPage] = useState<number>(
     Math.ceil(posts.length / 4),
   );
+  useEffect(() => {
+    setTotalPage(Math.ceil(posts.length / 4));
+  }, [posts.length]);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -235,24 +235,26 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
                 </div>
               </div>
             ))}
-          <div className="flex justify-center gap-3">
-            <ChevronLeft
-              className="cursor-pointer hover:shadow-md"
-              onClick={() => {
-                if (currentPage > 0) setCurrentPage(currentPage - 1);
-              }}
-            />
-            <span>
-              {currentPage + 1} / {totalPage}
-            </span>
-            <ChevronRight
-              className="cursor-pointer hover:shadow-md"
-              onClick={() => {
-                if (currentPage < totalPage - 1)
-                  setCurrentPage(currentPage + 1);
-              }}
-            />
-          </div>
+          {posts.length !== 0 && (
+            <div className="flex justify-center gap-3">
+              <ChevronLeft
+                className="cursor-pointer hover:shadow-md"
+                onClick={() => {
+                  if (currentPage > 0) setCurrentPage(currentPage - 1);
+                }}
+              />
+              <span>
+                {currentPage + 1} / {totalPage}
+              </span>
+              <ChevronRight
+                className="cursor-pointer hover:shadow-md"
+                onClick={() => {
+                  if (currentPage < totalPage - 1)
+                    setCurrentPage(currentPage + 1);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

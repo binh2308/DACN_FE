@@ -60,7 +60,7 @@ export function formatDate(
   let result = format;
 
   Object.keys(map).forEach((key) => {
-    result = result.replace(key, map[key]);
+    result = result.replace(key, String(map[key as keyof typeof map]));
   });
 
   return result;
