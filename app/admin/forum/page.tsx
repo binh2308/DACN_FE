@@ -542,9 +542,6 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
           >
             <Save size={16} /> Create Announcement
           </button>
-          <button className="flex items-center gap-2 px-6 py-2 bg-[#2ECC71] text-white rounded font-semibold text-sm hover:bg-green-500 transition-colors">
-            <Save size={16} /> Saved at page
-          </button>
           <button
             onClick={() => reset()}
             className="flex items-center gap-2 px-6 py-2 bg-[#C0392B] text-white rounded font-semibold text-sm hover:bg-red-700 transition-colors"
