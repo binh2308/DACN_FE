@@ -217,11 +217,11 @@ function ForumListView({
               key={post.id}
               role="button"
               tabIndex={0}
-              onClick={() => router.push(`/manager/forum/${post.id}`)}
+              onClick={() => router.push(`/admin/forum/${post.id}`)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  router.push(`/manager/forum/${post.id}`);
+                  router.push(`/admin/forum/${post.id}`);
                 }
               }}
               className="cursor-pointer border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#0B9F57]/40"
@@ -252,7 +252,7 @@ function ForumListView({
                     )}
                   </div>
                   <Link
-                    href={`/manager/forum/${post.id}`}
+                    href={`/admin/forum/${post.id}`}
                     className="text-blue-500 text-xs hover:underline"
                     onClick={(e) => e.stopPropagation()}
                   >

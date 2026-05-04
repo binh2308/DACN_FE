@@ -1,6 +1,7 @@
 "use client";
 
-import { EllipsisVertical } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, EllipsisVertical } from "lucide-react";
 import { DonutChart } from "@mantine/charts";
 import { StatCard } from "@/components/StatCard";
 import { useMemo } from "react";
@@ -9,7 +10,7 @@ import { useRequest } from "ahooks";
 import { getEmployees, type EmployeeDto } from "@/services/DACN/employee";
 import { extractEmployeesFromResponseData } from "@/lib/employee-ui";
 import { getDepartmentLeaveRequests } from "@/services/DACN/request";
-import { getManagementTickets } from "@/services/DACN/Tickets";
+import { getManagementTickets, type ManagementTicketDto } from "@/services/DACN/Tickets";
 import { getBookings, type BookingByRoom } from "@/services/DACN/Booking";
 import {
   getDepartmentAttendanceMonthlySummary,
@@ -17,7 +18,6 @@ import {
 } from "@/services/DACN/attendance";
 
 function toISODate(d: Date) {
-  // Trích xuất YYYY-MM-DD chuẩn theo giờ Việt Nam (Local Time)
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -26,7 +26,7 @@ function toISODate(d: Date) {
 
 function startOfWeekMonday(base: Date) {
   const d = new Date(base);
-  const day = d.getDay(); // 0=Sun, 1=Mon
+  const day = d.getDay();
   const diff = (day === 0 ? -6 : 1) - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
@@ -70,13 +70,40 @@ function fullNameFromApi(e: EmployeeDto) {
     .trim();
 }
 
+function ticketActorName(actor: any) {
+  if (!actor) return "Nhân viên ẩn danh";
+  const direct = String(actor?.name ?? "").trim();
+  if (direct) return direct;
+
+  const parts = [actor?.lastName, actor?.middleName, actor?.firstName]
+    .map((x: any) => String(x ?? "").trim())
+    .filter(Boolean);
+  if (parts.length) return parts.join(" ").replace(/\s+/g, " ").trim();
+
+  const email = String(actor?.email ?? "").trim();
+  return email || "Nhân viên ẩn danh";
+}
+
+function formatDateTimeVi(iso: unknown) {
+  if (typeof iso !== "string") return "";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
 function endOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
 
 function buildRoomHeatmap(bookings: BookingByRoom[], weekStart: Date) {
-  const weekDays = ["T2", "T3", "T4", "T5", "T6"]; // Mon-Fri
-  const hourLabels = Array.from({ length: 10 }, (_, i) => 8 + i); // 8..17
+  const weekDays = ["T2", "T3", "T4", "T5", "T6"]; 
+  const hourLabels = Array.from({ length: 10 }, (_, i) => 8 + i); 
 
   const counts: number[][] = hourLabels.map(() => Array(weekDays.length).fill(0));
 
@@ -86,15 +113,14 @@ function buildRoomHeatmap(bookings: BookingByRoom[], weekStart: Date) {
     if (!start || !end) continue;
 
     const day = start.getDay();
-    if (day < 1 || day > 5) continue; // Mon-Fri
+    if (day < 1 || day > 5) continue; 
 
-    // Chỉ thống kê trong tuần hiện tại
     const dayStart = new Date(weekStart);
     dayStart.setDate(weekStart.getDate() + (day - 1));
     const dayEnd = addDays(dayStart, 1);
     if (end <= dayStart || start >= dayEnd) continue;
 
-    const dayIndex = day - 1; // 0..4
+    const dayIndex = day - 1; 
 
     for (let i = 0; i < hourLabels.length; i++) {
       const hour = hourLabels[i];
@@ -131,8 +157,17 @@ export default function ManagerIndex() {
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
 
+  // Tính toán tháng và năm trước đó
+  const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const previousYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
   const { data: deptMonthlySummaryRes, loading: loadingDeptMonthlySummary } = useRequest(() =>
     getDepartmentAttendanceMonthlySummary({ year: currentYear, month: currentMonth }),
+  );
+
+  // API 1: Thống kê nhân sự tháng trước
+  const { data: deptPreviousMonthlySummaryRes } = useRequest(() =>
+    getDepartmentAttendanceMonthlySummary({ year: previousYear, month: previousMonth }),
   );
 
   const deptMonthlySummaryOk = useMemo(
@@ -156,7 +191,7 @@ export default function ManagerIndex() {
     return { lateDaysById, absentDaysById };
   }, [deptMonthlySummaryRes]);
 
-  // 1) Tổng nhân viên
+  // Tổng nhân viên tháng này
   const { data: employeesData, loading: loadingEmployees } = useRequest(async () => {
     const res = await getEmployees();
     return extractEmployeesFromResponseData(res?.data);
@@ -174,7 +209,7 @@ export default function ManagerIndex() {
     return { male, female, total: employees.length };
   }, [employees]);
 
-  // 2) Nghỉ phép hôm nay (department)
+  // Đơn phép hôm nay
   const { data: leaveTodayRes } = useRequest(() =>
     getDepartmentLeaveRequests({
       page: 1,
@@ -184,8 +219,32 @@ export default function ManagerIndex() {
     }),
   );
   const leaveTodayItems = leaveTodayRes?.data?.items ?? [];
+
+  // Lấy dữ liệu phép tháng này
+  const { data: leaveCurrentMonthRes } = useRequest(() =>
+    getDepartmentLeaveRequests({
+      page: 1,
+      pageSize: 1000,
+      fromDate: toISODate(monthStart),
+      toDate: toISODate(monthEnd),
+    }),
+  );
+
+  // API 2: Lấy dữ liệu phép tháng trước
+  const { data: leavePreviousMonthRes } = useRequest(() => {
+    const prevMonthStart = new Date(previousYear, previousMonth - 1, 1);
+    prevMonthStart.setHours(0, 0, 0, 0);
+    const prevMonthEnd = endOfMonth(prevMonthStart);
+    prevMonthEnd.setHours(23, 59, 59, 999);
+    return getDepartmentLeaveRequests({
+      page: 1,
+      pageSize: 1000,
+      fromDate: toISODate(prevMonthStart),
+      toDate: toISODate(prevMonthEnd),
+    });
+  });
+
   const absentToday = useMemo(() => {
-    // Count các đơn có khoảng ngày bao phủ hôm nay, loại REJECTED
     return leaveTodayItems.filter((it: any) => {
       const from = normalizeApiDateToISODateOnly(it?.date_from);
       const to = normalizeApiDateToISODateOnly(it?.date_to);
@@ -196,7 +255,6 @@ export default function ManagerIndex() {
     }).length;
   }, [leaveTodayItems, todayStr]);
 
-  // 2b) Trạng thái check-in hôm nay (department)
   const { data: checkinTodayRes } = useRequest(getDepartmentTodayCheckinStatus, {
     pollingInterval: 10_000,
     pollingWhenHidden: false,
@@ -220,7 +278,6 @@ export default function ManagerIndex() {
     return map;
   }, [checkinTodayRes]);
 
-  // 3) Đơn nghỉ phép đang chờ duyệt (department)
   const { data: leaveMonthRes } = useRequest(() =>
     getDepartmentLeaveRequests({
       page: 1,
@@ -229,13 +286,6 @@ export default function ManagerIndex() {
       toDate: toISODate(monthEnd),
     }),
   );
-  const leavePending = useMemo(() => {
-    const items = leaveMonthRes?.data?.items ?? [];
-    return items.filter((it: any) => {
-      const s = String(it?.status ?? "").toUpperCase();
-      return s === "PENDING" || s === "SUBMITTED";
-    }).length;
-  }, [leaveMonthRes]);
 
   const approvedLeaveReasonTodayByEmployeeId = useMemo(() => {
     const items = (leaveMonthRes?.data?.items ?? []) as any[];
@@ -260,49 +310,182 @@ export default function ManagerIndex() {
     return map;
   }, [leaveMonthRes, todayStr]);
 
-  // 4) Tickets chưa xử lý = OPEN + IN_PROGRESS
-  const { data: ticketsOpenRes } = useRequest(() =>
-    getManagementTickets({ status: "OPEN", page: 1, limit: 1 }),
+  const { data: pendingLeaveRes } = useRequest(() =>
+    getDepartmentLeaveRequests({
+      page: 1,
+      pageSize: 1000,
+    }),
   );
-  const { data: ticketsInProgressRes } = useRequest(() =>
-    getManagementTickets({ status: "IN_PROGRESS", page: 1, limit: 1 }),
-  );
-  const ticketsUnresolved =
-    (ticketsOpenRes?.total ?? 0) + (ticketsInProgressRes?.total ?? 0);
 
-  // 5) Bookings để dựng heatmap
+  const leavePending = useMemo(() => {
+    const items = pendingLeaveRes?.data?.items ?? [];
+    return items.filter((it: any) => String(it?.status ?? "").toUpperCase() === "PENDING").length;
+  }, [pendingLeaveRes]);
+
+  const { data: ticketsOpenRes, loading: loadingTicketsOpen } = useRequest(() =>
+    getManagementTickets({
+      status: "OPEN",
+      page: 1,
+      limit: 5,
+      sort_by: "created_at",
+      sort_order: "DESC",
+    }),
+  );
+
+  const ticketsOpenPayload = useMemo(
+    () => (ticketsOpenRes as any)?.data ?? ticketsOpenRes,
+    [ticketsOpenRes],
+  );
+
+  const ticketsUnresolved = useMemo(
+    () => Number((ticketsOpenPayload as any)?.total ?? 0),
+    [ticketsOpenPayload],
+  );
+
+  const openTicketsPreview = useMemo(() => {
+    const items = (ticketsOpenPayload as any)?.items;
+    return Array.isArray(items) ? (items as ManagementTicketDto[]) : [];
+  }, [ticketsOpenPayload]);
+
+  // API 3: Ticket chưa xử lý của tháng trước
+  const { data: ticketsOpenPreviousMonthRes } = useRequest(() => {
+    const prevMonthStart = new Date(previousYear, previousMonth - 1, 1);
+    prevMonthStart.setHours(0, 0, 0, 0);
+    const prevMonthEnd = endOfMonth(prevMonthStart);
+    prevMonthEnd.setHours(23, 59, 59, 999);
+    return getManagementTickets({
+      status: "OPEN",
+      from_date: toISODate(prevMonthStart),
+      to_date: toISODate(prevMonthEnd),
+    });
+  });
+
+  const ticketsOpenPreviousMonthPayload = useMemo(
+    () => (ticketsOpenPreviousMonthRes as any)?.data ?? ticketsOpenPreviousMonthRes,
+    [ticketsOpenPreviousMonthRes],
+  );
+
   const { data: bookingsRes } = useRequest(() => getBookings());
   const bookings = (bookingsRes?.data ?? []) as BookingByRoom[];
   const heatmap = useMemo(() => buildRoomHeatmap(bookings, weekStart), [bookings, weekStart]);
 
+  // =============== Tính toán phần trăm và isPositive ===============
+  
+  // Tổng nhân viên (Tăng là Tốt)
+  const previousMonthEmployeeCount = useMemo(() => {
+    return deptPreviousMonthlySummaryRes?.data?.totalEmployees ?? 0;
+  }, [deptPreviousMonthlySummaryRes]);
+
+  const employeeCountChange = useMemo(() => {
+    if (previousMonthEmployeeCount === 0) return { change: "0%", isPositive: true };
+    const diff = genderCounts.total - previousMonthEmployeeCount;
+    const percentChange = Math.round((diff / previousMonthEmployeeCount) * 100);
+    return {
+      change: `${percentChange > 0 ? "+" : ""}${percentChange}%`,
+      isPositive: percentChange >= 0,
+    };
+  }, [genderCounts.total, previousMonthEmployeeCount]);
+
+  // Vắng/nghỉ phép (Giảm là Tốt)
+  const absentCurrentMonth = useMemo(() => {
+    const items = leaveCurrentMonthRes?.data?.items ?? [];
+    if (Array.isArray(items)) {
+      return items.filter((it: any) => String(it?.status ?? "").toUpperCase() !== "REJECTED").length;
+    }
+    return 0;
+  }, [leaveCurrentMonthRes]);
+
+  const absentPreviousMonth = useMemo(() => {
+    const items = leavePreviousMonthRes?.data?.items ?? [];
+    if (Array.isArray(items)) {
+      return items.filter((it: any) => String(it?.status ?? "").toUpperCase() !== "REJECTED").length;
+    }
+    return 0;
+  }, [leavePreviousMonthRes]);
+
+  const absentChange = useMemo(() => {
+    if (absentPreviousMonth === 0) return { change: "0%", isPositive: true };
+    const diff = absentCurrentMonth - absentPreviousMonth;
+    const percentChange = Math.round((diff / absentPreviousMonth) * 100);
+    return {
+      change: `${diff > 0 ? "+" : ""}${percentChange}%`,
+      isPositive: diff <= 0,
+    };
+  }, [absentCurrentMonth, absentPreviousMonth]);
+
+  // Ticket chưa xử lý (Giảm là Tốt)
+  const ticketsUnresolvedPreviousMonth = useMemo(() => {
+    return Number((ticketsOpenPreviousMonthPayload as any)?.total ?? 0);
+  }, [ticketsOpenPreviousMonthPayload]);
+
+  const ticketChange = useMemo(() => {
+    if (ticketsUnresolvedPreviousMonth === 0) return { change: "0%", isPositive: true };
+    const diff = ticketsUnresolved - ticketsUnresolvedPreviousMonth;
+    const percentChange = Math.round((diff / ticketsUnresolvedPreviousMonth) * 100);
+    return {
+      change: `${diff > 0 ? "+" : ""}${percentChange}%`,
+      isPositive: diff <= 0,
+    };
+  }, [ticketsUnresolved, ticketsUnresolvedPreviousMonth]);
+
+  // Đơn phép đang chờ duyệt (Giảm là Tốt)
+  const leavePendingPreviousMonth = useMemo(() => {
+    const items = leavePreviousMonthRes?.data?.items ?? [];
+    if (Array.isArray(items)) {
+      return items.filter((it: any) => String(it?.status ?? "").toUpperCase() === "PENDING").length;
+    }
+    return 0;
+  }, [leavePreviousMonthRes]);
+
+  const leavePendingChange = useMemo(() => {
+    if (leavePendingPreviousMonth === 0) return { change: "0%", isPositive: true };
+    const diff = leavePending - leavePendingPreviousMonth;
+    const percentChange = Math.round((diff / leavePendingPreviousMonth) * 100);
+    return {
+      change: `${diff > 0 ? "+" : ""}${percentChange}%`,
+      isPositive: diff <= 0,
+    };
+  }, [leavePending, leavePendingPreviousMonth]);
+
+  // Khởi tạo stats map với các giá trị đã được tính
   const stats = useMemo(
     () => [
       {
         title: "Tổng nhân viên",
         value: genderCounts.total,
-        change: "0%",
-        isPositive: true,
+        change: employeeCountChange.change,
+        isPositive: employeeCountChange.isPositive,
       },
       {
         title: "Vắng/ nghỉ phép hôm nay",
         value: notCheckedInTodayCount ?? absentToday,
-        change: "0%",
-        isPositive: true,
+        change: absentChange.change,
+        isPositive: absentChange.isPositive,
       },
       {
         title: "Ticket chưa xử lý",
         value: ticketsUnresolved,
-        change: "0%",
-        isPositive: false,
+        change: ticketChange.change,
+        isPositive: ticketChange.isPositive,
       },
       {
         title: "Đơn phép đang chờ duyệt",
         value: leavePending,
-        change: "0%",
-        isPositive: true,
+        change: leavePendingChange.change,
+        isPositive: leavePendingChange.isPositive,
       },
     ],
-    [genderCounts.total, absentToday, ticketsUnresolved, leavePending, notCheckedInTodayCount],
+    [
+      genderCounts.total,
+      employeeCountChange,
+      notCheckedInTodayCount,
+      absentToday,
+      absentChange,
+      ticketsUnresolved,
+      ticketChange,
+      leavePending,
+      leavePendingChange,
+    ],
   );
 
   const getHeatmapColor = (val: number) => {
@@ -429,7 +612,6 @@ export default function ManagerIndex() {
             </div>
 
             <div className="mt-4 flex flex-col items-center">
-              {/* Trục X: Khung giờ */}
               <div className="flex w-full mb-1">
                 <div className="w-6"></div>
                 <div className="flex-1 flex justify-between text-[10px] text-[#B8BDC5] px-1 leading-[140%] tracking-[0.12px]">
@@ -439,11 +621,9 @@ export default function ManagerIndex() {
                 </div>
               </div>
               
-              {/* Lưới Heatmap */}
               <div className="flex flex-col gap-1 w-full">
                 {heatmap.weekDays.map((d, di) => (
                   <div key={d} className="flex items-center gap-1">
-                    {/* Trục Y: Thứ */}
                     <span className="w-6 text-[10px] font-medium text-[#21252B] leading-[150%] tracking-[0.07px]">
                       {d}
                     </span>
@@ -464,13 +644,11 @@ export default function ManagerIndex() {
                 ))}
               </div>
 
-              {/* Legend */}
               <div className="flex items-center gap-2 mt-4 w-full justify-end">
                 <span className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
                   Trống
                 </span>
                 <div className="flex gap-0.5">
-                  {/* Truyền trực tiếp các số lượng phòng từ 0 đến 5 vào thay vì tính tỷ lệ t */}
                   {[0, 1, 2, 3, 4, 5].map((v) => {
                     return (
                       <div
@@ -487,6 +665,63 @@ export default function ManagerIndex() {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Card: Ticket chờ xử lý */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-sm font-semibold text-[#21252B] leading-[150%] tracking-[0.08px]">
+                  Ticket chờ xử lý
+                </h3>
+                <div className="text-[10px] text-[#B8BDC5] mt-0.5 leading-[140%] tracking-[0.12px]">
+                  Mới nhất • Tổng {ticketsUnresolved}
+                </div>
+              </div>
+
+              <Link
+                href="/manager/support"
+                className="text-xs font-medium text-[#21252B] hover:text-[#0B9F57]"
+              >
+                Xem tất cả
+              </Link>
+            </div>
+
+            {loadingTicketsOpen ? (
+              <div className="py-4 text-center text-xs text-[#B8BDC5]">
+                Đang tải ticket…
+              </div>
+            ) : openTicketsPreview.length === 0 ? (
+              <div className="py-4 text-center text-xs text-[#B8BDC5]">
+                Không có ticket chờ xử lý
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {openTicketsPreview.map((t) => (
+                  <Link
+                    key={t.id}
+                    href={`/manager/support/${t.id}`}
+                    className="block rounded-lg border border-[#E9EAEC] p-3 hover:bg-gray-50"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium text-[#21252B] leading-[150%] tracking-[0.07px] truncate">
+                          {String(t.title || "").trim() || "Ticket"}
+                        </div>
+                        <div className="text-[10px] text-[#B8BDC5] mt-0.5 leading-[140%] tracking-[0.12px] truncate">
+                          {ticketActorName(t.employee)} • {formatDateTimeVi(t.created_at) || "—"}
+                        </div>
+                      </div>
+
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[10px] font-medium">
+                        <AlertCircle className="w-3 h-3" />
+                        Chờ xử lý
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

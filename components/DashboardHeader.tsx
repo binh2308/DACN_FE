@@ -181,7 +181,7 @@ export default function DashboardHeader() {
           const message =
             (err as any)?.response?.data?.message ||
             (err as any)?.message ||
-            "Failed to load notifications.";
+            "Không thể tải thông báo.";
           setNotificationsError(Array.isArray(message) ? message.join(", ") : String(message));
         }
       } finally {
@@ -243,7 +243,7 @@ export default function DashboardHeader() {
             <button
               type="button"
               className="relative p-2 hover:bg-neutral-background rounded-lg transition-colors"
-              aria-label="Notifications"
+              aria-label="Thông báo"
             >
               <Bell className="w-5 h-5 text-grey-900" />
               {hasUnread ? (

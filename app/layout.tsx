@@ -8,8 +8,8 @@ import "./globals.css";
 import { mantineHtmlProps, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 export const metadata = {
-  title: "Employee Support System",
-  description: "Employee Support System Interface",
+  title: "Hệ thống hỗ trợ nhân viên",
+  description: "Giao diện hệ thống hỗ trợ nhân viên",
 };
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" {...mantineHtmlProps}>
+    <html lang="vi" {...mantineHtmlProps}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

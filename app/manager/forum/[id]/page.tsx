@@ -16,11 +16,9 @@ import {
   MoreHorizontal,
   Send,
   Smile,
-  Paperclip,
 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { relative } from "path";
 
 type ForumPost = {
   id: number;
@@ -94,10 +92,72 @@ function formatCount(n: number) {
   return String(n);
 }
 
-function Avatar({ text }: { text: string }) {
+function safeString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function buildEmployeeDisplayName(employee: any) {
+  const direct = safeString(employee?.name).trim();
+  if (direct) return direct;
+
+  const parts = [employee?.lastName, employee?.middleName, employee?.firstName]
+    .map((x: any) => safeString(x).trim())
+    .filter(Boolean);
+  if (parts.length) return parts.join(" ").replace(/\s+/g, " ").trim();
+
+  const email = safeString(employee?.email).trim();
+  return email || "User";
+}
+
+function getInitialsFromName(name: string) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const a = parts[0][0] ?? "";
+  const b = parts[parts.length - 1][0] ?? "";
+  return (a + b).toUpperCase() || "?";
+}
+
+function resolveEmployeeAvatarUrl(employee: any): string {
+  const direct =
+    safeString(employee?.avatarUrl) ||
+    safeString(employee?.avatar_url) ||
+    safeString(employee?.avatar) ||
+    safeString(employee?.photoUrl);
+  if (direct) return direct;
+
+  const seed = safeString(employee?.id) || buildEmployeeDisplayName(employee) || "user";
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+}
+
+function Avatar({
+  employee,
+  fallbackText,
+}: {
+  employee?: any;
+  fallbackText?: string;
+}) {
+  const displayName = employee ? buildEmployeeDisplayName(employee) : "";
+  const initials = (fallbackText || getInitialsFromName(displayName)).trim() || "?";
+  const src = employee ? resolveEmployeeAvatarUrl(employee) : "";
+
   return (
-    <div className="h-9 w-9 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold">
-      {text}
+    <div className="h-9 w-9 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold overflow-hidden relative">
+      <span className="select-none">{initials}</span>
+      {src ? (
+        <img
+          src={src}
+          alt={displayName || "Avatar"}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -106,7 +166,7 @@ function CommentItem({ item, depth = 0 }: { item: any; depth?: number }) {
   return (
     <div className={depth > 0 ? "ml-10 mt-3" : ""}>
       <div className="flex gap-3">
-        <Avatar text={item.avatarText} />
+        <Avatar employee={item.employee} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -150,6 +210,82 @@ export default function ForumDetailPage() {
   const [liked, setLiked] = React.useState(false);
   const [commentDraft, setCommentDraft] = React.useState("");
   const [addingComment, setAddingComment] = React.useState(false);
+
+  const EMOJIS = React.useMemo(
+    () => [
+      "😀",
+      "😁",
+      "😂",
+      "🤣",
+      "😅",
+      "😊",
+      "😍",
+      "😘",
+      "😎",
+      "🥳",
+      "😭",
+      "😡",
+      "👍",
+      "👎",
+      "👏",
+      "🙏",
+      "❤️",
+      "🔥",
+      "🎉",
+      "✅",
+    ],
+    [],
+  );
+
+  const [emojiOpen, setEmojiOpen] = React.useState(false);
+  const emojiButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const emojiPopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  React.useEffect(() => {
+    if (!emojiOpen) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (emojiButtonRef.current?.contains(t)) return;
+      if (emojiPopoverRef.current?.contains(t)) return;
+      setEmojiOpen(false);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEmojiOpen(false);
+    };
+
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [emojiOpen]);
+
+  const insertEmoji = (emoji: string) => {
+    const el = textareaRef.current;
+
+    setCommentDraft((prev) => {
+      const start = el?.selectionStart ?? prev.length;
+      const end = el?.selectionEnd ?? prev.length;
+      const next = prev.slice(0, start) + emoji + prev.slice(end);
+
+      requestAnimationFrame(() => {
+        if (!el) return;
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+
+      return next;
+    });
+
+    setEmojiOpen(false);
+  };
+
   React.useEffect(() => {
     if (params == null) return;
     const fetchData = async () => {
@@ -349,10 +485,11 @@ export default function ForumDetailPage() {
 
             <div id="comment-box" className="mt-4">
               <div className="flex gap-3">
-                <Avatar text="YA" />
+                <Avatar fallbackText="YA" />
                 <div className="min-w-0 flex-1">
                   <div className="rounded-xl border border-gray-200 bg-gray-50">
                     <textarea
+                      ref={textareaRef}
                       value={commentDraft}
                       onChange={(e) => setCommentDraft(e.target.value)}
                       placeholder="Viết bình luận…"
@@ -360,20 +497,41 @@ export default function ForumDetailPage() {
                     />
                     <div className="flex items-center justify-between px-3 pb-3">
                       <div className="flex items-center gap-2 text-gray-500">
-                        <button
-                          className="h-8 w-8 rounded-full hover:bg-white flex items-center justify-center"
-                          type="button"
-                          aria-label="Emoji"
-                        >
-                          <Smile size={18} />
-                        </button>
-                        <button
-                          className="h-8 w-8 rounded-full hover:bg-white flex items-center justify-center"
-                          type="button"
-                          aria-label="Attach"
-                        >
-                          <Paperclip size={18} />
-                        </button>
+                        <div className="relative">
+                          <button
+                            ref={emojiButtonRef}
+                            className="h-8 w-8 rounded-full hover:bg-white flex items-center justify-center"
+                            type="button"
+                            aria-label="Emoji"
+                            aria-expanded={emojiOpen}
+                            onClick={() => setEmojiOpen((v) => !v)}
+                          >
+                            <Smile size={18} />
+                          </button>
+
+                          {emojiOpen ? (
+                            <div
+                              ref={emojiPopoverRef}
+                              className="absolute bottom-full left-0 mb-2 w-[260px] rounded-xl border border-gray-200 bg-white p-2"
+                              role="dialog"
+                              aria-label="Emoji picker"
+                            >
+                              <div className="grid grid-cols-8 gap-1">
+                                {EMOJIS.map((e) => (
+                                  <button
+                                    key={e}
+                                    type="button"
+                                    className="h-8 w-8 rounded-md hover:bg-gray-100 text-lg leading-none"
+                                    onClick={() => insertEmoji(e)}
+                                    aria-label={`Emoji ${e}`}
+                                  >
+                                    {e}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                       <button
                         className="h-8 w-8 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center"

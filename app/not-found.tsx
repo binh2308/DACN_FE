@@ -1,8 +1,8 @@
 export default function NotFound() {
   return (
     <div>
-      <h2>Page Not Found</h2>
-      <p>Could not find requested resource</p>
+      <h2>Không tìm thấy trang</h2>
+      <p>Không tìm thấy tài nguyên bạn yêu cầu</p>
     </div>
   );
 }
