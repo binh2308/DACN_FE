@@ -42,10 +42,10 @@ import { Badge } from "@/components/ui/badge";
 const leaveSchema = z.object({
   date_from: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick a starting date"),
-  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick ending date"),
-  reason: z.string().min(3, "Reason is required").max(500),
-  description: z.string().min(5, "Description is required").max(500),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày bắt đầu"),
+  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày kết thúc"),
+  reason: z.string().min(3, "Lý do là bắt buộc").max(500),
+  description: z.string().min(5, "Mô tả là bắt buộc").max(500),
 });
 
 type LeaveFormData = z.infer<typeof leaveSchema>;
@@ -70,11 +70,11 @@ interface LeaveRequest {
 function statusLabel(s: string) {
   switch (s) {
     case "APPROVED":
-      return "Approved";
+      return "Đã duyệt";
     case "PENDING":
-      return "Pending";
+      return "Đang chờ";
     case "REJECTED":
-      return "Rejected";
+      return "Từ chối";
     default:
       return s;
   }
@@ -93,7 +93,7 @@ function statusVariant(s: string): "default" | "secondary" | "destructive" {
 }
 
 const getFormattedDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString("en-GB", {
+  return new Date(dateStr).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -156,9 +156,9 @@ function LeaveDetailModal({
               <RefreshCw size={32} className="text-gray-800" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Leave Details</h2>
+              <h2 className="text-xl font-bold text-gray-900">Chi tiết nghỉ phép</h2>
               <p className="text-sm text-gray-500">
-                View detailed information of employee leave request
+                Xem thông tin chi tiết về yêu cầu nghỉ phép của nhân viên
               </p>
             </div>
             <button
@@ -180,7 +180,7 @@ function LeaveDetailModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
-                Start Date
+                Ngày bắt đầu
               </label>
               <div className="relative">
                 <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
@@ -191,7 +191,7 @@ function LeaveDetailModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
-                End Date
+                Ngày kết thúc
               </label>
               <div className="relative">
                 <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
@@ -206,7 +206,7 @@ function LeaveDetailModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
-                Days Remaining
+                Số ngày nghỉ còn lại
               </label>
               <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                 {daysRemaining}
@@ -218,10 +218,10 @@ function LeaveDetailModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
-                New Resumption Date
+                Ngày đi làm lại
               </label>
               <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
-                {nextDay.toLocaleDateString("en-GB", {
+                {nextDay.toLocaleDateString("vi-VN", {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",
@@ -234,7 +234,7 @@ function LeaveDetailModal({
           {/* Reason */}
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">
-              Reason
+              Lý do
             </label>
             <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm min-h-[60px]">
               {data.reason}
@@ -247,7 +247,7 @@ function LeaveDetailModal({
           <button
             className={`w-full ${statusBg} border ${statusBorder} text-white font-semibold py-2.5 rounded`}
           >
-            {data.status === "APPROVED" ? "Approved" : "Pending"}
+            {data.status === "APPROVED" ? "Đã duyệt" : "Đang chờ"}
           </button>
         </div>
 
@@ -256,178 +256,13 @@ function LeaveDetailModal({
             onClick={onClose}
             className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
           >
-            Cancel
+            Đóng
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-// function LeaveCreateModal({ onClose }: { onClose: () => void }) {
-//   const form = useForm<LeaveFormValues>({
-//     initialValues: {
-//       date_from: null,
-//       date_to: null,
-//       reason: "",
-//       description: "",
-//     },
-
-//     validate: {
-//       date_from: (value) => (!value ? "Vui lòng chọn ngày bắt đầu" : null),
-//       date_to: (value, values) => {
-//         if (!value) return "Vui lòng chọn ngày kết thúc";
-//         if (values.date_from && value < values.date_from) {
-//           return "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
-//         }
-//         return null;
-//       },
-//       reason: (value) =>
-//         value.trim().length < 3 ? "Nhập lý do nghỉ phép" : null,
-//     },
-//   });
-
-//   const handleSubmit = async (values: LeaveFormValues) => {
-//     const data = {
-//       date_from: values.date_from,
-//       date_to: values.date_to,
-//       reason: values.reason,
-//       description: values.description,
-//     };
-//     try {
-//       await createLeaveRequest(data);
-//       notifications.show({
-//         title: "Success",
-//         message: "Leave request created successfully",
-//         color: "green",
-//       });
-//       form.reset();
-//       onClose();
-//     } catch (error) {
-//       notifications.show({
-//         title: "Error",
-//         message: "Failed to create leave request",
-//         color: "red",
-//       });
-//     }
-//   };
-//   return (
-//     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-//       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-//         {/* Header Modal */}
-//         <div className="p-6 pb-2">
-//           <div className="flex items-start gap-3">
-//             <div className="mt-1">
-//               <RefreshCw size={32} className="text-gray-800" />
-//             </div>
-//             <div>
-//               <h2 className="text-xl font-bold text-gray-900">
-//                 Create Leave Request
-//               </h2>
-//               <p className="text-sm text-gray-500">
-//                 Fill in the details to create a new leave request
-//               </p>
-//             </div>
-//             <button
-//               onClick={onClose}
-//               className="ml-auto text-gray-400 hover:text-gray-600"
-//             >
-//               <X size={24} />
-//             </button>
-//           </div>
-//         </div>
-//         <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-4">
-//           <div className="p-6 space-y-4">
-//             <div className="grid grid-cols-2 gap-4">
-//               <div>
-//                 <div className="relative">
-//                   <DatePickerInput
-//                     label="Start Date"
-//                     labelProps={{
-//                       className: "text-sm font-medium text-gray-600 mb-1",
-//                     }}
-//                     placeholder="Chọn ngày bắt đầu"
-//                     valueFormat="DD/MM/YYYY"
-//                     required
-//                     rightSection={
-//                       <Calendar size={16} className="text-gray-400" />
-//                     }
-//                     {...form.getInputProps("date_from")}
-//                     onChange={(value) => {
-//                       form.setFieldValue("date_from", value);
-
-//                       const date_to = form.values.date_to;
-//                       if (value && date_to && date_to < value) {
-//                         form.setFieldValue("date_to", null);
-//                       }
-//                     }}
-//                   />
-//                 </div>
-//               </div>
-//               <div>
-//                 <div className="relative">
-//                   <DatePickerInput
-//                     label="End Date"
-//                     labelProps={{
-//                       className: "text-sm font-medium text-gray-600 mb-1",
-//                     }}
-//                     placeholder="Chọn ngày kết thúc"
-//                     required
-//                     valueFormat="DD/MM/YYYY"
-//                     minDate={form.values.date_from ?? undefined}
-//                     rightSection={
-//                       <Calendar size={16} className="text-gray-400" />
-//                     }
-//                     {...form.getInputProps("date_to")}
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-
-//             <div>
-//               <TextInput
-//                 label="Reason"
-//                 labelProps={{
-//                   className: "block text-sm font-medium text-gray-600 mb-1",
-//                 }}
-//                 required
-//                 placeholder="Nhập lý do nghỉ phép"
-//                 {...form.getInputProps("reason")}
-//               />
-//             </div>
-
-//             <div>
-//               <Textarea
-//                 rows={3}
-//                 label="Description"
-//                 labelProps={{
-//                   className: "block text-sm font-medium text-gray-600 mb-1",
-//                 }}
-//                 placeholder="Mô tả chi tiết"
-//                 {...form.getInputProps("description")}
-//               />
-//             </div>
-//           </div>
-
-//           {/* Footer Buttons */}
-//           <div className="px-6 py-3 pt-0">
-//             <Button fullWidth color="green.7" type="submit" h={45} fw={600}>
-//               Submit
-//             </Button>
-//           </div>
-//         </form>
-//         <div className="p-6 pt-0">
-//           <button
-//             onClick={onClose}
-//             className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
-//           >
-//             Cancel
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
 
 // 2. Main Page
 export default function LeaveManagementPage() {
@@ -470,22 +305,7 @@ export default function LeaveManagementPage() {
 
     fetchData();
   }, [isSubmitted]);
-  // useEffect(() => {
-  //   async function fetchAttendanceHistory() {
-  //     try {
-  //       const res = await getMyAttendanceMonthlySummary({
-  //         year: new Date().getFullYear(),
-  //         month: new Date().getMonth() + 1,
-  //       });
-  //       console.log("Attendance history : ", res);
-  //       setAttendanceHistory(res?.data);
-  //     } catch (error) {
-  //       console.error("Error fetching leave history:", error);
-  //     }
-  //   }
 
-  //   fetchAttendanceHistory();
-  // }, []);
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -510,30 +330,20 @@ export default function LeaveManagementPage() {
     setActiveActionId(null);
   };
 
-  // const handleApprove = (id: number) => {
-  //   setDecisions((prev) => ({ ...prev, [id]: "approved" }));
-  //   setActiveActionId(null);
-  // };
-
-  // const handleDecline = (id: number) => {
-  //   setDecisions((prev) => ({ ...prev, [id]: "declined" }));
-  //   setActiveActionId(null);
-  // };
-
   const onSubmit = async (data: LeaveFormData) => {
     try {
       await createLeaveRequest(data);
       reset();
       notifications.show({
-        title: "Request submitted",
-        message: "Your leave request has been submitted successfully.",
+        title: "Đã nộp yêu cầu",
+        message: "Yêu cầu nghỉ phép của bạn đã được nộp thành công.",
         color: "green",
       });
     } catch (error) {
       notifications.show({
-        title: "Failed to submit request",
+        title: "Nộp yêu cầu thất bại",
         message:
-          "An error occurred while submitting your request. Please try again.",
+          "Đã có lỗi xảy ra trong quá trình nộp yêu cầu. Vui lòng thử lại.",
         color: "red",
       });
     }
@@ -546,96 +356,22 @@ export default function LeaveManagementPage() {
         <div>
           <h1 className="text-xl font-bold text-[#21252B]">Request Tracking</h1>
           <p className="text-sm text-gray-500">
-            Create leave request and view leave history
+            Tạo yêu cầu nghỉ phép và xem lịch sử nghỉ phép
           </p>
         </div>
-        {/* <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-gray-100 rounded text-gray-600">
-            <Filter size={20} className="fill-current" />
-          </button>
-          <button
-            className="flex items-center gap-2 bg-main-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#0c820c] transition-colors"
-            onClick={() => setOpenCreateModal(true)}
-          >
-            New request <Plus size={16} />
-          </button>
-        </div> */}
       </div>
 
       {/* Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
-        {/* <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
-          <h3 className="text-lg font-semibold text-grey-900 mb-3">
-            Attendance Tracking
-          </h3>
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-grey-900">Worked Days</span>
-                <span className="text-sm text-muted-foreground">
-                  {attendanceHistory?.workedDays} of{" "}
-                  {attendanceHistory?.requiredWorkingDays} day(s)
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-main-600 rounded-full"
-                  style={{
-                    width: `${Math.max(
-                      0,
-                      Math.min(
-                        100,
-                        attendanceHistory?.workedDays
-                          ? (attendanceHistory?.workedDays /
-                              attendanceHistory?.requiredWorkingDays) *
-                              100
-                          : 0,
-                      ),
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-grey-900">Absent</span>
-                <span className="text-sm text-muted-foreground">
-                  {attendanceHistory?.absentDays} of{" "}
-                  {attendanceHistory?.requiredWorkingDays} day(s)
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 rounded-full"
-                  style={{
-                    width: `${Math.max(
-                      0,
-                      Math.min(
-                        100,
-                        attendanceHistory?.absentDays
-                          ? (attendanceHistory?.requiredWorkingDays /
-                              attendanceHistory?.requiredWorkingDays) *
-                              100
-                          : 0,
-                      ),
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div> */}
-
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:h-60">
         <div className="col-span-2 bg-white rounded-lg p-4 shadow-sm border border-grey-50 flex flex-col">
           <h3 className="text-lg font-semibold text-grey-900">
-            Create leave request
+            Tạo yêu cầu nghỉ phép
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-2">
               <div>
                 <Label>
-                  Start date <span className="text-red-500">*</span>
+                  Ngày bắt đầu <span className="text-red-500">*</span>
                 </Label>
                 <Controller
                   control={control}
@@ -643,7 +379,7 @@ export default function LeaveManagementPage() {
                   render={({ field }) => (
                     <div className="relative group mt-1">
                       <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
-                      <Input
+                      <input
                         type="date"
                         value={
                           typeof field.value === "string" ? field.value : ""
@@ -653,7 +389,7 @@ export default function LeaveManagementPage() {
                         name={field.name}
                         ref={field.ref}
                         onClick={(e) => e.currentTarget.showPicker?.()}
-                        className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
+                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
                         required
                       />
                     </div>
@@ -668,7 +404,7 @@ export default function LeaveManagementPage() {
 
               <div>
                 <Label>
-                  End date <span className="text-red-500">*</span>
+                  Ngày kết thúc <span className="text-red-500">*</span>
                 </Label>
                 <Controller
                   control={control}
@@ -676,7 +412,7 @@ export default function LeaveManagementPage() {
                   render={({ field }) => (
                     <div className="relative group mt-1">
                       <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
-                      <Input
+                      <input
                         type="date"
                         value={
                           typeof field.value === "string" ? field.value : ""
@@ -691,7 +427,7 @@ export default function LeaveManagementPage() {
                             : undefined
                         }
                         onClick={(e) => e.currentTarget.showPicker?.()}
-                        className="pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
+                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
                         required
                       />
                     </div>
@@ -706,7 +442,7 @@ export default function LeaveManagementPage() {
 
               <div className="col-span-2">
                 <Label>
-                  Reason <span className="text-red-500">*</span>
+                  Lý do <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="text"
@@ -724,13 +460,13 @@ export default function LeaveManagementPage() {
 
               <div className="col-span-2">
                 <Label>
-                  Description <span className="text-red-500">*</span>
+                  Mô tả chi tiết <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
                   className="mt-1"
                   {...register("description")}
                   rows={5}
-                  placeholder="Mô tả chi tiết"
+                  placeholder="Mô tả chi tiết lý do nghỉ phép..."
                 />
                 {errors.description && (
                   <p className="mt-1 text-sm text-red-500">
@@ -740,7 +476,7 @@ export default function LeaveManagementPage() {
               </div>
 
               <Button className="col-span-2" type="submit">
-                Submit
+                Gửi yêu cầu
               </Button>
             </div>
           </form>
@@ -748,7 +484,7 @@ export default function LeaveManagementPage() {
         <div className="col-span-2 border border-gray-200 rounded-xl p-6 min-h-[600px] relative flex flex-col">
           <div className="flex mb-4">
             <span className="text-sm font-semibold text-gray-600">
-              Leave History
+              Lịch sử nghỉ phép
             </span>
           </div>
 

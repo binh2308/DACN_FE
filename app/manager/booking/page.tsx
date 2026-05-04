@@ -170,7 +170,7 @@ export default function BookingPage() {
 				<section>
 					<div className="mb-4 flex items-center justify-between gap-3">
 						<h2 className="text-sm font-semibold text-muted-foreground">
-							{filteredRooms.length} Rooms Found
+							{filteredRooms.length} phòng được tìm thấy
 						</h2>
 					</div>
 
@@ -208,7 +208,7 @@ export default function BookingPage() {
 								Không có phòng nào phù hợp bộ lọc
 							</div>
 							<div className="mt-2 text-sm text-muted-foreground">
-								Thử xoá bộ lọc hoặc thay đổi sức chứa.
+								Thử xóa bộ lọc hoặc thay đổi sức chứa.
 							</div>
 						</div>
 					) : (
@@ -253,11 +253,11 @@ export default function BookingPage() {
 											</div>
 											<div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
 												<MapPin className="h-4 w-4" />
-												<span>{room.location || "No location"}</span>
+												<span>{room.location || "Chưa có vị trí"}</span>
 											</div>
 
 											<div className="mb-4 text-xs text-muted-foreground">
-												Capacity : {room.capacity}
+												Sức chứa: {room.capacity}
 											</div>
 
 											<Button
@@ -275,7 +275,7 @@ export default function BookingPage() {
 														if (statusType === 'maintenance') e.preventDefault();
 													}}
 												>
-													{statusType === 'available' || statusType === 'busy' ? 'More Info' : 'Đang bảo trì'}
+													{statusType === 'available' || statusType === 'busy' ? 'Xem chi tiết' : 'Đang bảo trì'}
 												</Link>
 											</Button>
 										</div>
@@ -290,14 +290,14 @@ export default function BookingPage() {
 					<div className="space-y-6">
 						<div>
 							<div className="mb-2 text-sm font-semibold text-muted-foreground">
-								Search
+								Tìm kiếm
 							</div>
 							<div className="relative">
 								<Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
 								<Input
 									value={searchText}
 									onChange={(e) => setSearchText(e.target.value)}
-									placeholder="Room name, capacity, equipment…"
+									placeholder="Tên phòng, sức chứa, thiết bị…"
 									className="pl-9"
 								/>
 							</div>
@@ -305,11 +305,11 @@ export default function BookingPage() {
 
 						<div>
 							<div className="mb-3 text-sm font-semibold text-muted-foreground">
-								Filter by Location:
+								Lọc theo vị trí:
 							</div>
 							<div className="space-y-2 max-h-48 overflow-y-auto">
 								{locationOptions.length === 0 ? (
-									<div className="text-sm text-muted-foreground">No location</div>
+									<div className="text-sm text-muted-foreground">Chưa có vị trí</div>
 								) : (
 									locationOptions.map((loc) => (
 										<label
@@ -329,11 +329,11 @@ export default function BookingPage() {
 
 						<div>
 							<div className="mb-3 text-sm font-semibold text-muted-foreground">
-								Filter by Equipment:
+								Lọc theo thiết bị:
 							</div>
 							<div className="space-y-2 max-h-48 overflow-y-auto">
 								{equipmentOptions.length === 0 ? (
-									<div className="text-sm text-muted-foreground">No equipment</div>
+									<div className="text-sm text-muted-foreground">Chưa có thiết bị</div>
 								) : (
 									equipmentOptions.map((eq) => (
 										<label
@@ -353,7 +353,7 @@ export default function BookingPage() {
 
 						<div>
 							<div className="mb-3 text-sm font-semibold text-muted-foreground">
-								Filter by Capacity:
+								Lọc theo sức chứa:
 							</div>
 
 							<div className="rounded-xl bg-accent/40 p-4">
@@ -371,13 +371,13 @@ export default function BookingPage() {
 
 								<div className="mb-4 flex items-center justify-between gap-3">
 									<div className="rounded-md bg-white px-3 py-2 text-center text-xs ring-1 ring-border">
-										<div className="text-muted-foreground">Min Limit</div>
+										<div className="text-muted-foreground">Tối thiểu</div>
 										<div className="font-semibold text-foreground">
 											{seatDraft[0]}
 										</div>
 									</div>
 									<div className="rounded-md bg-white px-3 py-2 text-center text-xs ring-1 ring-border">
-										<div className="text-muted-foreground">Max Limit</div>
+										<div className="text-muted-foreground">Tối đa</div>
 										<div className="font-semibold text-foreground">
 											{seatDraft[1]}
 										</div>
@@ -386,7 +386,7 @@ export default function BookingPage() {
 
 								<div className="flex items-center justify-between">
 									<Button type="button" variant="ghost" onClick={clearFilters}>
-										Clear filters
+										Xóa bộ lọc
 									</Button>
 
 									<Button
@@ -395,7 +395,7 @@ export default function BookingPage() {
 										size="sm"
 										className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b] text-white"
 									>
-										Apply
+										Áp dụng
 									</Button>
 								</div>
 							</div>

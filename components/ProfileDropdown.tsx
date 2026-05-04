@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Settings, Lock, LogOut } from "lucide-react";
+import { ChevronDown, User, Lock, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getEmployeeProfile, type EmployeeDetailDto } from "@/services/DACN/employee";
 import ChangePasswordPage from "@/components/ChangePasswordPage";
@@ -141,8 +141,8 @@ export default function ProfileDropdown() {
               onClick={handleProfile}
               className="w-full flex items-center gap-4 px-6 py-2 hover:bg-[#F5F6F8] transition-colors text-left"
             >
-              <Settings className="w-6 h-6 text-[#21252B] flex-shrink-0" />
-              <span className="text-base text-[#657081]">Profile</span>
+              <User className="w-6 h-6 text-[#21252B] flex-shrink-0" />
+              <span className="text-base text-[#657081]">Trang cá nhân</span>
             </button>
 
             <button
@@ -150,7 +150,7 @@ export default function ProfileDropdown() {
               className="w-full flex items-center gap-4 px-6 py-2 hover:bg-[#F5F6F8] transition-colors text-left"
             >
               <Lock className="w-6 h-6 text-[#21252B] flex-shrink-0" />
-              <span className="text-base text-[#657081]">Change Password</span>
+              <span className="text-base text-[#657081]">Đổi mật khẩu</span>
             </button>
           </div>
 
@@ -161,7 +161,7 @@ export default function ProfileDropdown() {
               className="w-full flex items-center gap-4 px-6 py-2 hover:bg-[#F5F6F8] transition-colors text-left"
             >
               <LogOut className="w-6 h-6 text-[#21252B] flex-shrink-0" />
-              <span className="text-base text-[#657081]">Log out</span>
+              <span className="text-base text-[#657081]">Đăng xuất</span>
             </button>
           </div>
         </div>

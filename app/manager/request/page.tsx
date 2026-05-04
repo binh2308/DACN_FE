@@ -123,8 +123,8 @@ function LeaveDetailModal({
                 <RefreshCw size={32} className="text-gray-800" />
              </div>
              <div>
-                <h2 className="text-xl font-bold text-gray-900">Leave Details</h2>
-                <p className="text-sm text-gray-500">View detailed information of employee leave request</p>
+                <h2 className="text-xl font-bold text-gray-900">Chi tiết nghỉ phép</h2>
+                <p className="text-sm text-gray-500">Xem thông tin chi tiết về yêu cầu nghỉ phép của nhân viên</p>
              </div>
              <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-600">
                 <X size={24} />
@@ -136,7 +136,7 @@ function LeaveDetailModal({
         <div className="p-6 space-y-4">
            {/* Employee Name */}
            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Employee Name</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Tên nhân viên</label>
               <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm">
                  {data.name}
               </div>
@@ -145,7 +145,7 @@ function LeaveDetailModal({
            {/* Date Row */}
            <div className="grid grid-cols-2 gap-4">
               <div>
-                 <label className="block text-sm font-medium text-gray-600 mb-1">Start Date</label>
+                 <label className="block text-sm font-medium text-gray-600 mb-1">Ngày bắt đầu</label>
                  <div className="relative">
                     <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                        {data.startDate}
@@ -154,7 +154,7 @@ function LeaveDetailModal({
                  </div>
               </div>
               <div>
-                 <label className="block text-sm font-medium text-gray-600 mb-1">End Date</label>
+                 <label className="block text-sm font-medium text-gray-600 mb-1">Ngày kết thúc</label>
                  <div className="relative">
                     <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                        {data.endDate}
@@ -167,7 +167,7 @@ function LeaveDetailModal({
            {/* Remaining & Resumption Row */}
            <div className="grid grid-cols-2 gap-4">
               <div>
-                 <label className="block text-sm font-medium text-gray-600 mb-1">Days Remaining</label>
+                 <label className="block text-sm font-medium text-gray-600 mb-1">Số ngày nghỉ</label>
                  <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                     {data.daysRemaining}
                     <div className="flex flex-col gap-0.5">
@@ -177,7 +177,7 @@ function LeaveDetailModal({
                  </div>
               </div>
               <div>
-                 <label className="block text-sm font-medium text-gray-600 mb-1">New Resumption Date</label>
+                 <label className="block text-sm font-medium text-gray-600 mb-1">Ngày đi làm lại</label>
                  <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm flex items-center justify-between">
                     {data.newResumptionDate}
                     <Calendar size={16} className="text-gray-400"/>
@@ -187,7 +187,7 @@ function LeaveDetailModal({
 
            {/* Reason */}
            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Reason</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Lý do chi tiết</label>
               <div className="w-full bg-gray-100 rounded px-3 py-2 text-gray-800 text-sm min-h-[60px]">
                  {data.fullReason}
               </div>
@@ -200,7 +200,7 @@ function LeaveDetailModal({
              onClick={onClose}
              className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
            >
-             Cancel
+             Đóng
            </button>
         </div>
 
@@ -314,7 +314,7 @@ export default function LeaveManagementPage() {
       
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Leave History</h1>
+        <h1 className="text-xl font-bold text-gray-900">Danh sách đơn xin nghỉ</h1>
         <div className="flex items-center gap-3">
         </div>
       </div>
@@ -324,32 +324,32 @@ export default function LeaveManagementPage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#FFFF99] text-gray-800 text-sm font-bold">
-              <th className="py-3 px-4">Name(s)</th>
-              <th className="py-3 px-4 text-center">Duration(s)</th>
-              <th className="py-3 px-4">Start Date</th>
-              <th className="py-3 px-4">End Date</th>
-              <th className="py-3 px-4">Type</th>
-              <th className="py-3 px-4">Reason(s)</th>
-              <th className="py-3 px-4 text-center">Actions</th>
+              <th className="py-3 px-4">Họ và tên</th>
+              <th className="py-3 px-4 text-center">Số ngày</th>
+              <th className="py-3 px-4">Ngày bắt đầu</th>
+              <th className="py-3 px-4">Ngày kết thúc</th>
+              <th className="py-3 px-4">Trạng thái</th>
+              <th className="py-3 px-4">Lý do</th>
+              <th className="py-3 px-4 text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody className="text-sm text-gray-700">
             {isLoading ? (
               <tr>
                 <td colSpan={7} className="py-8 px-4 text-center text-gray-500">
-                  Loading data from API...
+                  Đang tải dữ liệu...
                 </td>
               </tr>
             ) : error ? (
               <tr>
                 <td colSpan={7} className="py-8 px-4 text-center text-red-600">
-                  Failed to load leave requests. Please try again.
+                  Lỗi khi tải dữ liệu nghỉ phép. Vui lòng thử lại.
                 </td>
               </tr>
             ) : leaves.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-8 px-4 text-center text-gray-500 italic">
-                  No leave requests found.
+                  Không có yêu cầu nghỉ phép nào.
                 </td>
               </tr>
             ) : (
@@ -401,7 +401,7 @@ export default function LeaveManagementPage() {
                       }}
                       className="inline-flex items-center gap-1 bg-[#536E68] text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-[#3E524D] transition-colors"
                     >
-                      Actions <ChevronDown size={14} />
+                      Thao tác <ChevronDown size={14} />
                     </button>
 
                     {/* Dropdown Actions */}
@@ -418,7 +418,7 @@ export default function LeaveManagementPage() {
                           }}
                           className="px-3 py-2 hover:bg-[#3E524D] border-b border-[#3E524D]/50 text-left"
                         >
-                          Approve
+                          Duyệt
                         </button>
                         <button 
                           onClick={(e) => {
@@ -427,7 +427,7 @@ export default function LeaveManagementPage() {
                           }}
                           className="px-3 py-2 hover:bg-[#3E524D] border-b border-[#3E524D]/50 text-left"
                         >
-                          Decline
+                          Từ chối
                         </button>
                         <button 
                           onClick={async (e) => {
@@ -436,7 +436,7 @@ export default function LeaveManagementPage() {
                           }}
                           className="px-3 py-2 hover:bg-[#3E524D] border-b border-[#3E524D]/50 text-left font-semibold"
                         >
-                          View Details
+                          Xem chi tiết
                         </button>
                       </div>
                     )}

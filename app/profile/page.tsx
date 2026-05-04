@@ -28,7 +28,7 @@ function formatSlashDate(value?: string | null) {
 // Helper định dạng tiền tệ: 50000 -> 50.000 vnd
 function formatMoney(value?: number | null) {
   if (value == null) return "";
-  return value.toLocaleString("vi-VN") + " vnd";
+  return value.toLocaleString("vi-VN") + " VNĐ";
 }
 
 function buildFullName(p: EmployeeDetailDto) {
@@ -103,7 +103,6 @@ function extractAvatarUrl(response: unknown): string | null {
   if (isUrlLike(direct)) return direct;
   if (isUrlLike((root as any)?.data)) return (root as any).data;
 
-  // Fallback: find first url-like string in the object (depth-limited)
   const seen = new Set<any>();
   const stack: Array<{ v: any; d: number }> = [{ v: root, d: 0 }];
   while (stack.length) {
@@ -226,7 +225,7 @@ export default function Profile() {
     if (!profile) return;
     const fullname = String(form.fullname || "").trim();
     if (!fullname) {
-      alert("Vui lòng nhập Fullname");
+      alert("Vui lòng nhập Họ và tên");
       return;
     }
 
@@ -298,7 +297,7 @@ export default function Profile() {
       const res = await uploadAvatar(file);
       const url = extractAvatarUrl(res);
       if (!url) {
-        alert("Upload avatar thành công nhưng không nhận được URL ảnh.");
+        alert("Tải lên ảnh đại diện thành công nhưng không nhận được URL ảnh.");
         return;
       }
       setForm((prev) => ({ ...prev, avatarUrl: url }));
@@ -308,8 +307,8 @@ export default function Profile() {
       const message =
         (error as any)?.response?.data?.message ||
         (error as any)?.message ||
-        "Upload avatar thất bại";
-      alert(`Upload avatar thất bại. Lỗi: ${Array.isArray(message) ? message.join(", ") : message}`);
+        "Tải lên ảnh đại diện thất bại";
+      alert(`Tải lên ảnh đại diện thất bại. Lỗi: ${Array.isArray(message) ? message.join(", ") : message}`);
     } finally {
       setUploadingAvatar(false);
     }
@@ -337,7 +336,7 @@ export default function Profile() {
                 : "text-[#657081] hover:text-gray-800"
             }`}
           >
-            PERSONAL
+            THÔNG TIN CÁ NHÂN
           </button>
           <button
             onClick={() => setActiveTab("contract")}
@@ -347,7 +346,7 @@ export default function Profile() {
                 : "text-[#657081] hover:text-gray-800"
             }`}
           >
-            CONTRACT
+            HỢP ĐỒNG
           </button>
         </div>
 
@@ -377,7 +376,7 @@ export default function Profile() {
               onClick={onStartEdit}
               className="px-12 py-2 text-sm font-bold text-white bg-emerald-500 rounded shadow-md hover:bg-emerald-600 transition-all uppercase tracking-wider disabled:opacity-60"
             >
-              Edit
+              Chỉnh sửa
             </button>
           ) : (
             <>
@@ -387,7 +386,7 @@ export default function Profile() {
                 disabled={saving}
                 className="h-10 px-8 rounded border border-[#E9EAEC] text-[13px] font-semibold text-[#21252B] hover:bg-[#F5F6F8] disabled:opacity-60 shadow-sm transition-all uppercase tracking-wider"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -395,7 +394,7 @@ export default function Profile() {
                 disabled={saving}
                 className="px-12 py-2 text-sm font-bold text-white bg-emerald-500 rounded shadow-md hover:bg-emerald-600 transition-all uppercase tracking-wider disabled:opacity-60"
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? "Đang lưu..." : "Lưu"}
               </button>
             </>
           )}
@@ -406,7 +405,6 @@ export default function Profile() {
   );
 }
 
-// --- COMPONENT TÁI SỬ DỤNG CHO DÒNG INPUT ---
 const ViewRow = ({
   label,
   children,
@@ -432,9 +430,6 @@ const SectionTitle = ({ title }: { title: string }) => (
   </div>
 );
 
-// ==========================================
-// TAB PERSONAL
-// ==========================================
 function PersonalTab({
   isEditing,
   saving,
@@ -462,12 +457,12 @@ function PersonalTab({
         
         {/* L: Account Info (5 cols) */}
         <div className="col-span-12 lg:col-span-5">
-          <SectionTitle title="Account Info" />
+          <SectionTitle title="Thông tin tài khoản" />
           <div className="flex gap-6">
             <div className="flex flex-col items-center shrink-0 w-[120px]">
               <img
                 src={form.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=user"}
-                alt="Avatar"
+                alt="Ảnh đại diện"
                 className="w-24 h-24 rounded-full border-2 border-[#0B9F57] object-cover bg-gray-50"
               />
 
@@ -485,17 +480,17 @@ function PersonalTab({
                 disabled={saving || uploadingAvatar}
                 className="mt-2 w-full flex items-center justify-center gap-1 text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-1.5 rounded hover:bg-gray-200 disabled:opacity-60 whitespace-nowrap"
               >
-                <Upload size={12} /> {uploadingAvatar ? "UPLOADING" : "UPLOAD"}
+                <Upload size={12} /> {uploadingAvatar ? "ĐANG TẢI LÊN" : "TẢI LÊN"}
               </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <ViewRow label="Employee ID">
+            <div className="flex-1 min-w-0 space-y-1">
+              <ViewRow label="Mã nhân viên">
                 <input type="text" readOnly value={form.id} className={inputClass} />
               </ViewRow>
-              <ViewRow label="Roles">
+              <ViewRow label="Vai trò">
                 <input type="text" readOnly value={form.roles} className={inputClass} />
               </ViewRow>
-              <ViewRow label="Email Company">
+              <ViewRow label="Email công ty">
                 <input
                   type="email"
                   readOnly={!isEditing}
@@ -510,9 +505,9 @@ function PersonalTab({
 
         {/* R: Main Info (7 cols) */}
         <div className="col-span-12 lg:col-span-7">
-          <SectionTitle title="Main Info" />
+          <SectionTitle title="Thông tin cá nhân" />
           
-          <ViewRow label="Fullname" labelWidth="w-24">
+          <ViewRow label="Họ và tên" labelWidth="w-24">
             <input
               type="text"
               readOnly={!isEditing}
@@ -524,19 +519,19 @@ function PersonalTab({
 
           <div className="flex items-center gap-4 mb-3">
             <div className="flex-1 flex items-center">
-              <label className="text-xs font-medium text-[#657081] w-24 shrink-0">Gender</label>
+              <label className="text-xs font-medium text-[#657081] w-24 shrink-0">Giới tính</label>
               <select
                 value={form.gender}
                 onChange={(e) => setForm((prev) => ({ ...prev, gender: e.target.value }))}
                 disabled={!isEditing}
                 className={inputClass}
               >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                <option value="Male">Nam</option>
+                <option value="Female">Nữ</option>
               </select>
             </div>
             <div className="flex-1 flex items-center gap-3">
-              <label className="text-xs font-medium text-[#657081] shrink-0">Birth Day</label>
+              <label className="text-xs font-medium text-[#657081] shrink-0">Ngày sinh</label>
               <div className="relative flex-1">
                 {isEditing ? (
                   <input
@@ -555,7 +550,7 @@ function PersonalTab({
             </div>
           </div>
 
-          <ViewRow label="Phone" labelWidth="w-24">
+          <ViewRow label="Điện thoại" labelWidth="w-24">
             <input
               type="text"
               readOnly={!isEditing}
@@ -565,7 +560,7 @@ function PersonalTab({
             />
           </ViewRow>
 
-          <ViewRow label="Address" labelWidth="w-24">
+          <ViewRow label="Địa chỉ" labelWidth="w-24">
             <input
               type="text"
               readOnly={!isEditing}
@@ -577,7 +572,7 @@ function PersonalTab({
 
           <div className="flex items-center gap-4 mb-3">
             <div className="flex-1 flex items-center">
-              <label className="text-xs font-medium text-[#657081] w-24 shrink-0">Sign Day</label>
+              <label className="text-xs font-medium text-[#657081] w-24 shrink-0">Ngày ký HĐ</label>
               <div className="relative flex-1">
                 {isEditing ? (
                   <input
@@ -595,7 +590,7 @@ function PersonalTab({
               </div>
             </div>
             <div className="flex-1 flex items-center gap-3">
-              <label className="text-xs font-medium text-red-500 shrink-0">Quit Day</label>
+              <label className="text-xs font-medium text-red-500 shrink-0">Ngày nghỉ việc</label>
               <div className="relative flex-1">
                 {isEditing ? (
                   <input
@@ -618,9 +613,9 @@ function PersonalTab({
         
         {/* L: Other Info (5 cols) */}
         <div className="col-span-12 lg:col-span-5">
-          <SectionTitle title="Other Info" />
+          <SectionTitle title="Thông tin khác" />
           
-          <ViewRow label="ID Card">
+          <ViewRow label="CMND/CCCD">
             <input
               type="text"
               readOnly={!isEditing}
@@ -631,7 +626,7 @@ function PersonalTab({
           </ViewRow>
 
           <div className="flex items-center mb-3">
-            <label className="text-xs font-medium text-[#657081] w-32 shrink-0">Married</label>
+            <label className="text-xs font-medium text-[#657081] w-32 shrink-0">Đã kết hôn</label>
             <div className="flex flex-1 items-center gap-6">
               <input
                 type="checkbox"
@@ -641,7 +636,7 @@ function PersonalTab({
                 className="w-4 h-4 rounded border-[#E9EAEC] text-[#0B9F57]"
               />
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#657081] whitespace-nowrap">Children</span>
+                <span className="text-xs font-medium text-[#657081] whitespace-nowrap">Số con</span>
                 <input 
                   type="text" 
                   readOnly={!isEditing} 
@@ -656,7 +651,7 @@ function PersonalTab({
             </div>
           </div>
 
-          <ViewRow label="Children Description">
+          <ViewRow label="Mô tả về con">
             <input
               type="text"
               readOnly={!isEditing}
@@ -669,18 +664,17 @@ function PersonalTab({
 
         {/* R: University (7 cols) */}
         <div className="col-span-12 lg:col-span-7">
-          <SectionTitle title="University" />
+          <SectionTitle title="Học vấn" />
           
           <div className="w-full overflow-x-auto pb-2">
-            {/* Sử dụng min-w-[800px] để bảng có đủ không gian hiển thị text không bị cắt */}
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[15%]">Schools</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[25%]">Degree</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[22%]">Mode of study</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[13%]">Graduation Year</th>
-                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[25%]">Description</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[15%]">Trường học</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[25%]">Bằng cấp</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[22%]">Chuyên ngành</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[13%]">Năm tốt nghiệp</th>
+                  <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[25%]">Mô tả</th>
                   {isEditing ? <th className="pb-2 text-[11px] font-semibold text-[#657081] w-[34px]"></th> : null}
                 </tr>
               </thead>
@@ -775,12 +769,11 @@ function PersonalTab({
                               }))
                             }
                             className="h-[34px] w-[34px] inline-flex items-center justify-center rounded border border-red-200 bg-white text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors"
-                            title="Remove"
-                            aria-label="Remove"
-                            >
-                              {/* Lưu ý xóa màu text-[#657081] cũ ở đây để nó nhận màu đỏ từ thẻ button truyền xuống */}
-                              <X className="w-4 h-4" /> 
-                        </button>
+                            title="Xóa"
+                            aria-label="Xóa"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </td>
                       ) : null}
                     </tr>
@@ -788,7 +781,7 @@ function PersonalTab({
                 ) : (
                   <tr>
                     <td colSpan={isEditing ? 6 : 5} className="py-4 text-center text-sm text-[#657081]">
-                      No degree information
+                      Không có thông tin bằng cấp
                     </td>
                   </tr>
                 )}
@@ -803,7 +796,7 @@ function PersonalTab({
                 onClick={() => setForm((prev) => ({ ...prev, degrees: [...(prev.degrees ?? []), emptyDegree()] }))}
                 className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded hover:bg-emerald-100"
               >
-                 + Add degree
+                 + Thêm bằng cấp
               </button>
             </div>
           ) : null}
@@ -814,9 +807,6 @@ function PersonalTab({
   );
 }
 
-// ==========================================
-// TAB CONTRACT
-// ==========================================
 function ContractTab({
   isEditing,
   form,
@@ -828,19 +818,17 @@ function ContractTab({
 }) {
   return (
     <div className="max-w-[900px] mx-auto mt-4 w-full">
-      {/* Khung Contract */}
       <div className="relative border border-[#E9EAEC] rounded-lg p-8 pt-10">
         
-        {/* Label lơ lửng trên viền */}
         <div className="absolute -top-3 left-4 bg-white px-2 text-[13px] font-bold text-[#21252B]">
-          Sign Day - {formatSlashDate(form.signDate) || "N/A"}
+          Ngày ký HĐ - {formatSlashDate(form.signDate) || "N/A"}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12">
           
           {/* L: Basic Salary, Department Name */}
           <div className="space-y-1">
-            <ViewRow label="Salary Basic" labelWidth="w-32">
+            <ViewRow label="Lương cơ bản" labelWidth="w-32">
               {isEditing ? (
                 <input
                   type="text"
@@ -853,7 +841,7 @@ function ContractTab({
               )}
             </ViewRow>
             
-            <ViewRow label="Department Name" labelWidth="w-32">
+            <ViewRow label="Tên phòng ban" labelWidth="w-32">
               <input
                 type="text"
                 readOnly={!isEditing}
@@ -863,7 +851,7 @@ function ContractTab({
               />
             </ViewRow>
 
-            <ViewRow label="End Day" labelWidth="w-32">
+            <ViewRow label="Ngày nghỉ việc" labelWidth="w-32">
               <div className="relative">
                 {isEditing ? (
                   <input
@@ -884,7 +872,7 @@ function ContractTab({
 
           {/* R: Gross Salary, Department ID */}
           <div className="space-y-1">
-            <ViewRow label="Salary Gross" labelWidth="w-32">
+            <ViewRow label="Lương Gross" labelWidth="w-32">
               {isEditing ? (
                 <input
                   type="text"
@@ -897,7 +885,7 @@ function ContractTab({
               )}
             </ViewRow>
 
-            <ViewRow label="Department ID" labelWidth="w-32">
+            <ViewRow label="Mã phòng ban" labelWidth="w-32">
               <input type="text" readOnly value={form.departmentId || ""} className={inputClass} />
             </ViewRow>
           </div>

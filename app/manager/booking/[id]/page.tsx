@@ -191,7 +191,7 @@ export default function RoomDetailPage() {
 					<div className="flex items-start justify-between gap-3">
 						<div className="min-w-0">
 							<div className="text-xl font-semibold text-foreground truncate">
-								{room?.name || "Room"}
+								{room?.name || "Phòng"}
 							</div>
 							{room?.location ? (
 								<div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
@@ -210,7 +210,7 @@ export default function RoomDetailPage() {
 							}}
 							disabled={roomLoading || bookingsLoading}
 						>
-							Refresh
+							Làm mới
 						</Button>
 					</div>
 
@@ -227,7 +227,7 @@ export default function RoomDetailPage() {
 					) : (
 						<>
 							<div className="mt-5 text-xs font-semibold text-muted-foreground">
-								Room Facility :
+								Tiện ích phòng:
 							</div>
 
 							<div className="mt-3 flex flex-wrap items-center gap-3">
@@ -236,7 +236,7 @@ export default function RoomDetailPage() {
 										<Users className="h-4 w-4 text-muted-foreground" />
 									</span>
 									<div className="text-xs">
-										<div className="text-muted-foreground">Capacity</div>
+										<div className="text-muted-foreground">Sức chứa</div>
 										<div className="font-semibold text-foreground">{room.capacity}</div>
 									</div>
 								</div>
@@ -258,7 +258,7 @@ export default function RoomDetailPage() {
 													</span>
 													<div className="text-xs">
 														<div className="text-muted-foreground">{name}</div>
-														<div className="font-semibold text-foreground">Yes</div>
+														<div className="font-semibold text-foreground">Có</div>
 													</div>
 												</div>
 										);
@@ -271,10 +271,10 @@ export default function RoomDetailPage() {
 									asChild
 									className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
 								>
-									<Link href={`/manager/booking/${room.id}/book`}>Book Now</Link>
+									<Link href={`/manager/booking/${room.id}/book`}>Đặt phòng ngay</Link>
 								</Button>
 								<Button asChild variant="outline" className="rounded-md">
-									<Link href="/manager/booking">Back</Link>
+									<Link href="/manager/booking">Quay lại</Link>
 								</Button>
 							</div>
 						</>
@@ -284,7 +284,7 @@ export default function RoomDetailPage() {
 
 			{/* BOOKED SLOTS: full width below */}
 			<div className="mt-8">
-				<div className="mb-3 text-sm font-semibold text-foreground">Booked Slots</div>
+				<div className="mb-3 text-sm font-semibold text-foreground">Lịch đã đặt</div>
 
 				{bookingsError ? (
 					<div className="rounded-xl bg-white p-8 text-sm text-rose-800 shadow-sm ring-1 ring-rose-200">
@@ -296,7 +296,7 @@ export default function RoomDetailPage() {
 					</div>
 				) : bookings.length === 0 ? (
 					<div className="rounded-xl bg-white p-8 text-sm text-muted-foreground shadow-sm ring-1 ring-border">
-						No booked slots yet.
+						Chưa có lịch đặt phòng nào.
 					</div>
 				) : (
 					<div className="rounded-xl bg-white shadow-sm ring-1 ring-border">
@@ -307,7 +307,7 @@ export default function RoomDetailPage() {
 										<div className="text-sm font-semibold text-foreground">
 											{g.label}
 											<div className="mt-1 text-xs font-normal text-muted-foreground">
-												{g.items.length} slot{g.items.length > 1 ? "s" : ""}
+												{g.items.length} lịch đặt
 										</div>
 										</div>
 
@@ -326,12 +326,12 @@ export default function RoomDetailPage() {
 															<div className="flex flex-wrap items-center justify-between gap-2">
 																<div className="text-sm font-semibold text-foreground">{time}</div>
 																<div className="text-xs text-muted-foreground">
-																	Organizer: <span className="font-medium text-foreground">{b.name}</span>
+																	Người tổ chức: <span className="font-medium text-foreground">{b.name}</span>
 																</div>
 															</div>
 
 															<div className="mt-1 text-xs text-muted-foreground">
-																{b.roomName || room?.name || "Room"}
+																{b.roomName || room?.name || "Phòng"}
 															</div>
 														</div>
 													</div>

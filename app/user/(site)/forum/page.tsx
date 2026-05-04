@@ -114,7 +114,7 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
       <div>
         <h1 className="text-xl font-bold text-[#21252B]">Team Collaboration</h1>
         <p className="text-sm text-gray-500">
-          Connect with your team through chat, updates, and announcements
+          Kết nối với đội ngũ qua trò chuyện, cập nhật và thông báo
         </p>
       </div>
 

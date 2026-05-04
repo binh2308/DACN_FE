@@ -150,7 +150,7 @@ export default function EmployeeManage() {
         <div className="relative w-52">
           <input
             type="text"
-            placeholder="Search by ID, Name..."
+            placeholder="Tìm theo mã, tên..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-8 pl-3 pr-8 text-xs italic text-[#A2A2A2] border border-[#B6B6B6] rounded focus:outline-none focus:ring-1 focus:ring-green-500"
@@ -162,7 +162,7 @@ export default function EmployeeManage() {
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/admin/employee/create")} className="flex items-center gap-2 h-8 px-3 bg-[#EBEDF0] rounded text-xs text-[#172B4D] hover:bg-[#D6D9E0] transition-colors">
             <Plus className="w-4 h-4" />
-            <span>Create Account</span>
+            <span>Tạo tài khoản</span>
           </button>
         </div>
       </div>
@@ -170,23 +170,23 @@ export default function EmployeeManage() {
       {/* Table */}
       <div className="border border-[#C1C7D0] rounded overflow-hidden flex flex-col">
         {isLoading ? (
-            <div className="p-10 text-center text-gray-500 text-sm">Loading data from API...</div>
+            <div className="p-10 text-center text-gray-500 text-sm">Đang tải dữ liệu…</div>
         ) : error ? (
-          <div className="p-10 text-center text-red-600 text-sm">Failed to load employees. Please try again.</div>
+          <div className="p-10 text-center text-red-600 text-sm">Không thể tải danh sách nhân viên. Vui lòng thử lại.</div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full" style={{ fontFamily: "Poppins, sans-serif" }}>
                   <thead>
                   <tr className="border-b border-[#C1C7D0]">
-                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-16">No.</th>
-                      <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">ID</th>
-                      <th className="px-10 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-48">Fullname</th>
-                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Role</th>
-                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Phone</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-16">STT</th>
+                      <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Mã</th>
+                      <th className="px-10 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-48">Họ và tên</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Vai trò</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-32">Số điện thoại</th>
                       <th className="px-9 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-44">Email</th>
-                      <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-36">Sign Day</th>
-                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black w-32">Action</th>
+                      <th className="px-5 py-2.5 text-center text-sm font-normal text-black border-r border-[#C1C7D0] w-36">Ngày vào làm</th>
+                      <th className="px-3 py-2.5 text-center text-sm font-normal text-black w-32">Thao tác</th>
                   </tr>
                   </thead>
                   <tbody>
@@ -219,7 +219,7 @@ export default function EmployeeManage() {
                   ) : (
                       <tr>
                       <td colSpan={8} className="text-center py-8 text-gray-500 italic">
-                          No employees found.
+                        Không tìm thấy nhân viên.
                       </td>
                       </tr>
                   )}

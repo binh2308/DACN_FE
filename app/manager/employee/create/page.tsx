@@ -143,7 +143,7 @@ export default function CreateEmployeePage() {
     if (isSubmitting) return;
 
     if (!form.fullname.trim() || !form.email.trim() || !form.password) {
-      alert("Vui lòng nhập đầy đủ Fullname, Email và Password");
+      alert("Vui lòng nhập đầy đủ Họ và tên, Email và Mật khẩu");
       return;
     }
 
@@ -209,16 +209,16 @@ export default function CreateEmployeePage() {
             <span className="font-bold text-sm">+</span>
           </div>
           <div>
-            <h2 className="text-base font-bold text-gray-800 leading-tight">Create Employee</h2>
-            <p className="text-xs text-gray-500 font-medium">Add a new employee record</p>
+            <h2 className="text-base font-bold text-gray-800 leading-tight">Tạo mới nhân viên</h2>
+            <p className="text-xs text-gray-500 font-medium">Thêm hồ sơ nhân viên mới</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => router.push(`/manager/employee`)}
           className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Close"
-          title="Close"
+          aria-label="Đóng"
+          title="Đóng"
         >
           <X className="w-5 h-5" />
         </button>
@@ -238,34 +238,34 @@ export default function CreateEmployeePage() {
                   <div className="relative w-28 h-28 mb-4">
                     <img
                       src="https://i.pravatar.cc/150?u=new_emp"
-                      alt="Avatar"
+                      alt="Ảnh đại diện"
                       className="w-full h-full object-cover rounded-full shadow-sm border-4 border-white"
                     />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 text-center">
-                    {form.fullname || "New Employee"}
+                    {form.fullname || "Nhân viên mới"}
                   </h3>
                   <span className="mt-1 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
-                    {form.role || "No Role"}
+                    {form.role || "Chưa có vai trò"}
                   </span>
                 </div>
 
                 <div className="p-6 space-y-4">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Account Details</h4>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Thông tin tài khoản</h4>
                   
-                  <FormRow label="Employee ID">
-                    <input type="text" disabled className={`${inputBase} bg-gray-50 text-gray-400`} placeholder="(Auto-generated upon save)" />
+                  <FormRow label="ID Nhân viên">
+                    <input type="text" disabled className={`${inputBase} bg-gray-50 text-gray-400`} placeholder="(Tự động tạo khi lưu)" />
                   </FormRow>
 
-                  <FormRow label="Password" required>
+                  <FormRow label="Mật khẩu" required>
                     <input type="password" name="password" value={form.password} onChange={onChange} className={inputBase} placeholder="••••••••" />
                   </FormRow>
 
-                  <FormRow label="Roles">
+                  <FormRow label="Vai trò">
                     <select name="role" value={form.role} onChange={onChange} className={inputBase}>
-                      <option value="" disabled>-- Select Role --</option>
-                      <option value="EMPLOYEE">EMPLOYEE</option>
-                      <option value="MANAGER">MANAGER</option>
+                      <option value="" disabled>-- Chọn vai trò --</option>
+                      <option value="EMPLOYEE">Nhân viên (EMPLOYEE)</option>
+                      <option value="MANAGER">Quản lý (MANAGER)</option>
                     </select>
                   </FormRow>
 
@@ -282,50 +282,50 @@ export default function CreateEmployeePage() {
               {/* Personal Info Card */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-sm font-bold text-gray-800 mb-5 pb-2 border-b border-gray-100 flex items-center gap-2">
-                  Personal Information
+                  Thông tin cá nhân
                 </h3>
                 
                 <div className="mb-5">
-                  <FormRow label="Fullname" required>
-                    <input type="text" name="fullname" value={form.fullname} onChange={onChange} className={inputBase} placeholder="e.g. John Michael Doe" />
+                  <FormRow label="Họ và tên" required>
+                    <input type="text" name="fullname" value={form.fullname} onChange={onChange} className={inputBase} placeholder="VD: Nguyễn Văn A" />
                   </FormRow>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                  <FormRow label="Gender">
+                  <FormRow label="Giới tính">
                     <select name="gender" value={form.gender} onChange={onChange} className={inputBase}>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
+                      <option value="Male">Nam</option>
+                      <option value="Female">Nữ</option>
                     </select>
                   </FormRow>
-                  <FormRow label="Date of Birth">
+                  <FormRow label="Ngày sinh">
                     <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={onChange} className={inputBase} />
                   </FormRow>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-5">
                   <div className="w-full md:w-1/4">
-                    <FormRow label="ID Card">
+                    <FormRow label="CMND/CCCD">
                       <input type="text" name="idCard" value={form.idCard} onChange={onChange} className={inputBase} placeholder="123456789" />
                     </FormRow>
                   </div>
                   <div className="w-full md:w-auto flex flex-col gap-1.5 flex-shrink-0">
-                    <label className="text-sm font-medium text-gray-700">Family Status</label>
+                    <label className="text-sm font-medium text-gray-700">Tình trạng gia đình</label>
                     <div className="flex items-center gap-4 h-[38px] px-3 bg-gray-50 border border-gray-200 rounded-md">
                       <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
                         <input type="checkbox" name="married" checked={form.married} onChange={onChange} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
-                        <span className="text-sm text-gray-700 whitespace-nowrap">Married</span>
+                        <span className="text-sm text-gray-700 whitespace-nowrap">Đã kết hôn</span>
                       </label>
                       <div className="w-px h-4 bg-gray-300 flex-shrink-0"></div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-sm text-gray-700 whitespace-nowrap">Children:</span>
+                        <span className="text-sm text-gray-700 whitespace-nowrap">Số con:</span>
                         <input type="number" name="children" value={form.children} onChange={onChange} className="w-16 px-2 py-1 text-sm border border-gray-300 rounded shadow-sm focus:ring-emerald-500 focus:border-emerald-500" />
                       </div>
                     </div>
                   </div>
                   <div className="w-full md:flex-1">
-                    <FormRow label="Children Desc.">
-                       <input type="text" name="childrenDescription" value={form.childrenDescription} onChange={onChange} className={inputBase} placeholder="Description..." />
+                    <FormRow label="Mô tả về con cái">
+                       <input type="text" name="childrenDescription" value={form.childrenDescription} onChange={onChange} className={inputBase} placeholder="Mô tả chi tiết..." />
                     </FormRow>
                   </div>
                 </div>
@@ -334,39 +334,39 @@ export default function CreateEmployeePage() {
               {/* Employment Details Card */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-sm font-bold text-gray-800 mb-5 pb-2 border-b border-gray-100">
-                  Employment Details
+                  Thông tin công việc
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                  <FormRow label="Phone">
-                    <input type="text" name="phone" value={form.phone} onChange={onChange} className={inputBase} placeholder="+1234567890" />
+                  <FormRow label="Số điện thoại">
+                    <input type="text" name="phone" value={form.phone} onChange={onChange} className={inputBase} placeholder="0904000010" />
                   </FormRow>
-                  <FormRow label="Address">
-                    <input type="text" name="address" value={form.address} onChange={onChange} className={inputBase} placeholder="123 Main St, City, Country" />
+                  <FormRow label="Địa chỉ">
+                    <input type="text" name="address" value={form.address} onChange={onChange} className={inputBase} placeholder="123 Đường số 1, Quận 1, TP.HCM" />
                   </FormRow>
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 mb-5">
-                  <FormRow label="Department Name">
-                    <input type="text" name="departmentName" value={form.departmentName} onChange={onChange} className={inputBase} placeholder="e.g. Sales, Engineering" />
+                  <FormRow label="Tên phòng ban">
+                    <input type="text" name="departmentName" value={form.departmentName} onChange={onChange} className={inputBase} placeholder="VD: Sales, IT" />
                   </FormRow>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                  <FormRow label="Sign Day">
+                  <FormRow label="Ngày ký hợp đồng">
                     <input type="date" name="signDay" value={form.signDay} onChange={onChange} className={inputBase} />
                   </FormRow>
-                  <FormRow label="Quit Day">
+                  <FormRow label="Ngày nghỉ việc">
                     <input type="date" name="quitDay" value={form.quitDay} onChange={onChange} className={inputBase} />
                   </FormRow>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <FormRow label="Basic Salary">
-                    <input type="number" name="salaryBasic" value={form.salaryBasic} onChange={onChange} className={inputBase} placeholder="50000" />
+                  <FormRow label="Lương cơ bản">
+                    <input type="number" name="salaryBasic" value={form.salaryBasic} onChange={onChange} className={inputBase} placeholder="1400" />
                   </FormRow>
-                  <FormRow label="Gross Salary">
-                    <input type="number" name="salaryGross" value={form.salaryGross} onChange={onChange} className={inputBase} placeholder="60000" />
+                  <FormRow label="Lương Gross">
+                    <input type="number" name="salaryGross" value={form.salaryGross} onChange={onChange} className={inputBase} placeholder="1700" />
                   </FormRow>
                 </div>
               </div>
@@ -374,47 +374,47 @@ export default function CreateEmployeePage() {
               {/* Education / Degrees Card */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-6 pb-4 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-gray-800">Education & Degrees</h3>
+                  <h3 className="text-sm font-bold text-gray-800">Học vấn & Bằng cấp</h3>
                   <button
                     type="button"
                     onClick={handleAddDegree}
                     className="inline-flex items-center px-3 py-1.5 border border-emerald-200 text-xs font-semibold rounded-md text-emerald-700 bg-emerald-50 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
                   >
-                    + Add Degree
+                    + Thêm bằng cấp
                   </button>
                 </div>
                 <div className="overflow-x-auto p-6 pt-0 mt-4">
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-500 uppercase bg-gray-50 rounded-md">
                       <tr>
-                        <th className="px-3 py-3 font-semibold rounded-tl-md">School</th>
-                        <th className="px-3 py-3 font-semibold">Degree</th>
-                        <th className="px-3 py-3 font-semibold">Field</th>
-                        <th className="px-3 py-3 font-semibold w-24">Year</th>
-                        <th className="px-3 py-3 font-semibold">Description</th>
-                        <th className="px-3 py-3 font-semibold rounded-tr-md w-16 text-center">Act</th>
+                        <th className="px-3 py-3 font-semibold rounded-tl-md">Trường học</th>
+                        <th className="px-3 py-3 font-semibold">Bằng cấp</th>
+                        <th className="px-3 py-3 font-semibold">Chuyên ngành</th>
+                        <th className="px-3 py-3 font-semibold w-24">Năm TN</th>
+                        <th className="px-3 py-3 font-semibold">Mô tả</th>
+                        <th className="px-3 py-3 font-semibold rounded-tr-md w-16 text-center">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {(form.degrees && form.degrees.length > 0 ? form.degrees : [emptyDegree()]).map((d, idx) => (
                         <tr key={`degree-${idx}`} className="hover:bg-gray-50/50">
                           <td className="py-3 px-2">
-                            <input value={d.school} onChange={(e) => handleDegreeChange(idx, "school", e.target.value)} className={inputBase} placeholder="e.g. MIT" />
+                            <input value={d.school} onChange={(e) => handleDegreeChange(idx, "school", e.target.value)} className={inputBase} placeholder="VD: Đại học Bách Khoa" />
                           </td>
                           <td className="py-3 px-2">
-                            <input value={d.degree} onChange={(e) => handleDegreeChange(idx, "degree", e.target.value)} className={inputBase} placeholder="e.g. Bachelor" />
+                            <input value={d.degree} onChange={(e) => handleDegreeChange(idx, "degree", e.target.value)} className={inputBase} placeholder="VD: Cử nhân" />
                           </td>
                           <td className="py-3 px-2">
-                            <input value={d.fieldOfStudy} onChange={(e) => handleDegreeChange(idx, "fieldOfStudy", e.target.value)} className={inputBase} placeholder="e.g. CS" />
+                            <input value={d.fieldOfStudy} onChange={(e) => handleDegreeChange(idx, "fieldOfStudy", e.target.value)} className={inputBase} placeholder="VD: CNTT" />
                           </td>
                           <td className="py-3 px-2">
                             <input type="number" value={d.graduationYear} onChange={(e) => handleDegreeChange(idx, "graduationYear", e.target.value)} className={inputBase} placeholder="2022" />
                           </td>
                           <td className="py-3 px-2">
-                            <input value={d.description} onChange={(e) => handleDegreeChange(idx, "description", e.target.value)} className={inputBase} placeholder="Desc..." />
+                            <input value={d.description} onChange={(e) => handleDegreeChange(idx, "description", e.target.value)} className={inputBase} placeholder="Mô tả..." />
                           </td>
                           <td className="py-3 px-2 text-center">
-                            <button type="button" onClick={() => handleRemoveDegree(idx)} className="text-red-500 hover:text-red-700 font-medium text-xs p-2 rounded-md hover:bg-red-50 transition-colors" title="Remove">
+                            <button type="button" onClick={() => handleRemoveDegree(idx)} className="text-red-500 hover:text-red-700 font-medium text-xs p-2 rounded-md hover:bg-red-50 transition-colors" title="Xóa">
                               <X className="w-4 h-4 mx-auto" />
                             </button>
                           </td>
@@ -439,10 +439,10 @@ export default function CreateEmployeePage() {
             {isSubmitting ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                CREATING...
+                ĐANG TẠO...
               </>
             ) : (
-              "CREATE EMPLOYEE"
+              "TẠO NHÂN VIÊN"
             )}
           </button>
         </div>

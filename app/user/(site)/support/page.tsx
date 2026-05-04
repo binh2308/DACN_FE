@@ -83,8 +83,8 @@ function TicketCreateModal({
       });
 
       notifications.show({
-        title: "Success",
-        message: "Ticket created successfully",
+        title: "Thành công",
+        message: "Tạo yêu cầu hỗ trợ thành công",
         color: "green",
       });
       form.reset();
@@ -94,7 +94,7 @@ function TicketCreateModal({
         error instanceof Error ? error.message : String(error);
 
       notifications.show({
-        title: "Error",
+        title: "Lỗi",
         message: errorMessage,
         color: "red",
       });
@@ -111,10 +111,10 @@ function TicketCreateModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                Create Support Ticket
+                Tạo yêu cầu hỗ trợ
               </h2>
               <p className="text-sm text-gray-500">
-                Fill in the details to create a new support ticket.
+                Điền thông tin để tạo yêu cầu hỗ trợ mới.
               </p>
             </div>
             <button
@@ -176,7 +176,7 @@ function TicketCreateModal({
               h={45}
               fw={600}
             >
-              Create
+              Tạo
             </MantineButton>
           </div>
         </form>
@@ -185,7 +185,7 @@ function TicketCreateModal({
             onClick={onClose}
             className="w-full border border-red-500 text-red-500 font-semibold py-2.5 rounded hover:bg-red-50 transition-colors"
           >
-            Cancel
+            Hủy
           </button>
         </div>
       </div>
@@ -209,7 +209,14 @@ function SupportPage() {
   const [loading, setLoading] = React.useState(false);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
   const [limit, setLimit] = React.useState(6);
-  const tabs = ["My Tickets", "My Assigned Tickets"];
+  const tabOptions = React.useMemo(
+    () =>
+      [
+        { key: "My Tickets", label: "Ticket của tôi" },
+        { key: "My Assigned Tickets", label: "Ticket được giao" },
+      ] as const,
+    [],
+  );
 
   React.useEffect(() => {
     const fetchCategories = async () => {
@@ -270,11 +277,11 @@ function SupportPage() {
     <div className="mx-auto w-full max-w-[1400px] px-6 py-6">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">
-          Total:{" "}
+          Tổng:{" "}
           <span className="font-semibold text-foreground">
             {filtered.length}
           </span>{" "}
-          Tickets
+          yêu cầu
         </div>
 
         <div className="flex items-center gap-2">
@@ -285,7 +292,7 @@ function SupportPage() {
             type="button"
           >
             <Plus className="h-4 w-4" />
-            Create
+            Tạo yêu cầu
           </Button>
         </div>
       </div>
@@ -299,13 +306,13 @@ function SupportPage() {
             }
           >
             <SelectTrigger className="bg-white">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="CLOSED">Closed</SelectItem>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="OPEN">Chờ xử lý</SelectItem>
+              <SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
+              <SelectItem value="CLOSED">Đã đóng</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -321,28 +328,28 @@ function SupportPage() {
             }
           >
             <SelectTrigger className="bg-white">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Danh mục" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              <SelectItem value="IT Support">IT Support</SelectItem>
-              <SelectItem value="technical">Technical</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              <SelectItem value="all">Tất cả danh mục</SelectItem>
+              <SelectItem value="IT Support">Hỗ trợ IT</SelectItem>
+              <SelectItem value="technical">Kỹ thuật</SelectItem>
+              <SelectItem value="other">Khác</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="ml-auto flex gap-2">
-          {tabs.map((tab) => (
+          {tabOptions.map((tab) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors border ${
-                activeTab === tab
+                activeTab === tab.key
                   ? "bg-gray-100 border-gray-300 text-main-600"
                   : "bg-white border-transparent text-gray-500 hover:bg-gray-50"
               }`}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -381,25 +388,25 @@ function SupportPage() {
 
               <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
                 <div>
-                  <div className="text-muted-foreground">User</div>
+                  <div className="text-muted-foreground">Người gửi</div>
                   <div className="mt-1 font-semibold text-foreground">
                     {t.employee.email}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Submitted</div>
+                  <div className="text-muted-foreground">Ngày gửi</div>
                   <div className="mt-1 font-semibold text-foreground">
                     {formatDate(t.createdAt, "DD/MM/YYYY")}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Category</div>
+                  <div className="text-muted-foreground">Danh mục</div>
                   <div className="mt-1 font-semibold text-foreground">
                     {t.category.name}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Ticket ID</div>
+                  <div className="text-muted-foreground">Mã ticket</div>
                   <div className="mt-1 font-semibold text-foreground">
                     {t.id}
                   </div>
@@ -416,7 +423,7 @@ function SupportPage() {
             className="rounded-full"
             onClick={() => setLimit((x) => x + 6)}
           >
-            Load More
+            Tải thêm
           </Button>
         ) : null}
       </div>

@@ -16,7 +16,8 @@ function normalizeScheduleResponse(data: unknown): AnyScheduleItem[] {
   return [];
 }
 
-const DAYS_OF_WEEK = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+// Đã đổi sang tiếng Việt
+const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const HOURS_OF_DAY = Array.from({ length: 24 }, (_, i) => i);
 
 function getStartOfWeek(date: Date) {
@@ -194,8 +195,8 @@ export default function ManagerCalendarPage() {
         <div className="flex-1 min-h-0 overflow-y-auto p-6 pt-4 space-y-8 custom-scrollbar">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900">
-                {miniCalendarDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
+              <h3 className="font-bold text-gray-900 capitalize">
+                {miniCalendarDate.toLocaleString("vi-VN", { month: "long", year: "numeric" })}
               </h3>
               <div className="flex items-center gap-1 text-gray-400">
                 <ChevronLeft
@@ -212,13 +213,13 @@ export default function ManagerCalendarPage() {
             </div>
 
             <div className="grid grid-cols-7 text-center text-[11px] font-bold text-gray-500 mb-2">
-              <div>Mo</div>
-              <div>Tu</div>
-              <div>We</div>
-              <div>Th</div>
-              <div>Fr</div>
-              <div>Sa</div>
-              <div>Su</div>
+              <div>T2</div>
+              <div>T3</div>
+              <div>T4</div>
+              <div>T5</div>
+              <div>T6</div>
+              <div>T7</div>
+              <div>CN</div>
             </div>
 
             <div className="grid grid-cols-7 text-center text-sm gap-y-1">
@@ -312,14 +313,14 @@ export default function ManagerCalendarPage() {
                 <ChevronRight size={20} />
               </button>
             </div>
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-2xl font-bold text-gray-800 capitalize">
               {viewMode === "day"
-                ? currentDate.toLocaleDateString("en-US", {
+                ? currentDate.toLocaleDateString("vi-VN", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
                   })
-                : currentDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
+                : currentDate.toLocaleString("vi-VN", { month: "long", year: "numeric" })}
             </h2>
           </div>
 
@@ -332,7 +333,7 @@ export default function ManagerCalendarPage() {
                   : "text-gray-500 hover:text-gray-800"
               }`}
             >
-              Week
+              Tuần
             </button>
             <button
               onClick={() => setViewMode("day")}
@@ -342,7 +343,7 @@ export default function ManagerCalendarPage() {
                   : "text-gray-500 hover:text-gray-800"
               }`}
             >
-              Day
+              Ngày
             </button>
           </div>
         </header>

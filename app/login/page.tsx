@@ -43,7 +43,7 @@ export default function Login() {
       setLoading(false);
       route.push(json.redirectTo ?? "/");
     } catch (err) {
-      setWarning("Invalid email or password!");
+      setWarning("Email hoặc mật khẩu không đúng!");
       setLoading(false);
     }
   };

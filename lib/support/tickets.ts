@@ -66,10 +66,10 @@ export type CreateSupportTicketInput = {
 };
 
 export const formatTicketStatus = (s: TicketStatus) => {
-  if (s === "OPEN") return "Open";
-  if (s === "IN_PROGRESS") return "In Progress";
-  if (s === "CLOSED") return "Closed";
-  return "Deferred";
+  if (s === "OPEN") return "Chờ xử lý";
+  if (s === "IN_PROGRESS") return "Đang xử lý";
+  if (s === "CLOSED") return "Đã đóng";
+  return "Tạm hoãn";
 };
 
 export const statusBadgeVariant = (s: TicketStatus) => {
