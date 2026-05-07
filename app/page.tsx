@@ -1,7 +1,7 @@
 //import type React from "react";
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { decodeJwt } from "jose";
+import { decodeJwtPayload } from "@/lib/jwt";
 //import { CustomLoader } from "@/components/CustomLoader";
 
 export default async function RootLayout() {
@@ -9,7 +9,7 @@ export default async function RootLayout() {
   if (!token) {
     return redirect("/login");
   }
-  const payload = decodeJwt(token) as any;
+  const payload = decodeJwtPayload(token) as any;
   const roles = payload?.roles;
   // const router = useRouter();
   // const token =

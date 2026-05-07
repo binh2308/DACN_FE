@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeJwt } from "jose";
+import { decodeJwtPayload } from "@/lib/jwt";
 
 
 const NOT_FOUND_PATH = "/404";
@@ -41,10 +41,12 @@ export function middleware(req: NextRequest) {
   try {
     // decode token để lấy ra roles
 
-    const payload = decodeJwt(token);
+    const payload = decodeJwtPayload(token);
+    if (!payload) {
+      return NextResponse.rewrite(new URL(NOT_FOUND_PATH, req.url));
+    }
 
     const allowedPrefix = getAllowedPrefixFromRoles((payload as any).roles);
-    console.log("Middleware check roles:", payload.roles, "=> allowedPrefix:", allowedPrefix);
     if (!allowedPrefix) {
       return NextResponse.rewrite(new URL(NOT_FOUND_PATH, req.url));
     }

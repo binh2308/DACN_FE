@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { AlertCircle, EllipsisVertical } from "lucide-react";
-import { DonutChart } from "@mantine/charts";
 import { StatCard } from "@/components/StatCard";
 import { useMemo } from "react";
 import { useRequest } from "ahooks";
@@ -136,6 +135,68 @@ function buildRoomHeatmap(bookings: BookingByRoom[], weekStart: Date) {
 
   const max = Math.max(0, ...counts.flat());
   return { weekDays, hourLabels, counts, max };
+}
+
+function DonutRing({
+  size,
+  thickness,
+  segments,
+}: {
+  size: number;
+  thickness: number;
+  segments: Array<{ value: number; color: string }>;
+}) {
+  const total = segments.reduce((sum, s) => sum + (Number.isFinite(s.value) ? s.value : 0), 0);
+  const safeTotal = total > 0 ? total : 0;
+
+  const radius = (size - thickness) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  let offset = 0;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="-rotate-90"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="transparent"
+        stroke="#E9EAEC"
+        strokeWidth={thickness}
+      />
+
+      {safeTotal > 0
+        ? segments.map((s, idx) => {
+            const value = Number.isFinite(s.value) ? Math.max(0, s.value) : 0;
+            const length = (value / safeTotal) * circumference;
+
+            const circle = (
+              <circle
+                key={idx}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="transparent"
+                stroke={s.color}
+                strokeWidth={thickness}
+                strokeDasharray={`${length} ${circumference - length}`}
+                strokeDashoffset={-offset}
+              />
+            );
+
+            offset += length;
+            return circle;
+          })
+        : null}
+    </svg>
+  );
 }
 
 export default function ManagerIndex() {
@@ -278,17 +339,8 @@ export default function ManagerIndex() {
     return map;
   }, [checkinTodayRes]);
 
-  const { data: leaveMonthRes } = useRequest(() =>
-    getDepartmentLeaveRequests({
-      page: 1,
-      pageSize: 1000,
-      fromDate: toISODate(monthStart),
-      toDate: toISODate(monthEnd),
-    }),
-  );
-
   const approvedLeaveReasonTodayByEmployeeId = useMemo(() => {
-    const items = (leaveMonthRes?.data?.items ?? []) as any[];
+    const items = (leaveCurrentMonthRes?.data?.items ?? []) as any[];
     const map: Record<string, string> = {};
     for (const it of items) {
       const empId = String(it?.employee?.id ?? "").trim();
@@ -308,7 +360,7 @@ export default function ManagerIndex() {
       if (reason) map[empId] = reason;
     }
     return map;
-  }, [leaveMonthRes, todayStr]);
+  }, [leaveCurrentMonthRes, todayStr]);
 
   const { data: pendingLeaveRes } = useRequest(() =>
     getDepartmentLeaveRequests({
@@ -540,12 +592,12 @@ export default function ManagerIndex() {
             </div>
 
             <div className="relative w-fit mx-auto">
-              <DonutChart
+              <DonutRing
                 size={140}
                 thickness={22}
-                data={[
-                  { name: "Nam", value: genderCounts.male, color: "green" },
-                  { name: "Nữ", value: genderCounts.female, color: "violet" },
+                segments={[
+                  { value: genderCounts.female, color: "#A78BFA" },
+                  { value: genderCounts.male, color: "#34D399" },
                 ]}
               />
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { decodeJwt } from "jose";
+import { decodeJwtPayload } from "@/lib/jwt";
 //import { authLogin } from "@/services/DACN/auth"; // gọi backend thật
 
 function pickHomeByRoles(roles: unknown) {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       path: "/",
     });
     // Decode server-side để lấy roles (decode thôi; muốn chắc chắn thì verify ở backend hoặc jwtVerify)
-    const payload = decodeJwt(accessToken) as any;
+    const payload = decodeJwtPayload(accessToken) as any;
     const roles = payload?.roles ?? [];
     const redirectTo = pickHomeByRoles(roles);
 
