@@ -88,6 +88,14 @@ export declare namespace DACN {
     created_at: string;
     updated_at: string;
   };
+  type UpdateReportDto = {
+    accomplishment?: string;
+    in_progress?: string;
+    plan?: string;
+    blocker?: string;
+    progress_percentage?: number;
+    progress_notes?: string;
+  };
   type AnnouncementCreateDto = {
     title: string;
     content: string;
