@@ -34,17 +34,18 @@ import {
 } from "@/components/ui/select";
 import { notifications } from "@mantine/notifications";
 import { DACN } from "@/services/DACN/typings";
-import { createReport, getMyReport } from "@/services/DACN/report";
+import {
+  createReport,
+  getMyReport,
+  updateReport,
+} from "@/services/DACN/report";
 import { Textarea } from "@/components/ui/textarea";
 import { toDateOnlyUTC, formatDate } from "@/lib/utils";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, set, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormDatePicker } from "@/components/FormDatePicker";
-import { MyDatePicker } from "@/components/MyDatePicker";
-import { report } from "process";
+
 import { Center, Loader } from "@mantine/core";
-import { fi } from "zod/v4/locales";
 
 const reportSchema = z.object({
   week_starting: z
@@ -173,8 +174,11 @@ function EmptyState({ title, hint }: { title: string; hint?: string }) {
 
 export default function WeeklyReportsPage() {
   const [reports, setReports] = React.useState<DACN.ReportResponseDto[]>([]);
+  const [selectedReport, setSelectedReport] =
+    React.useState<DACN.ReportResponseDto | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [updated, setUpdated] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState<number>(0);
   const [totalPage, setTotalPage] = React.useState<number>(0);
@@ -202,8 +206,15 @@ export default function WeeklyReportsPage() {
           page: 1,
           limit: 10,
         });
+        //console.log("Fetched my report:", res.data?.data);
+        if (selectedId) {
+          setSelectedReport(
+            res.data?.data.find(
+              (r: DACN.ReportResponseDto) => r.id === selectedId,
+            ) ?? null,
+          );
+        }
         setReports(res.data?.data);
-        setSelectedId(res.data?.data[0]?.id ?? null);
       } catch (error) {
         console.error("Failed to fetch report:", error);
       } finally {
@@ -212,11 +223,23 @@ export default function WeeklyReportsPage() {
     };
     setLoading(true);
     fetchReport();
-  }, [createOpen]);
+  }, [createOpen, updated]);
 
-  React.useEffect(() => {
-    setIsEditing(false);
-  }, [selectedId]);
+  // React.useEffect(() => {
+  //   const initial = readReports();
+  //   setReports(initial);
+  //   setSelectedId(initial[0]?.id ?? null);
+  // }, []);
+  // React.useEffect(() => {
+  //   if (reports.length === 0) return;
+  //   writeReports(reports);
+  // }, [reports]);
+
+  // const departments = React.useMemo(() => {
+  //   const set = new Set<string>();
+  //   for (const r of reports) set.add(r.department);
+  //   return Array.from(set).sort();
+  // }, [reports]);
 
   const filtered = React.useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -236,14 +259,13 @@ export default function WeeklyReportsPage() {
         return true;
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    if (!selectedReport) {
+      setSelectedReport(filteredReports[0] ?? null);
+    }
+
     setTotalPage(Math.ceil(filteredReports.length / 4));
     return filteredReports.slice(currentPage * 4, currentPage * 4 + 4);
   }, [reports, filters, currentPage]);
-
-  const selected = React.useMemo(
-    () => reports.find((r) => r.id === selectedId) ?? null,
-    [reports, selectedId],
-  );
   const counts = React.useMemo(() => {
     return {
       total: reports.length,
@@ -253,14 +275,39 @@ export default function WeeklyReportsPage() {
     };
   }, [reports]);
 
-  const updateSelected = (patch: Partial<WeeklyReport>) => {
-    if (!selected) return;
-    const updatedAt = new Date().toISOString();
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === selected.id ? { ...r, ...patch, updatedAt } : r,
-      ),
-    );
+  const updateSelected = async () => {
+    if (!selectedReport) return;
+    if (
+      selectedReport.accomplishment.trim() === "" ||
+      selectedReport.in_progress.trim() === "" ||
+      selectedReport.plan.trim() === ""
+    )
+      return;
+    const updateBody: DACN.UpdateReportDto = {
+      accomplishment: selectedReport.accomplishment,
+      in_progress: selectedReport.in_progress,
+      plan: selectedReport.plan,
+      blocker: selectedReport.blocker,
+      progress_percentage: Number(selectedReport.progress_percentage),
+      progress_notes: selectedReport.progress_notes,
+    };
+    try {
+      await updateReport(updateBody, selectedReport.id);
+      notifications.show({
+        title: "Thành công",
+        message: "Cập nhật báo cáo thành công.",
+        color: "green",
+      });
+      setUpdated(!updated);
+      setIsEditing(false);
+    } catch (error) {
+      notifications.show({
+        title: "Đã có lỗi xảy ra",
+        message:
+          "Đã có lỗi xảy ra khi cập nhật báo cáo. Vui lòng cập nhật lại sau.",
+        color: "red",
+      });
+    }
   };
 
   const onSubmit = async (data: ReportFormData) => {
@@ -345,13 +392,15 @@ export default function WeeklyReportsPage() {
                           <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
                           <Input
                             type="date"
-                            value={typeof field.value === "string" ? field.value : ""}
+                            value={
+                              typeof field.value === "string" ? field.value : ""
+                            }
                             onChange={(e) => field.onChange(e.target.value)}
                             onBlur={field.onBlur}
                             name={field.name}
                             ref={field.ref}
                             onClick={(e) => e.currentTarget.showPicker?.()}
-                            className="bg-white pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
+                            className="bg-white pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors [&::-webkit-calendar-picker-indicator]:hidden"
                             required
                           />
                         </div>
@@ -558,12 +607,12 @@ export default function WeeklyReportsPage() {
                 </Center>
               ) : (
                 filtered.map((r) => {
-                  const active = r.id === selectedId;
+                  const active = r.id === selectedReport?.id;
                   return (
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => setSelectedId(r.id)}
+                      onClick={() => setSelectedReport(r)}
                       className={
                         "w-full rounded-xl border bg-white p-4 text-left transition-shadow hover:shadow-sm " +
                         (active ? "ring-2 ring-emerald-300" : "")
@@ -627,22 +676,22 @@ export default function WeeklyReportsPage() {
         </Card>
 
         <div className="lg:col-span-7">
-          {selected ? (
+          {selectedReport ? (
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <CardTitle className="text-sm">
-                      {`# ${selected.id.slice(0, 5)} `}
+                      {`# ${selectedReport.id.slice(0, 5)} `}
                     </CardTitle>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Badge
-                      variant={statusVariant(selected.status)}
+                      variant={statusVariant(selectedReport.status)}
                       className="rounded-full"
                     >
-                      {statusLabel(selected.status)}
+                      {statusLabel(selectedReport.status)}
                     </Badge>
                   </div>
                 </div>
@@ -653,12 +702,14 @@ export default function WeeklyReportsPage() {
                   <div className="mb-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Tiến độ</span>
                     <span className="font-semibold text-foreground">
-                      {clampProgress(selected.progress_percentage)}%
+                      {clampProgress(selectedReport.progress_percentage)}%
                     </span>
                   </div>
-                  <ProgressBar value={selected.progress_percentage} />
+                  <ProgressBar value={selectedReport.progress_percentage} />
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Cập nhật: {formatDateShort(selected.updated_at)}</span>
+                    <span>
+                      Updated: {formatDateShort(selectedReport.updated_at)}
+                    </span>
                   </div>
                 </div>
 
@@ -668,38 +719,73 @@ export default function WeeklyReportsPage() {
                       Công việc đã hoàn thành
                     </div>
                     <ReadonlyTextarea
-                      value={selected?.accomplishment || "--"}
+                      value={selectedReport?.accomplishment}
                       readonly={!isEditing}
+                      onChange={(newValue) =>
+                        setSelectedReport((prev) =>
+                          prev ? { ...prev, accomplishment: newValue } : prev,
+                        )
+                      }
                       className={`whitespace-pre-wrap rounded-xl border ${isEditing ? "bg-white" : "bg-muted/30"} p-3 text-sm text-foreground`}
                     />
+                    {selectedReport?.accomplishment.trim() === "" && (
+                      <span className="text-sm text-red-500">
+                        Vui lòng điền thông tin
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
                       Công việc đang thực hiện
                     </div>
                     <ReadonlyTextarea
-                      value={selected.in_progress || "—"}
+                      value={selectedReport?.in_progress}
                       readonly={!isEditing}
+                      onChange={(newValue) =>
+                        setSelectedReport((prev) =>
+                          prev ? { ...prev, in_progress: newValue } : prev,
+                        )
+                      }
                       className={`whitespace-pre-wrap rounded-xl border ${isEditing ? "bg-white" : "bg-muted/30"} p-3 text-sm text-foreground`}
                     />
+                    {selectedReport?.in_progress?.trim() === "" && (
+                      <span className="text-sm text-red-500">
+                        Vui lòng điền thông tin
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
                       Kế hoạch tuần tới
                     </div>
                     <ReadonlyTextarea
-                      value={selected.plan || "—"}
+                      value={selectedReport?.plan}
                       readonly={!isEditing}
+                      onChange={(newValue) =>
+                        setSelectedReport((prev) =>
+                          prev ? { ...prev, plan: newValue } : prev,
+                        )
+                      }
                       className={`whitespace-pre-wrap rounded-xl border ${isEditing ? "bg-white" : "bg-muted/30"} p-3 text-sm text-foreground`}
                     />
+                    {selectedReport?.plan.trim() === "" && (
+                      <span className="text-sm text-red-500">
+                        Vui lòng điền thông tin
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
                       Khó khăn / Vướng mắc
                     </div>
                     <ReadonlyTextarea
-                      value={selected.blocker || "—"}
+                      value={selectedReport?.blocker || "—"}
                       readonly={!isEditing}
+                      onChange={(newValue) =>
+                        setSelectedReport((prev) =>
+                          prev ? { ...prev, blocker: newValue } : prev,
+                        )
+                      }
                       className={`whitespace-pre-wrap rounded-xl border ${isEditing ? "bg-white" : "bg-muted/30"} p-3 text-sm text-foreground`}
                     />
                   </div>
@@ -709,9 +795,16 @@ export default function WeeklyReportsPage() {
                   <div className="text-xs font-semibold text-foreground">
                     Ghi chú tiến độ
                   </div>
-                  <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
-                    {selected.progress_notes || "—"}
-                  </div>
+                  <ReadonlyTextarea
+                    value={selectedReport?.progress_notes || "—"}
+                    readonly={!isEditing}
+                    onChange={(newValue) =>
+                      setSelectedReport((prev) =>
+                        prev ? { ...prev, progress_notes: newValue } : prev,
+                      )
+                    }
+                    className={`whitespace-pre-wrap rounded-xl border ${isEditing ? "bg-white" : "bg-muted/30"} p-3 text-sm text-foreground`}
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -720,16 +813,26 @@ export default function WeeklyReportsPage() {
                       type="button"
                       variant="outline"
                       className="rounded-full"
-                      onClick={() => setIsEditing(false)}
+                      onClick={() => {
+                        setSelectedReport(
+                          reports.find(
+                            (r: DACN.ReportResponseDto) =>
+                              r.id === selectedReport.id,
+                          ) ?? null,
+                        );
+                        setIsEditing(false);
+                      }}
                     >
                       Hủy
                     </Button>
                   )}
-                  {selected.status !== "REVIEWED" && (
+                  {selectedReport?.status !== "REVIEWED" && (
                     <Button
                       type="button"
                       className="rounded-full"
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={() =>
+                        isEditing ? updateSelected() : setIsEditing(!isEditing)
+                      }
                     >
                       {isEditing ? "Lưu" : "Chỉnh sửa"}
                     </Button>

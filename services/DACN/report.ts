@@ -26,7 +26,10 @@ export function getListReports(
   });
 }
 
-export function getMyReport(params?: ReportParams, options?: { [key: string]: any }) {
+export function getMyReport(
+  params?: ReportParams,
+  options?: { [key: string]: any },
+) {
   return request<any>("/management/reports/me", {
     method: "GET",
     params,
@@ -43,6 +46,21 @@ export function createReport(
 ) {
   return request<DACN.ReportResponseDto>(`/management/reports`, {
     method: "POST",
+    data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
+export function updateReport(
+  data: DACN.UpdateReportDto,
+  reportId: string,
+  options?: { [key: string]: any },
+) {
+  return request<DACN.ReportResponseDto>(`/management/reports/${reportId}`, {
+    method: "PATCH",
     data,
     headers: {
       "Content-Type": "application/json",
