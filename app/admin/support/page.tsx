@@ -11,6 +11,9 @@ import {
 	Ticket,
 	MessageSquare,
 	Trash2,
+	X,
+	Plus,
+	GripVertical,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +29,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import {
+	createDepartment,
+	deleteDepartment,
 	getDepartments,
 	type DepartmentDto,
 } from "@/services/DACN/department";
@@ -34,6 +39,7 @@ import {
 	deleteManagementTicketCategory,
 	getManagementTickets,
 	getManagementTicketCategories,
+	assignManagementTicketCategoriesToDepartment,
 	type GetManagementTicketsQuery,
 	type ManagementTicketCategoryDto,
 	type ManagementTicketDto,
@@ -116,53 +122,32 @@ export default function SupportPage() {
 	const [loading, setLoading] = React.useState(false);
 	const [error, setError] = React.useState<string | null>(null);
 
+	// --- Department & Category States ---
 	const [departments, setDepartments] = React.useState<DepartmentDto[]>([]);
 	const [departmentsLoading, setDepartmentsLoading] = React.useState(false);
-	const [departmentsError, setDepartmentsError] = React.useState<string | null>(null);
-
-	const [departmentId, setDepartmentId] = React.useState<string>("");
+	
 	const [categories, setCategories] = React.useState<ManagementTicketCategoryDto[]>([]);
 	const [categoriesLoading, setCategoriesLoading] = React.useState(false);
-	const [categoriesError, setCategoriesError] = React.useState<string | null>(null);
-	const [createCategoryName, setCreateCategoryName] = React.useState<string>("");
-	const [createCategoryDescription, setCreateCategoryDescription] =
-		React.useState<string>("");
-	const [creatingCategory, setCreatingCategory] = React.useState(false);
-	const [deletingCategoryIds, setDeletingCategoryIds] = React.useState<
-		Record<string, boolean>
-	>({});
 
+	// Creation States
+	const [createCategoryName, setCreateCategoryName] = React.useState<string>("");
+	const [createCategoryDescription, setCreateCategoryDescription] = React.useState<string>("");
+	const [createDeptName, setCreateDeptName] = React.useState<string>("");
+	const [creatingCategory, setCreatingCategory] = React.useState(false);
+	const [creatingDepartment, setCreatingDepartment] = React.useState(false);
+
+	// Mapping UI States
+	const containerRef = React.useRef<HTMLDivElement>(null);
+	const [nodePositions, setNodePositions] = React.useState<Record<string, { x: number; y: number }>>({});
+	const [dragState, setDragState] = React.useState<{ sourceId: string; currentX: number; currentY: number } | null>(null);
+
+	// --- 1. Fetching Data ---
 	const normalizeDepartments = React.useCallback((raw: any) => {
 		const payload = raw?.data ?? raw;
 		if (Array.isArray(payload)) return payload as DepartmentDto[];
 		if (Array.isArray(payload?.data)) return payload.data as DepartmentDto[];
 		return [] as DepartmentDto[];
 	}, []);
-
-	React.useEffect(() => {
-		let cancelled = false;
-		async function run() {
-			setDepartmentsLoading(true);
-			setDepartmentsError(null);
-			try {
-				const res: any = await getDepartments();
-				const items = normalizeDepartments(res);
-				if (cancelled) return;
-				setDepartments(items);
-			} catch (e: any) {
-				if (cancelled) return;
-				setDepartmentsError(
-					e?.message || "Lỗi không xác định khi tải danh sách phòng ban.",
-				);
-			} finally {
-				if (!cancelled) setDepartmentsLoading(false);
-			}
-		}
-		run();
-		return () => {
-			cancelled = true;
-		};
-	}, [normalizeDepartments]);
 
 	const normalizeCategories = React.useCallback((raw: any) => {
 		const payload = raw?.data ?? raw;
@@ -171,80 +156,250 @@ export default function SupportPage() {
 		return [] as ManagementTicketCategoryDto[];
 	}, []);
 
-	const fetchCategories = React.useCallback(async (deptId?: string) => {
-		const dept = String(deptId ?? "").trim();
-		if (!dept) {
-			setCategories([]);
-			setCategoriesError("Vui lòng chọn phòng ban để tra cứu category.");
-			return;
-		}
+	const fetchAllData = React.useCallback(async () => {
+		setDepartmentsLoading(true);
 		setCategoriesLoading(true);
-		setCategoriesError(null);
 		try {
-			const res: any = await getManagementTicketCategories({
-				department_id: dept ? dept : undefined,
-			});
-			setCategories(normalizeCategories(res));
+			const [deptRes, catRes] = await Promise.all([
+				getDepartments(),
+				getManagementTicketCategories({}) // Lấy tất cả categories
+			]);
+			setDepartments(normalizeDepartments(deptRes));
+			setCategories(normalizeCategories(catRes));
 		} catch (e: any) {
-			setCategoriesError(e?.message || "Lỗi không xác định khi tải category.");
+			toast({ variant: "destructive", title: "Lỗi tải dữ liệu sơ đồ", description: e?.message });
 		} finally {
+			setDepartmentsLoading(false);
 			setCategoriesLoading(false);
 		}
-	}, [normalizeCategories]);
+	}, [normalizeDepartments, normalizeCategories, toast]);
 
-	const handleCreateCategory = React.useCallback(async () => {
+	React.useEffect(() => {
+		fetchAllData();
+	}, [fetchAllData]);
+
+	// --- 2. Add / Delete Actions ---
+	const handleCreateCategory = async () => {
 		const name = createCategoryName.trim();
 		if (!name || creatingCategory) return;
 		setCreatingCategory(true);
 		try {
-			const description = createCategoryDescription.trim();
 			await createManagementTicketCategory({
 				name,
-				description: description ? description : undefined,
+				// FIX: Đảm bảo luôn gửi string (tránh gửi undefined làm API bắt lỗi validation)
+				description: createCategoryDescription.trim(), 
 			});
-			toast({
-				title: "Tạo category thành công",
-				description: name,
-			});
+			toast({ title: "Tạo Category thành công", description: name });
 			setCreateCategoryName("");
 			setCreateCategoryDescription("");
-			if (departmentId.trim()) await fetchCategories(departmentId);
+			// FIX: Thêm await để đảm bảo gọi xong danh sách mới render
+			await fetchAllData(); 
 		} catch (e: any) {
-			toast({
-				variant: "destructive",
-				title: "Không thể tạo category",
-				description: e?.message || "Vui lòng thử lại.",
-			});
+			toast({ variant: "destructive", title: "Lỗi", description: e?.message || "Không thể tạo category" });
 		} finally {
 			setCreatingCategory(false);
 		}
-	}, [createCategoryDescription, createCategoryName, creatingCategory, departmentId, fetchCategories, toast]);
+	};
 
-	const handleDeleteCategory = React.useCallback(
-		async (id: string) => {
-			if (!id || deletingCategoryIds[id]) return;
-			setDeletingCategoryIds((p) => ({ ...p, [id]: true }));
-			try {
-				await deleteManagementTicketCategory(id);
-				toast({
-					title: "Đã xoá category",
-					description: `ID: ${id.slice(0, 8)}...`,
-				});
-				if (departmentId.trim()) await fetchCategories(departmentId);
-			} catch (e: any) {
-				toast({
-					variant: "destructive",
-					title: "Không thể xoá category",
-					description: e?.message || "Vui lòng thử lại.",
-				});
-			} finally {
-				setDeletingCategoryIds((p) => ({ ...p, [id]: false }));
+	const handleDeleteCategory = async (id: string) => {
+		if (!confirm("Bạn có chắc chắn muốn xoá Category này?")) return;
+		try {
+			await deleteManagementTicketCategory(id);
+			toast({ title: "Đã xoá Category" });
+			setCategories(prev => prev.filter(c => c.id !== id));
+		} catch (e: any) {
+			toast({ variant: "destructive", title: "Lỗi", description: e?.message || "Không thể xoá" });
+		}
+	};
+
+	const handleCreateDepartment = async () => {
+		const name = createDeptName.trim();
+		if (!name || creatingDepartment) return;
+		setCreatingDepartment(true);
+		try {
+			await createDepartment({ name });
+			toast({ title: "Thêm phòng ban thành công", description: name });
+			setCreateDeptName("");
+			await fetchAllData();
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Không thể thêm phòng ban",
+				description: e?.message || "Vui lòng thử lại.",
+			});
+		} finally {
+			setCreatingDepartment(false);
+		}
+	};
+
+	const handleDeleteDepartment = async (id: string) => {
+		if (!confirm("Xoá phòng ban này?")) return;
+		try {
+			await deleteDepartment(id);
+			toast({ title: "Đã xoá Phòng ban" });
+			await fetchAllData();
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Không thể xoá phòng ban",
+				description: e?.message || "Vui lòng thử lại.",
+			});
+		}
+	};
+
+	// --- 3. Mapping Interactions (Kéo thả nối dây) ---
+	const updatePositions = React.useCallback(() => {
+		if (!containerRef.current) return;
+		const containerRect = containerRef.current.getBoundingClientRect();
+		const newPos: Record<string, { x: number; y: number }> = {};
+
+		const nodes = containerRef.current.querySelectorAll('[data-node-id]');
+		nodes.forEach(node => {
+			const rect = node.getBoundingClientRect();
+			const id = node.getAttribute('data-node-id') as string;
+			const type = node.getAttribute('data-node-type');
+
+			// Tính toán vị trí của "chấm kết nối" tương đối so với container
+			if (type === 'category') {
+				// Chấm ở bên phải thẻ Category
+				newPos[id] = {
+					x: rect.right - containerRect.left,
+					y: rect.top - containerRect.top + rect.height / 2
+				};
+			} else {
+				// Chấm ở bên trái thẻ Department
+				newPos[id] = {
+					x: rect.left - containerRect.left,
+					y: rect.top - containerRect.top + rect.height / 2
+				};
 			}
-		},
-		[deletingCategoryIds, departmentId, fetchCategories, toast],
-	);
+		});
+		setNodePositions(newPos);
+	}, []);
+
+	// Cập nhật toạ độ khi data thay đổi hoặc resize cửa sổ
+	React.useEffect(() => {
+		const timer = setTimeout(updatePositions, 100); // Đợi render xong
+		window.addEventListener('resize', updatePositions);
+		return () => {
+			clearTimeout(timer);
+			window.removeEventListener('resize', updatePositions);
+		};
+	}, [categories, departments, updatePositions]);
+
+	// Xử lý sự kiện kéo chuột
+	const handleMouseMove = React.useCallback((e: MouseEvent) => {
+		if (!dragState || !containerRef.current) return;
+		const rect = containerRef.current.getBoundingClientRect();
+		setDragState(prev => prev ? {
+			...prev,
+			currentX: e.clientX - rect.left,
+			currentY: e.clientY - rect.top
+		} : null);
+	}, [dragState]);
+
+	const handleMouseUp = React.useCallback(() => {
+		if (dragState) setDragState(null);
+	}, [dragState]);
+
+	React.useEffect(() => {
+		if (dragState) {
+			window.addEventListener('mousemove', handleMouseMove);
+			window.addEventListener('mouseup', handleMouseUp);
+		}
+		return () => {
+			window.removeEventListener('mousemove', handleMouseMove);
+			window.removeEventListener('mouseup', handleMouseUp);
+		};
+	}, [dragState, handleMouseMove, handleMouseUp]);
+
+	const startDrag = (e: React.MouseEvent, catId: string) => {
+		e.preventDefault();
+		if (!containerRef.current) return;
+		const rect = containerRef.current.getBoundingClientRect();
+		setDragState({
+			sourceId: catId,
+			currentX: e.clientX - rect.left,
+			currentY: e.clientY - rect.top
+		});
+	};
+
+	const handleDropOnDepartment = async (deptId: string) => {
+		if (!dragState) return;
+		const catId = dragState.sourceId;
+		setDragState(null);
+
+		const targetDept = departments.find((d) => d.id === deptId);
+		if (!targetDept) return;
+
+		const currentCategoryIds = categories
+			.filter((c) => c.departments?.some((d) => d.id === deptId))
+			.map((c) => c.id);
+
+		if (currentCategoryIds.includes(catId)) {
+			toast({ title: "Category đã được gán", description: targetDept.name });
+			return;
+		}
+
+		const nextCategoryIds = Array.from(
+			new Set([...currentCategoryIds, catId].filter(Boolean)),
+		);
+
+		try {
+			await assignManagementTicketCategoriesToDepartment(deptId, {
+				category_ids: nextCategoryIds,
+			});
+			toast({ title: "Đã phân công", description: targetDept.name });
+			await fetchAllData();
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Không thể phân công",
+				description: e?.message || "Vui lòng thử lại.",
+			});
+		}
+	};
+
+	const handleUnlink = async (catId: string, deptId: string) => {
+		const nextCategoryIds = categories
+			.filter((c) => c.departments?.some((d) => d.id === deptId) && c.id !== catId)
+			.map((c) => c.id);
+
+		const deptName = departments.find((d) => d.id === deptId)?.name;
+		try {
+			await assignManagementTicketCategoriesToDepartment(deptId, {
+				category_ids: nextCategoryIds,
+			});
+			toast({ title: "Đã huỷ phân công", description: deptName });
+			await fetchAllData();
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Không thể huỷ phân công",
+				description: e?.message || "Vui lòng thử lại.",
+			});
+		}
+	};
+
+	// Vẽ đường cong Bezier
+	const drawLine = (x1: number, y1: number, x2: number, y2: number) => {
+		const offset = Math.max(Math.abs(x2 - x1) * 0.5, 40);
+		return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+	};
+
+	// Chuẩn bị danh sách các đường nối hiện có
+	const activeLinks = React.useMemo(() => {
+		const links: { catId: string; deptId: string }[] = [];
+		categories.forEach(c => {
+			c.departments?.forEach(d => {
+				links.push({ catId: c.id, deptId: d.id });
+			});
+		});
+		return links;
+	}, [categories]);
 
 
+	// --- 4. Fetching Tickets ---
 	React.useEffect(() => {
 		setTickets([]);
 		setPage(1);
@@ -287,6 +442,7 @@ export default function SupportPage() {
 
 	return (
 		<div className="mx-auto w-full min-h-screen bg-background pb-12">
+			{/* --- HEADER --- */}
 			<div className="bg-card border-b border-border px-6 py-6 sm:py-8 mb-6">
 				<div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
 					<div>
@@ -310,17 +466,213 @@ export default function SupportPage() {
 			</div>
 
 			<div className="max-w-[1400px] mx-auto px-6">
+				
+				{/* --- VISUAL MAPPING SECTION --- */}
+				<div className="bg-card p-6 rounded-xl shadow-sm ring-1 ring-border mb-8 overflow-hidden">
+					<div className="flex flex-col gap-1 mb-6">
+						<h2 className="text-lg font-semibold text-foreground">
+							Sơ đồ Phân công Hỗ trợ
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Kéo thả từ Category sang Phòng ban để thiết lập luồng xử lý. Nhấn vào dấu X trên đường nối để huỷ phân công.
+						</p>
+					</div>
+
+					{/* Form Thêm mới */}
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 pb-8 border-b border-border">
+						{/* Add Category */}
+						<div className="space-y-3 bg-muted/30 p-4 rounded-lg border border-border/50">
+							<div className="text-sm font-semibold text-foreground flex items-center gap-2">
+								<Plus size={16} className="text-primary"/> Thêm Category mới
+							</div>
+							<Input
+								value={createCategoryName}
+								onChange={(e) => setCreateCategoryName(e.target.value)}
+								placeholder="Tên category (VD: Xin cấp thiết bị)"
+								className="h-10 bg-background"
+							/>
+							<Textarea
+								value={createCategoryDescription}
+								onChange={(e) => setCreateCategoryDescription(e.target.value)}
+								placeholder="Mô tả chi tiết"
+								className="min-h-[80px] bg-background"
+							/>
+							<Button
+								type="button"
+								onClick={handleCreateCategory}
+								disabled={creatingCategory || !createCategoryName.trim()}
+								className="w-full"
+							>
+								{creatingCategory ? "Đang tạo..." : "Tạo Category"}
+							</Button>
+						</div>
+
+						{/* Add Department */}
+						<div className="space-y-3 bg-muted/30 p-4 rounded-lg border border-border/50">
+							<div className="text-sm font-semibold text-foreground flex items-center gap-2">
+								<Plus size={16} className="text-primary"/> Thêm Phòng ban mới
+							</div>
+							<Input
+								value={createDeptName}
+								onChange={(e) => setCreateDeptName(e.target.value)}
+								placeholder="Tên phòng ban (VD: Phòng IT)"
+								className="h-10 bg-background"
+							/>
+							<p className="text-xs text-muted-foreground">
+								Tạo nhanh phòng ban để cấu hình luồng ticket.
+							</p>
+							<Button
+								type="button"
+								variant="secondary"
+								onClick={handleCreateDepartment}
+								disabled={creatingDepartment || !createDeptName.trim()}
+								className="w-full"
+							>
+								{creatingDepartment ? "Đang thêm..." : "Thêm Phòng ban"}
+							</Button>
+						</div>
+					</div>
+
+					{/* Vùng Vẽ Sơ Đồ */}
+					<div 
+						className="relative min-h-[400px] flex justify-between gap-10 lg:gap-32 p-4 bg-muted/10 rounded-xl border border-dashed border-border"
+						ref={containerRef}
+					>
+						{/* SVG Dây nối */}
+						<svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
+							<defs>
+								<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+									<polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--primary))" />
+								</marker>
+							</defs>
+							
+							{/* Vẽ các liên kết đã có */}
+							{activeLinks.map(link => {
+								const pos1 = nodePositions[`cat-${link.catId}`];
+								const pos2 = nodePositions[`dept-${link.deptId}`];
+								if (!pos1 || !pos2) return null;
+								return (
+									<path 
+										key={`${link.catId}-${link.deptId}`}
+										d={drawLine(pos1.x, pos1.y, pos2.x, pos2.y)} 
+										stroke="hsl(var(--primary))" 
+										strokeOpacity="0.4"
+										strokeWidth="3" 
+										fill="none" 
+										markerEnd="url(#arrowhead)"
+										className="transition-all duration-300"
+									/>
+								);
+							})}
+
+							{/* Vẽ dây đang kéo */}
+							{dragState && nodePositions[`cat-${dragState.sourceId}`] && (
+								<path 
+									d={drawLine(
+										nodePositions[`cat-${dragState.sourceId}`].x, 
+										nodePositions[`cat-${dragState.sourceId}`].y, 
+										dragState.currentX, 
+										dragState.currentY
+									)} 
+									stroke="hsl(var(--primary))" 
+									strokeDasharray="6,6" 
+									strokeWidth="3" 
+									fill="none" 
+								/>
+							)}
+						</svg>
+
+						{/* Nút Xóa trên đường nối */}
+						{activeLinks.map(link => {
+							const pos1 = nodePositions[`cat-${link.catId}`];
+							const pos2 = nodePositions[`dept-${link.deptId}`];
+							if (!pos1 || !pos2) return null;
+							const midX = (pos1.x + pos2.x) / 2;
+							const midY = (pos1.y + pos2.y) / 2;
+							return (
+								<div 
+									key={`del-${link.catId}-${link.deptId}`}
+									style={{ left: midX, top: midY }} 
+									className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer text-destructive bg-background rounded-full p-1.5 ring-2 ring-border shadow-sm hover:scale-110 hover:bg-destructive hover:text-white transition-all z-20" 
+									onClick={() => handleUnlink(link.catId, link.deptId)}
+									title="Hủy gán phòng ban này"
+								>
+									<X size={14} />
+								</div>
+							);
+						})}
+
+						{/* Cột Trái: Categories */}
+						<div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
+							<h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
+								Loại Yêu Cầu (Category)
+							</h3>
+							{categoriesLoading && <p className="text-sm text-muted-foreground text-center">Đang tải...</p>}
+							{categories.map((c) => (
+								<div 
+									key={c.id}
+									data-node-id={`cat-${c.id}`}
+									data-node-type="category"
+									className="relative bg-background rounded-xl p-4 shadow-sm ring-1 ring-border hover:ring-primary/50 transition-all flex flex-col"
+								>
+									<div className="flex justify-between items-start mb-2">
+										<div className="font-semibold text-foreground truncate pr-2">{c.name}</div>
+										<button onClick={() => handleDeleteCategory(c.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+											<Trash2 size={16} />
+										</button>
+									</div>
+									<div className="text-xs text-muted-foreground line-clamp-2">{c.description || "Chưa có mô tả"}</div>
+									
+									{/* Điểm Neo (Connector) */}
+									<div 
+										className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background ring-2 ring-primary rounded-full flex items-center justify-center cursor-grab hover:scale-110 hover:bg-primary/10 transition-transform shadow-md"
+										onMouseDown={(e) => startDrag(e, c.id)}
+										title="Kéo để gán vào phòng ban"
+									>
+										<div className="w-2.5 h-2.5 bg-primary rounded-full pointer-events-none" />
+									</div>
+								</div>
+							))}
+						</div>
+
+						{/* Cột Phải: Departments */}
+						<div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
+							<h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
+								Phòng Ban Xử Lý
+							</h3>
+							{departmentsLoading && <p className="text-sm text-muted-foreground text-center">Đang tải...</p>}
+							{departments.map((d) => (
+								<div 
+									key={d.id}
+									data-node-id={`dept-${d.id}`}
+									data-node-type="department"
+									onMouseUp={() => handleDropOnDepartment(d.id)}
+									className={`relative bg-background rounded-xl p-4 shadow-sm ring-1 transition-all flex items-center justify-between
+										${dragState ? 'ring-primary border-dashed ring-2 bg-primary/5' : 'ring-border'}
+									`}
+								>
+									<div className="font-semibold text-foreground truncate pr-2">{d.name}</div>
+									<button onClick={() => handleDeleteDepartment(d.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+										<Trash2 size={16} />
+									</button>
+
+									{/* Điểm Nhận (Dropzone Connector) */}
+									<div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background ring-2 ring-primary rounded-full flex items-center justify-center shadow-md">
+										<div className={`w-2.5 h-2.5 rounded-full transition-colors ${dragState ? 'bg-primary animate-pulse' : 'bg-primary'}`} />
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+
+				{/* --- TICKET LIST SECTION --- */}
 				<div className="bg-card p-3 rounded-xl shadow-sm ring-1 ring-border mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
 					<div className="flex items-center gap-3 w-full sm:w-auto">
 						<div className="w-full sm:w-[200px]">
 							<Select
 								value={filters.status}
-								onValueChange={(v) =>
-									setFilters((p) => ({
-										...p,
-										status: v as Filters["status"],
-									}))
-								}
+								onValueChange={(v) => setFilters((p) => ({ ...p, status: v as Filters["status"] }))}
 							>
 								<SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
 									<SelectValue placeholder="Trạng thái" />
@@ -337,12 +689,7 @@ export default function SupportPage() {
 						<div className="w-full sm:w-[180px]">
 							<Select
 								value={filters.sortOrder}
-								onValueChange={(v) =>
-									setFilters((p) => ({
-										...p,
-										sortOrder: v as Filters["sortOrder"],
-									}))
-								}
+								onValueChange={(v) => setFilters((p) => ({ ...p, sortOrder: v as Filters["sortOrder"] }))}
 							>
 								<SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
 									<SelectValue placeholder="Sắp xếp" />
@@ -355,181 +702,9 @@ export default function SupportPage() {
 						</div>
 					</div>
 
-					<Button
-						variant="outline"
-						className="w-full sm:w-auto text-muted-foreground h-10"
-					>
-						<Filter className="mr-2 h-4 w-4" />
-						Lọc nâng cao
+					<Button variant="outline" className="w-full sm:w-auto text-muted-foreground h-10">
+						<Filter className="mr-2 h-4 w-4" /> Lọc nâng cao
 					</Button>
-				</div>
-
-				<div className="bg-card p-5 rounded-xl shadow-sm ring-1 ring-border mb-6">
-					<div className="flex flex-col gap-1">
-						<h2 className="text-lg font-semibold text-foreground">
-							Quản lý danh mục ticket
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Tạo, xem theo phòng ban (department_id) và xoá ticket category.
-						</p>
-					</div>
-
-					<div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
-						<div className="space-y-3">
-							<div className="text-sm font-semibold text-foreground">
-								Tạo category mới
-							</div>
-							<Input
-								value={createCategoryName}
-								onChange={(e) => setCreateCategoryName(e.target.value)}
-								placeholder="Tên category (ví dụ: IT Support)"
-								className="h-10"
-							/>
-							<Textarea
-								value={createCategoryDescription}
-								onChange={(e) => setCreateCategoryDescription(e.target.value)}
-								placeholder="Mô tả (tuỳ chọn)"
-								className="min-h-[90px]"
-							/>
-							<Button
-								onClick={handleCreateCategory}
-								disabled={creatingCategory || !createCategoryName.trim()}
-							>
-								{creatingCategory ? "Đang tạo..." : "Tạo category"}
-							</Button>
-						</div>
-
-						<div className="space-y-3">
-							<div className="text-sm font-semibold text-foreground">
-								Tra cứu theo phòng ban
-							</div>
-							<div className="flex flex-col sm:flex-row gap-3">
-								<div className="w-full">
-									<Select
-										value={departmentId || undefined}
-										onValueChange={(v) => {
-											setDepartmentId(v);
-											setCategoriesError(null);
-											fetchCategories(v);
-										}}
-										disabled={departmentsLoading}
-									>
-										<SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
-											<SelectValue
-												placeholder={
-													departmentsLoading
-														? "Đang tải phòng ban..."
-														: "Chọn phòng ban"
-												}
-											/>
-										</SelectTrigger>
-										<SelectContent>
-											{departmentsLoading ? (
-												<SelectItem value="__loading" disabled>
-													Đang tải...
-												</SelectItem>
-											) : departmentsError ? (
-												<SelectItem value="__error" disabled>
-													Không thể tải phòng ban
-												</SelectItem>
-											) : departments.length === 0 ? (
-												<SelectItem value="__empty" disabled>
-													Không có phòng ban
-												</SelectItem>
-											) : (
-												departments.map((d) => (
-													<SelectItem key={d.id} value={d.id}>
-														{d.name}
-													</SelectItem>
-												))
-											)}
-										</SelectContent>
-									</Select>
-								</div>
-								<Button
-									variant="outline"
-									onClick={() => fetchCategories(departmentId)}
-									disabled={categoriesLoading || !departmentId.trim()}
-								>
-									{categoriesLoading ? "Đang tải..." : "Tải danh sách"}
-								</Button>
-							</div>
-							{departmentsError ? (
-								<div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
-									{departmentsError}
-								</div>
-							) : null}
-							{categoriesError ? (
-								<div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
-									{categoriesError}
-								</div>
-							) : null}
-							<div className="text-xs text-muted-foreground">
-								Chọn phòng ban để xem các category thuộc phòng ban đó.
-							</div>
-						</div>
-					</div>
-
-					<div className="mt-6">
-						<div className="flex items-center justify-between mb-3">
-							<div className="text-sm font-semibold text-foreground">
-								Danh sách category
-							</div>
-							<div className="text-xs text-muted-foreground">
-								{categories.length} mục
-							</div>
-						</div>
-
-						{categoriesLoading ? (
-							<div className="text-sm text-muted-foreground">Đang tải...</div>
-						) : categories.length === 0 ? (
-							<div className="text-sm text-muted-foreground">
-								Chưa có category nào.
-							</div>
-						) : (
-							<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-								{categories.map((c) => {
-									const deptNames = Array.isArray(c.departments)
-										? c.departments.map((d) => d?.name).filter(Boolean).join(", ")
-										: "";
-									const isDeleting = !!deletingCategoryIds[c.id];
-									return (
-										<div
-											key={c.id}
-											className="rounded-xl bg-background/30 p-4 ring-1 ring-border"
-										>
-											<div className="flex items-start justify-between gap-3">
-												<div className="min-w-0">
-													<div className="font-semibold text-foreground truncate">
-														{c.name}
-													</div>
-													<div className="text-xs text-muted-foreground mt-0.5">
-														ID: <span className="font-mono">{c.id.slice(0, 8)}...</span>
-												</div>
-												</div>
-												<Button
-													variant="destructive"
-													size="sm"
-													onClick={() => handleDeleteCategory(c.id)}
-													disabled={isDeleting}
-												>
-													<Trash2 className="h-4 w-4" />
-													{isDeleting ? "Đang xoá..." : "Xoá"}
-												</Button>
-											</div>
-
-											<div className="mt-2 text-sm text-muted-foreground line-clamp-2">
-												{c.description || "Không có mô tả."}
-											</div>
-											<div className="mt-3 text-xs text-muted-foreground">
-												Phòng ban: {deptNames || "-"}
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						)}
-					</div>
 				</div>
 
 				{error ? (
@@ -539,10 +714,7 @@ export default function SupportPage() {
 							variant="outline"
 							size="sm"
 							className="bg-card ring-1 ring-destructive/20 text-destructive hover:bg-destructive/10"
-							onClick={() => {
-								setTickets([]);
-								setPage(1);
-							}}
+							onClick={() => { setTickets([]); setPage(1); }}
 						>
 							Thử lại
 						</Button>
