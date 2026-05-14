@@ -18,7 +18,8 @@ import {
   Video,
   X,
   Image as ImageIcon,
-  UploadCloud
+  UploadCloud,
+  Trash2 // <--- Bổ sung icon Trash2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -651,69 +652,83 @@ export default function BookingPage() {
                                                     <Settings size={16} /> Cấu hình
                                                 </Link>
 
-                                            {statusType === 'available' ? (
-                                                <button
-                                                    type="button"
-                                                    disabled={statusUpdatingRoomId === room.id}
-                                                    onClick={async () => {
-                                                    try {
-                                                        setStatusUpdatingRoomId(room.id);
-                                                        await updateStatusAsync(room.id, "MAINTENANCE");
-                                                        toast({
-                                                            title: "Đã chuyển sang bảo trì",
-                                                            description: `${room.name} đang ở trạng thái bảo trì.`,
-                                                        });
-                                                        refresh();
-                                                    } catch (e: any) {
-                                                        toast({
-                                                            variant: "destructive",
-                                                            title: "Không thể cập nhật trạng thái",
-                                                            description: e?.message || "Đã có lỗi xảy ra.",
-                                                        });
-                                                    } finally {
-                                                        setStatusUpdatingRoomId(null);
-                                                    }
-                                                }}
-                                                className="bg-[#FFF7ED] text-[#F97316] font-bold text-sm px-4 py-2 rounded-md hover:bg-[#FFEDD5] transition-colors disabled:opacity-60"
-                                            >
-                                                {statusUpdatingRoomId === room.id ? "Đang cập nhật..." : "Bảo trì"}
-                                            </button>
-                                            ) : statusType === 'busy' ? (
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    className="bg-gray-100 text-gray-400 font-bold text-sm px-4 py-2 rounded-md cursor-not-allowed"
-                                                >
-                                                Đang họp
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    disabled={statusUpdatingRoomId === room.id}
-                                                    onClick={async () => {
-                                                    try {
-                                                        setStatusUpdatingRoomId(room.id);
-                                                        await updateStatusAsync(room.id, "AVAILABLE");
-                                                        toast({
-                                                            title: "Đã hoàn tất bảo trì",
-                                                            description: `${room.name} đã sẵn sàng (Trống).`,
-                                                        });
-                                                        refresh();
-                                                    } catch (e: any) {
-                                                        toast({
-                                                            variant: "destructive",
-                                                            title: "Không thể cập nhật trạng thái",
-                                                            description: e?.message || "Đã có lỗi xảy ra.",
-                                                        });
-                                                    } finally {
-                                                        setStatusUpdatingRoomId(null);
-                                                    }
-                                                }}
-                                                className="bg-[#ECFDF5] text-[#10B981] font-bold text-sm px-4 py-2 rounded-md hover:bg-[#D1FAE5] transition-colors disabled:opacity-60"
-                                            >
-                                                {statusUpdatingRoomId === room.id ? "Đang cập nhật..." : "Hoàn tất"}
-                                            </button>
-                                            )}
+                                                {/* --- NÚT BẤM VÀ XÓA --- */}
+                                                <div className="flex items-center gap-2">
+                                                    {/* Nút Xóa (Thùng rác) */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onDeleteRoom(room)}
+                                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                                                        disabled={deleting}
+                                                        title="Xóa phòng"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+
+                                                    {statusType === 'available' ? (
+                                                        <button
+                                                            type="button"
+                                                            disabled={statusUpdatingRoomId === room.id}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    setStatusUpdatingRoomId(room.id);
+                                                                    await updateStatusAsync(room.id, "MAINTENANCE");
+                                                                    toast({
+                                                                        title: "Đã chuyển sang bảo trì",
+                                                                        description: `${room.name} đang ở trạng thái bảo trì.`,
+                                                                    });
+                                                                    refresh();
+                                                                } catch (e: any) {
+                                                                    toast({
+                                                                        variant: "destructive",
+                                                                        title: "Không thể cập nhật trạng thái",
+                                                                        description: e?.message || "Đã có lỗi xảy ra.",
+                                                                    });
+                                                                } finally {
+                                                                    setStatusUpdatingRoomId(null);
+                                                                }
+                                                            }}
+                                                            className="bg-[#FFF7ED] text-[#F97316] font-bold text-sm px-4 py-2 rounded-md hover:bg-[#FFEDD5] transition-colors disabled:opacity-60"
+                                                        >
+                                                            {statusUpdatingRoomId === room.id ? "Đang cập nhật..." : "Bảo trì"}
+                                                        </button>
+                                                    ) : statusType === 'busy' ? (
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="bg-gray-100 text-gray-400 font-bold text-sm px-4 py-2 rounded-md cursor-not-allowed"
+                                                        >
+                                                            Đang họp
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            disabled={statusUpdatingRoomId === room.id}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    setStatusUpdatingRoomId(room.id);
+                                                                    await updateStatusAsync(room.id, "AVAILABLE");
+                                                                    toast({
+                                                                        title: "Đã hoàn tất bảo trì",
+                                                                        description: `${room.name} đã sẵn sàng (Trống).`,
+                                                                    });
+                                                                    refresh();
+                                                                } catch (e: any) {
+                                                                    toast({
+                                                                        variant: "destructive",
+                                                                        title: "Không thể cập nhật trạng thái",
+                                                                        description: e?.message || "Đã có lỗi xảy ra.",
+                                                                    });
+                                                                } finally {
+                                                                    setStatusUpdatingRoomId(null);
+                                                                }
+                                                            }}
+                                                            className="bg-[#ECFDF5] text-[#10B981] font-bold text-sm px-4 py-2 rounded-md hover:bg-[#D1FAE5] transition-colors disabled:opacity-60"
+                                                        >
+                                                            {statusUpdatingRoomId === room.id ? "Đang cập nhật..." : "Hoàn tất"}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

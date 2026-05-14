@@ -224,6 +224,82 @@ export async function getManagementTicketCategoriesAll(
 	);
 }
 
+export type GetManagementTicketCategoriesQuery = {
+	department_id?: string;
+};
+
+export type GetManagementTicketCategoriesResponse =
+	| ManagementTicketCategoryDto[]
+	| {
+		statusCode?: number;
+		message?: string;
+		data: ManagementTicketCategoryDto[];
+	};
+
+// GET /management/tickets/categories?department_id=
+// Some backends return an array directly, others wrap in { statusCode, data }.
+export async function getManagementTicketCategories(
+	params?: GetManagementTicketCategoriesQuery,
+	options?: { [key: string]: any },
+) {
+	return request<
+		GetManagementTicketCategoriesResponse,
+		GetManagementTicketCategoriesResponse
+	>("/management/tickets/categories", {
+		method: "GET",
+		params,
+		...(options || {}),
+	});
+}
+
+export type CreateManagementTicketCategoryBody = {
+	name: string;
+	description?: string | null;
+};
+
+export type CreateManagementTicketCategoryResponse =
+	| ManagementTicketCategoryDto
+	| {
+		statusCode?: number;
+		message?: string;
+		data?: ManagementTicketCategoryDto;
+	};
+
+export async function createManagementTicketCategory(
+	body: CreateManagementTicketCategoryBody,
+	options?: { [key: string]: any },
+) {
+	return request<
+		CreateManagementTicketCategoryResponse,
+		CreateManagementTicketCategoryResponse
+	>("/management/tickets/categories", {
+		method: "POST",
+		data: body,
+		...(options || {}),
+	});
+}
+
+export type DeleteManagementTicketCategoryResponse =
+	| {
+		statusCode?: number;
+		message?: string;
+		data?: unknown;
+	}
+	| unknown;
+
+export async function deleteManagementTicketCategory(
+	id: string,
+	options?: { [key: string]: any },
+) {
+	return request<
+		DeleteManagementTicketCategoryResponse,
+		DeleteManagementTicketCategoryResponse
+	>(`/management/tickets/categories/${id}`, {
+		method: "DELETE",
+		...(options || {}),
+	});
+}
+
 // ---------------------------------------------------------------------------
 // Legacy exports (previously in services/DACN/ticket.ts)
 // Keep these to avoid breaking existing call sites.

@@ -10,10 +10,14 @@ import {
 	PauseCircle,
 	Ticket,
 	MessageSquare,
+	Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
 	Select,
 	SelectContent,
@@ -22,8 +26,16 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import {
+	getDepartments,
+	type DepartmentDto,
+} from "@/services/DACN/department";
+import {
+	createManagementTicketCategory,
+	deleteManagementTicketCategory,
 	getManagementTickets,
+	getManagementTicketCategories,
 	type GetManagementTicketsQuery,
+	type ManagementTicketCategoryDto,
 	type ManagementTicketDto,
 	type ManagementTicketStatus,
 	type TicketSortOrder,
@@ -90,6 +102,8 @@ const formatPersonName = (person: any) => {
 };
 
 export default function SupportPage() {
+	const { toast } = useToast();
+
 	const [tickets, setTickets] = React.useState<ManagementTicketDto[]>([]);
 	const [filters, setFilters] = React.useState<Filters>({
 		status: "all",
@@ -101,6 +115,135 @@ export default function SupportPage() {
 	const [total, setTotal] = React.useState(0);
 	const [loading, setLoading] = React.useState(false);
 	const [error, setError] = React.useState<string | null>(null);
+
+	const [departments, setDepartments] = React.useState<DepartmentDto[]>([]);
+	const [departmentsLoading, setDepartmentsLoading] = React.useState(false);
+	const [departmentsError, setDepartmentsError] = React.useState<string | null>(null);
+
+	const [departmentId, setDepartmentId] = React.useState<string>("");
+	const [categories, setCategories] = React.useState<ManagementTicketCategoryDto[]>([]);
+	const [categoriesLoading, setCategoriesLoading] = React.useState(false);
+	const [categoriesError, setCategoriesError] = React.useState<string | null>(null);
+	const [createCategoryName, setCreateCategoryName] = React.useState<string>("");
+	const [createCategoryDescription, setCreateCategoryDescription] =
+		React.useState<string>("");
+	const [creatingCategory, setCreatingCategory] = React.useState(false);
+	const [deletingCategoryIds, setDeletingCategoryIds] = React.useState<
+		Record<string, boolean>
+	>({});
+
+	const normalizeDepartments = React.useCallback((raw: any) => {
+		const payload = raw?.data ?? raw;
+		if (Array.isArray(payload)) return payload as DepartmentDto[];
+		if (Array.isArray(payload?.data)) return payload.data as DepartmentDto[];
+		return [] as DepartmentDto[];
+	}, []);
+
+	React.useEffect(() => {
+		let cancelled = false;
+		async function run() {
+			setDepartmentsLoading(true);
+			setDepartmentsError(null);
+			try {
+				const res: any = await getDepartments();
+				const items = normalizeDepartments(res);
+				if (cancelled) return;
+				setDepartments(items);
+			} catch (e: any) {
+				if (cancelled) return;
+				setDepartmentsError(
+					e?.message || "Lỗi không xác định khi tải danh sách phòng ban.",
+				);
+			} finally {
+				if (!cancelled) setDepartmentsLoading(false);
+			}
+		}
+		run();
+		return () => {
+			cancelled = true;
+		};
+	}, [normalizeDepartments]);
+
+	const normalizeCategories = React.useCallback((raw: any) => {
+		const payload = raw?.data ?? raw;
+		if (Array.isArray(payload)) return payload as ManagementTicketCategoryDto[];
+		if (Array.isArray(payload?.data)) return payload.data as ManagementTicketCategoryDto[];
+		return [] as ManagementTicketCategoryDto[];
+	}, []);
+
+	const fetchCategories = React.useCallback(async (deptId?: string) => {
+		const dept = String(deptId ?? "").trim();
+		if (!dept) {
+			setCategories([]);
+			setCategoriesError("Vui lòng chọn phòng ban để tra cứu category.");
+			return;
+		}
+		setCategoriesLoading(true);
+		setCategoriesError(null);
+		try {
+			const res: any = await getManagementTicketCategories({
+				department_id: dept ? dept : undefined,
+			});
+			setCategories(normalizeCategories(res));
+		} catch (e: any) {
+			setCategoriesError(e?.message || "Lỗi không xác định khi tải category.");
+		} finally {
+			setCategoriesLoading(false);
+		}
+	}, [normalizeCategories]);
+
+	const handleCreateCategory = React.useCallback(async () => {
+		const name = createCategoryName.trim();
+		if (!name || creatingCategory) return;
+		setCreatingCategory(true);
+		try {
+			const description = createCategoryDescription.trim();
+			await createManagementTicketCategory({
+				name,
+				description: description ? description : undefined,
+			});
+			toast({
+				title: "Tạo category thành công",
+				description: name,
+			});
+			setCreateCategoryName("");
+			setCreateCategoryDescription("");
+			if (departmentId.trim()) await fetchCategories(departmentId);
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Không thể tạo category",
+				description: e?.message || "Vui lòng thử lại.",
+			});
+		} finally {
+			setCreatingCategory(false);
+		}
+	}, [createCategoryDescription, createCategoryName, creatingCategory, departmentId, fetchCategories, toast]);
+
+	const handleDeleteCategory = React.useCallback(
+		async (id: string) => {
+			if (!id || deletingCategoryIds[id]) return;
+			setDeletingCategoryIds((p) => ({ ...p, [id]: true }));
+			try {
+				await deleteManagementTicketCategory(id);
+				toast({
+					title: "Đã xoá category",
+					description: `ID: ${id.slice(0, 8)}...`,
+				});
+				if (departmentId.trim()) await fetchCategories(departmentId);
+			} catch (e: any) {
+				toast({
+					variant: "destructive",
+					title: "Không thể xoá category",
+					description: e?.message || "Vui lòng thử lại.",
+				});
+			} finally {
+				setDeletingCategoryIds((p) => ({ ...p, [id]: false }));
+			}
+		},
+		[deletingCategoryIds, departmentId, fetchCategories, toast],
+	);
+
 
 	React.useEffect(() => {
 		setTickets([]);
@@ -186,7 +329,7 @@ export default function SupportPage() {
 									<SelectItem value="all">Tất cả trạng thái</SelectItem>
 									<SelectItem value="OPEN">Chờ xử lý</SelectItem>
 									<SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
-									<SelectItem value="CLOSED">Đã giải quyết</SelectItem>
+									<SelectItem value="RESOLVED">Đã giải quyết</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -219,6 +362,174 @@ export default function SupportPage() {
 						<Filter className="mr-2 h-4 w-4" />
 						Lọc nâng cao
 					</Button>
+				</div>
+
+				<div className="bg-card p-5 rounded-xl shadow-sm ring-1 ring-border mb-6">
+					<div className="flex flex-col gap-1">
+						<h2 className="text-lg font-semibold text-foreground">
+							Quản lý danh mục ticket
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Tạo, xem theo phòng ban (department_id) và xoá ticket category.
+						</p>
+					</div>
+
+					<div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<div className="space-y-3">
+							<div className="text-sm font-semibold text-foreground">
+								Tạo category mới
+							</div>
+							<Input
+								value={createCategoryName}
+								onChange={(e) => setCreateCategoryName(e.target.value)}
+								placeholder="Tên category (ví dụ: IT Support)"
+								className="h-10"
+							/>
+							<Textarea
+								value={createCategoryDescription}
+								onChange={(e) => setCreateCategoryDescription(e.target.value)}
+								placeholder="Mô tả (tuỳ chọn)"
+								className="min-h-[90px]"
+							/>
+							<Button
+								onClick={handleCreateCategory}
+								disabled={creatingCategory || !createCategoryName.trim()}
+							>
+								{creatingCategory ? "Đang tạo..." : "Tạo category"}
+							</Button>
+						</div>
+
+						<div className="space-y-3">
+							<div className="text-sm font-semibold text-foreground">
+								Tra cứu theo phòng ban
+							</div>
+							<div className="flex flex-col sm:flex-row gap-3">
+								<div className="w-full">
+									<Select
+										value={departmentId || undefined}
+										onValueChange={(v) => {
+											setDepartmentId(v);
+											setCategoriesError(null);
+											fetchCategories(v);
+										}}
+										disabled={departmentsLoading}
+									>
+										<SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
+											<SelectValue
+												placeholder={
+													departmentsLoading
+														? "Đang tải phòng ban..."
+														: "Chọn phòng ban"
+												}
+											/>
+										</SelectTrigger>
+										<SelectContent>
+											{departmentsLoading ? (
+												<SelectItem value="__loading" disabled>
+													Đang tải...
+												</SelectItem>
+											) : departmentsError ? (
+												<SelectItem value="__error" disabled>
+													Không thể tải phòng ban
+												</SelectItem>
+											) : departments.length === 0 ? (
+												<SelectItem value="__empty" disabled>
+													Không có phòng ban
+												</SelectItem>
+											) : (
+												departments.map((d) => (
+													<SelectItem key={d.id} value={d.id}>
+														{d.name}
+													</SelectItem>
+												))
+											)}
+										</SelectContent>
+									</Select>
+								</div>
+								<Button
+									variant="outline"
+									onClick={() => fetchCategories(departmentId)}
+									disabled={categoriesLoading || !departmentId.trim()}
+								>
+									{categoriesLoading ? "Đang tải..." : "Tải danh sách"}
+								</Button>
+							</div>
+							{departmentsError ? (
+								<div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
+									{departmentsError}
+								</div>
+							) : null}
+							{categoriesError ? (
+								<div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
+									{categoriesError}
+								</div>
+							) : null}
+							<div className="text-xs text-muted-foreground">
+								Chọn phòng ban để xem các category thuộc phòng ban đó.
+							</div>
+						</div>
+					</div>
+
+					<div className="mt-6">
+						<div className="flex items-center justify-between mb-3">
+							<div className="text-sm font-semibold text-foreground">
+								Danh sách category
+							</div>
+							<div className="text-xs text-muted-foreground">
+								{categories.length} mục
+							</div>
+						</div>
+
+						{categoriesLoading ? (
+							<div className="text-sm text-muted-foreground">Đang tải...</div>
+						) : categories.length === 0 ? (
+							<div className="text-sm text-muted-foreground">
+								Chưa có category nào.
+							</div>
+						) : (
+							<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+								{categories.map((c) => {
+									const deptNames = Array.isArray(c.departments)
+										? c.departments.map((d) => d?.name).filter(Boolean).join(", ")
+										: "";
+									const isDeleting = !!deletingCategoryIds[c.id];
+									return (
+										<div
+											key={c.id}
+											className="rounded-xl bg-background/30 p-4 ring-1 ring-border"
+										>
+											<div className="flex items-start justify-between gap-3">
+												<div className="min-w-0">
+													<div className="font-semibold text-foreground truncate">
+														{c.name}
+													</div>
+													<div className="text-xs text-muted-foreground mt-0.5">
+														ID: <span className="font-mono">{c.id.slice(0, 8)}...</span>
+												</div>
+												</div>
+												<Button
+													variant="destructive"
+													size="sm"
+													onClick={() => handleDeleteCategory(c.id)}
+													disabled={isDeleting}
+												>
+													<Trash2 className="h-4 w-4" />
+													{isDeleting ? "Đang xoá..." : "Xoá"}
+												</Button>
+											</div>
+
+											<div className="mt-2 text-sm text-muted-foreground line-clamp-2">
+												{c.description || "Không có mô tả."}
+											</div>
+											<div className="mt-3 text-xs text-muted-foreground">
+												Phòng ban: {deptNames || "-"}
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						)}
+					</div>
 				</div>
 
 				{error ? (
