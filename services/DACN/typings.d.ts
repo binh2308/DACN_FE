@@ -71,6 +71,7 @@ export declare namespace DACN {
     progress_percentage: number;
     progress_notes?: string;
     status: "DRAFT" | "SUBMITTED" | "REVIEWED";
+    review?: string;
     created_at: string;
     updated_at: string;
   };

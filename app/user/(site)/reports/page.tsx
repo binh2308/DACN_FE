@@ -38,6 +38,7 @@ import {
   createReport,
   getMyReport,
   updateReport,
+  submitReport,
 } from "@/services/DACN/report";
 import { Textarea } from "@/components/ui/textarea";
 import { toDateOnlyUTC, formatDate } from "@/lib/utils";
@@ -51,11 +52,11 @@ const reportSchema = z.object({
   week_starting: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày bắt đầu tuần"),
-  progress_percentage: z
-    .number()
-    .min(1, "Tiến độ là bắt buộc")
-    .max(100),
-  accomplishment: z.string().min(10, "Công việc đã hoàn thành là bắt buộc").max(500),
+  progress_percentage: z.number().min(1, "Tiến độ là bắt buộc").max(100),
+  accomplishment: z
+    .string()
+    .min(10, "Công việc đã hoàn thành là bắt buộc")
+    .max(500),
   in_progress: z
     .string()
     .min(10, "Công việc đang thực hiện là bắt buộc")
@@ -176,7 +177,6 @@ export default function WeeklyReportsPage() {
   const [reports, setReports] = React.useState<DACN.ReportResponseDto[]>([]);
   const [selectedReport, setSelectedReport] =
     React.useState<DACN.ReportResponseDto | null>(null);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [updated, setUpdated] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -207,10 +207,10 @@ export default function WeeklyReportsPage() {
           limit: 10,
         });
         //console.log("Fetched my report:", res.data?.data);
-        if (selectedId) {
+        if (selectedReport) {
           setSelectedReport(
             res.data?.data.find(
-              (r: DACN.ReportResponseDto) => r.id === selectedId,
+              (r: DACN.ReportResponseDto) => r.id === selectedReport.id,
             ) ?? null,
           );
         }
@@ -305,6 +305,25 @@ export default function WeeklyReportsPage() {
         title: "Đã có lỗi xảy ra",
         message:
           "Đã có lỗi xảy ra khi cập nhật báo cáo. Vui lòng cập nhật lại sau.",
+        color: "red",
+      });
+    }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!selectedReport) return;
+    try {
+      await submitReport(selectedReport.id);
+      notifications.show({
+        title: "Thành công",
+        message: "Báo cáo đã được nộp thành công.",
+        color: "green",
+      });
+      setUpdated(!updated);
+    } catch (error) {
+      notifications.show({
+        title: "Đã có lỗi xảy ra",
+        message: "Đã có lỗi xảy ra khi nộp báo cáo. Vui lòng thao tác lại.",
         color: "red",
       });
     }
@@ -435,7 +454,8 @@ export default function WeeklyReportsPage() {
 
                   <div>
                     <Label>
-                      Công việc đã hoàn thành <span className="text-red-500">*</span>
+                      Công việc đã hoàn thành{" "}
+                      <span className="text-red-500">*</span>
                     </Label>
                     <Textarea
                       className="mt-1"
@@ -451,7 +471,8 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div>
                     <Label>
-                      Công việc đang thực hiện <span className="text-red-500">*</span>
+                      Công việc đang thực hiện{" "}
+                      <span className="text-red-500">*</span>
                     </Label>
                     <Textarea
                       {...register("in_progress")}
@@ -634,9 +655,7 @@ export default function WeeklyReportsPage() {
 
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            Tiến độ
-                          </span>
+                          <span className="text-muted-foreground">Tiến độ</span>
                           <span className="font-semibold text-foreground">
                             {clampProgress(r.progress_percentage)}%
                           </span>
@@ -779,7 +798,7 @@ export default function WeeklyReportsPage() {
                       Khó khăn / Vướng mắc
                     </div>
                     <ReadonlyTextarea
-                      value={selectedReport?.blocker || "—"}
+                      value={selectedReport?.blocker}
                       readonly={!isEditing}
                       onChange={(newValue) =>
                         setSelectedReport((prev) =>
@@ -796,7 +815,7 @@ export default function WeeklyReportsPage() {
                     Ghi chú tiến độ
                   </div>
                   <ReadonlyTextarea
-                    value={selectedReport?.progress_notes || "—"}
+                    value={selectedReport?.progress_notes}
                     readonly={!isEditing}
                     onChange={(newValue) =>
                       setSelectedReport((prev) =>
@@ -826,7 +845,7 @@ export default function WeeklyReportsPage() {
                       Hủy
                     </Button>
                   )}
-                  {selectedReport?.status !== "REVIEWED" && (
+                  {selectedReport?.status === "DRAFT" && (
                     <Button
                       type="button"
                       className="rounded-full"
@@ -835,6 +854,15 @@ export default function WeeklyReportsPage() {
                       }
                     >
                       {isEditing ? "Lưu" : "Chỉnh sửa"}
+                    </Button>
+                  )}
+                  {selectedReport?.status === "DRAFT" && isEditing !== true && (
+                    <Button
+                      type="button"
+                      className="rounded-full"
+                      onClick={handleSubmitReport}
+                    >
+                      Nộp báo cáo
                     </Button>
                   )}
                 </div>
