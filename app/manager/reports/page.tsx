@@ -80,7 +80,7 @@ function clampProgress(n: number) {
 function formatDateShort(ymdOrIso: string) {
   const d = new Date(ymdOrIso);
   if (Number.isNaN(d.getTime())) return ymdOrIso;
-  return d.toLocaleDateString(undefined, {
+  return d.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "2-digit",
@@ -90,11 +90,11 @@ function formatDateShort(ymdOrIso: string) {
 function statusLabel(s: ReportStatus) {
   switch (s) {
     case "SUBMITTED":
-      return "Submitted";
+      return "Đã nộp";
     case "REVIEWED":
-      return "Reviewed";
+      return "Đã duyệt";
     case "DRAFT":
-      return "Draft";
+      return "Bản nháp";
     default:
       return s;
   }
@@ -114,81 +114,9 @@ function statusVariant(
   }
 }
 
-// function seedReports(): WeeklyReport[] {
-//   const now = new Date();
-//   const iso = now.toISOString();
-//   return [
-//     {
-//       id: safeId(),
-//       employeeId: "E-0102",
-//       employeeName: "Nguyen Van A",
-//       department: "Engineering",
-//       weekStart: "2026-01-19",
-//       weekEnd: "2026-01-25",
-//       createdAt: iso,
-//       updatedAt: iso,
-//       progress: 78,
-//       accomplishments:
-//         "- Hoàn thành UI trang Booking\n- Fix lỗi date input bị vỡ layout\n- Review PR của team",
-//       inProgress:
-//         "- Tối ưu performance trang Employee list\n- Chuẩn hoá validation form",
-//       planNextWeek:
-//         "- Hoàn thiện phần Reports\n- Thêm export CSV\n- Viết unit tests cho utils",
-//       blockers: "Chưa có blocker lớn.",
-//       links: "PR: #123\nTicket: DACN-45",
-//       hours: 40,
-//       status: "submitted",
-//       managerComment: "",
-//     },
-//     {
-//       id: safeId(),
-//       employeeId: "E-0220",
-//       employeeName: "Tran Thi B",
-//       department: "HR",
-//       weekStart: "2026-01-19",
-//       weekEnd: "2026-01-25",
-//       createdAt: iso,
-//       updatedAt: iso,
-//       progress: 92,
-//       accomplishments:
-//         "- Tổng hợp dữ liệu chấm công\n- Làm báo cáo lương sơ bộ\n- Update policy nghỉ phép",
-//       inProgress: "- Chuẩn bị onboarding batch mới",
-//       planNextWeek: "- Hoàn tất payroll\n- Audit hồ sơ nhân sự",
-//       blockers: "Đợi dữ liệu từ phòng IT về phân quyền.",
-//       links: "",
-//       hours: 38,
-//       status: "reviewed",
-//       managerComment: "Tốt. Tuần sau ưu tiên payroll trước thứ 4.",
-//     },
-//   ];
-// }
-
-// function readReports(): WeeklyReport[] {
-//   if (typeof window === "undefined") return [];
-//   try {
-//     const raw = localStorage.getItem(STORAGE_KEY);
-//     if (!raw) return seedReports();
-//     const parsed = JSON.parse(raw) as unknown;
-//     if (!Array.isArray(parsed)) return seedReports();
-//     return parsed as WeeklyReport[];
-//   } catch {
-//     return seedReports();
-//   }
-// }
-
-// function writeReports(items: WeeklyReport[]) {
-//   if (typeof window === "undefined") return;
-//   try {
-//     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-//   } catch {
-//     // ignore
-//   }
-// }
-
 type Filters = {
   q: string;
   status: "all" | ReportStatus;
-
   submittedAt: string;
 };
 
@@ -258,7 +186,6 @@ export default function WeeklyReportsPage() {
           page: 1,
           limit: 10,
         });
-        //console.log("Fetched my report:", res.data?.data);
         setReports(res.data?.data);
         setSelectedId(res.data?.data[0]?.id ?? null);
       } catch (error) {
@@ -362,22 +289,22 @@ export default function WeeklyReportsPage() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-xl font-semibold text-foreground">
-            Weekly Reports
+            Báo cáo hàng tuần
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
             Tổng:{" "}
             <span className="font-semibold text-foreground">
               {counts.total}
             </span>{" "}
-            · Submitted{" "}
+            · Đã nộp{" "}
             <span className="font-semibold text-foreground">
               {counts.submitted}
             </span>{" "}
-            · Reviewed{" "}
+            · Đã duyệt{" "}
             <span className="font-semibold text-foreground">
               {counts.reviewed}
             </span>{" "}
-            · Needs changes{" "}
+            · Cần thay đổi{" "}
             <span className="font-semibold text-foreground">
               {counts.needsChanges}
             </span>
@@ -385,30 +312,21 @@ export default function WeeklyReportsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* <Button variant="outline" className="rounded-full" type="button">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button> */}
-
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full" type="button">
                 <Plus className="mr-2 h-4 w-4" />
-                New report
+                Tạo báo cáo
               </Button>
             </DialogTrigger>
-            {/* Responsive fix: 
-                - max-h-[90vh] & overflow-y-auto: Giúp cuộn khi màn hình nhỏ
-                - w-full: Đảm bảo độ rộng
-            */}
             <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Submit weekly report</DialogTitle>
+                <DialogTitle>Nộp báo cáo hàng tuần</DialogTitle>
               </DialogHeader>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Employee ID</Label>
+                  <Label>Mã nhân viên</Label>
                   <Input
                     value={draft.employeeId}
                     onChange={(e) =>
@@ -418,18 +336,18 @@ export default function WeeklyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Employee name</Label>
+                  <Label>Tên nhân viên</Label>
                   <Input
                     value={draft.employeeName}
                     onChange={(e) =>
                       setDraft((p) => ({ ...p, employeeName: e.target.value }))
                     }
-                    placeholder="Nguyen Van A"
+                    placeholder="Nguyễn Văn A"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Department</Label>
+                  <Label>Phòng ban</Label>
                   <Select
                     value={draft.department}
                     onValueChange={(v) =>
@@ -437,48 +355,45 @@ export default function WeeklyReportsPage() {
                     }
                   >
                     <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select department" />
+                      <SelectValue placeholder="Chọn phòng ban" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="HR">HR</SelectItem>
-                      <SelectItem value="Sales">Sales</SelectItem>
-                      <SelectItem value="Finance">Finance</SelectItem>
-                      <SelectItem value="Operations">Operations</SelectItem>
+                      <SelectItem value="Engineering">Kỹ thuật</SelectItem>
+                      <SelectItem value="HR">Nhân sự</SelectItem>
+                      <SelectItem value="Sales">Kinh doanh</SelectItem>
+                      <SelectItem value="Finance">Tài chính</SelectItem>
+                      <SelectItem value="Operations">Vận hành</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Responsive fix: sm:grid-cols-2 giúp xếp chồng trên mobile và song song trên tablet trở lên.
-                    Icon fix: Xóa icon CalendarDays custom, để trình duyệt tự render icon mặc định.
-                */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Week start</Label>
-                    <Input
+                    <Label>Bắt đầu tuần</Label>
+                    <input
                       type="date"
                       value={draft.weekStart}
                       onChange={(e) =>
                         setDraft((p) => ({ ...p, weekStart: e.target.value }))
                       }
-                      className="bg-white"
+                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Week end</Label>
-                    <Input
+                    <Label>Kết thúc tuần</Label>
+                    <input
                       type="date"
                       value={draft.weekEnd}
                       onChange={(e) =>
                         setDraft((p) => ({ ...p, weekEnd: e.target.value }))
                       }
-                      className="bg-white"
+                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Progress (%)</Label>
+                  <Label>Tiến độ (%)</Label>
                   <Input
                     type="number"
                     value={String(draft.progress)}
@@ -494,7 +409,7 @@ export default function WeeklyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Hours</Label>
+                  <Label>Số giờ làm việc</Label>
                   <Input
                     type="number"
                     value={String(draft.hours)}
@@ -509,7 +424,7 @@ export default function WeeklyReportsPage() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Accomplishments</Label>
+                  <Label>Công việc đã hoàn thành</Label>
                   <Textarea
                     value={draft.accomplishments}
                     onChange={(e) =>
@@ -523,7 +438,7 @@ export default function WeeklyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>In progress</Label>
+                  <Label>Công việc đang thực hiện</Label>
                   <Textarea
                     value={draft.inProgress}
                     onChange={(e) =>
@@ -534,7 +449,7 @@ export default function WeeklyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Plan next week</Label>
+                  <Label>Kế hoạch tuần tới</Label>
                   <Textarea
                     value={draft.planNextWeek}
                     onChange={(e) =>
@@ -545,7 +460,7 @@ export default function WeeklyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Blockers</Label>
+                  <Label>Khó khăn / Vướng mắc</Label>
                   <Textarea
                     value={draft.blockers}
                     onChange={(e) =>
@@ -558,7 +473,7 @@ export default function WeeklyReportsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Links (PR/Ticket)</Label>
+                <Label>Liên kết (PR/Ticket)</Label>
                 <Textarea
                   value={draft.links}
                   onChange={(e) =>
@@ -575,7 +490,7 @@ export default function WeeklyReportsPage() {
                   onClick={() => setCreateOpen(false)}
                   type="button"
                 >
-                  Cancel
+                  Hủy
                 </Button>
                 <Button
                   onClick={submitDraft}
@@ -583,7 +498,7 @@ export default function WeeklyReportsPage() {
                   disabled={!draft.employeeId || !draft.employeeName}
                 >
                   <Send className="mr-2 h-4 w-4" />
-                  Submit
+                  Nộp báo cáo
                 </Button>
               </div>
             </DialogContent>
@@ -594,7 +509,7 @@ export default function WeeklyReportsPage() {
       <div className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-12">
         <Card className="lg:col-span-5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Team Reports</CardTitle>
+            <CardTitle className="text-sm">Báo cáo của nhóm</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -605,7 +520,7 @@ export default function WeeklyReportsPage() {
                   onChange={(e) =>
                     setFilters((p) => ({ ...p, q: e.target.value }))
                   }
-                  placeholder="Search by employee"
+                  placeholder="Tìm kiếm theo nhân viên"
                   className="bg-white pl-10"
                 />
               </div>
@@ -622,7 +537,7 @@ export default function WeeklyReportsPage() {
                 }
               >
                 <RefreshCcw className="mr-2 h-4 w-4" />
-                Reset
+                Đặt lại
               </Button>
             </div>
 
@@ -638,62 +553,31 @@ export default function WeeklyReportsPage() {
                   }
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="SUBMITTED">Submitted</SelectItem>
-                    <SelectItem value="REVIEWED">Reviewed</SelectItem>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="SUBMITTED">Đã nộp</SelectItem>
+                    <SelectItem value="REVIEWED">Đã duyệt</SelectItem>
+                    <SelectItem value="DRAFT">Bản nháp</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* <div>
-                <Select
-                  value={filters.department}
-                  onValueChange={(v) =>
-                    setFilters((p) => ({ ...p, department: v }))
-                  }
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div> */}
               <MyDatePicker
                 value={filters.submittedAt}
                 onChange={(v) =>
                   setFilters((p) => ({ ...p, submittedAt: v || "" }))
                 }
-                placeholder="Select submitted date"
+                placeholder="Chọn ngày nộp"
               />
-              {/* <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={filters.submittedAt}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, submittedAt: e.target.value }))
-                  }
-                  className="bg-white pl-10"
-                />
-              </div> */}
             </div>
 
             <div className="space-y-3">
               {filtered.length === 0 && reports.length > 0 ? (
                 <EmptyState
-                  title="No weekly reports"
-                  hint="Try adjusting filters or submit a new report."
+                  title="Không có báo cáo tuần"
+                  hint="Hãy thử điều chỉnh bộ lọc hoặc nộp một báo cáo mới."
                 />
               ) : reports.length === 0 ? (
                 <Center style={{ height: "50vh" }}>
@@ -738,7 +622,7 @@ export default function WeeklyReportsPage() {
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
-                            Progress
+                            Tiến độ
                           </span>
                           <span className="font-semibold text-foreground">
                             {clampProgress(r.progress_percentage)}%
@@ -748,7 +632,7 @@ export default function WeeklyReportsPage() {
                       </div>
 
                       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Submitted: {formatDateShort(r.created_at)}</span>
+                        <span>Đã nộp: {formatDateShort(r.created_at)}</span>
                       </div>
                     </button>
                   );
@@ -811,21 +695,21 @@ export default function WeeklyReportsPage() {
               <CardContent className="space-y-5">
                 <div className="rounded-xl border bg-white p-4">
                   <div className="mb-2 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Progress</span>
+                    <span className="text-muted-foreground">Tiến độ</span>
                     <span className="font-semibold text-foreground">
                       {clampProgress(selected.progress_percentage)}%
                     </span>
                   </div>
                   <ProgressBar value={selected.progress_percentage} />
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Updated: {formatDateShort(selected.updated_at)}</span>
+                    <span>Cập nhật: {formatDateShort(selected.updated_at)}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      Accomplishments
+                      Công việc đã hoàn thành
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
                       {selected.accomplishment || "—"}
@@ -833,7 +717,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      In progress
+                      Công việc đang thực hiện
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
                       {selected.in_progress || "—"}
@@ -841,7 +725,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      Plan next week
+                      Kế hoạch tuần tới
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
                       {selected.plan || "—"}
@@ -849,7 +733,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      Blockers
+                      Khó khăn / Vướng mắc
                     </div>
                     <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
                       {selected.blocker || "—"}
@@ -859,7 +743,7 @@ export default function WeeklyReportsPage() {
 
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-foreground">
-                    Progress Notes
+                    Ghi chú tiến độ
                   </div>
                   <div className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground">
                     {selected.progress_notes || "—"}
@@ -869,7 +753,7 @@ export default function WeeklyReportsPage() {
                 <div className="rounded-xl border bg-white p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="text-xs font-semibold text-foreground">
-                      Manager review
+                      Quản lý duyệt
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -879,7 +763,7 @@ export default function WeeklyReportsPage() {
                         onClick={() => updateSelected({ status: "REVIEWED" })}
                       >
                         <ShieldAlert className="mr-2 h-4 w-4" />
-                        Request changes
+                        Yêu cầu thay đổi
                       </Button>
                       <Button
                         type="button"
@@ -887,7 +771,7 @@ export default function WeeklyReportsPage() {
                         onClick={() => updateSelected({ status: "REVIEWED" })}
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Mark reviewed
+                        Đánh dấu đã duyệt
                       </Button>
                     </div>
                   </div>
@@ -904,7 +788,7 @@ export default function WeeklyReportsPage() {
               </CardContent>
             </Card>
           ) : (
-            <EmptyState title="Select a report to view details" />
+            <EmptyState title="Chọn một báo cáo để xem chi tiết" />
           )}
         </div>
       </div>

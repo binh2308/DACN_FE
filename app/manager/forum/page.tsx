@@ -59,8 +59,8 @@ interface Post {
 }
 
 const announceSchema = z.object({
-  title: z.string().min(1, "Title is required").max(500),
-  content: z.string().min(5, "Content is required").max(500),
+  title: z.string().min(1, "Vui lòng nhập tiêu đề").max(500),
+  content: z.string().min(5, "Vui lòng nhập nội dung (tối thiểu 5 ký tự)").max(500),
   category: z.enum(["GENERAL", "HR", "EVENTS"]),
   pinned: z.boolean(),
 });
@@ -153,7 +153,7 @@ function ForumListView({
       <div>
         <h1 className="text-xl font-bold text-[#21252B]">Team Collaboration</h1>
         <p className="text-sm text-gray-500">
-          Connect with your team through chat, updates, and announcements
+          Kết nối với đội ngũ qua trò chuyện, cập nhật và thông báo
         </p>
       </div>
 
@@ -263,7 +263,7 @@ function ForumListView({
                   <div className="flex items-center justify-between text-[10px] text-gray-500">
                     <div className="flex gap-2">
                       <span className="font-medium text-gray-700">
-                        By {post.employee?.firstName}{" "}
+                        Đăng bởi {post.employee?.firstName}{" "}
                         {post.employee?.middleName} {post.employee?.lastName}
                       </span>
                       <span>{dayjs(post.created_at).fromNow()}</span>
@@ -414,7 +414,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
     <div className="space-y-4">
       <form onSubmit={handleSubmit(onSubmit, (errors) => console.log(errors))}>
         <h1 className="text-xl font-bold text-[#21252B]">
-          Create Announcement
+          Tạo thông báo
         </h1>
 
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col lg:flex-row gap-6">
@@ -423,11 +423,11 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
             {/* Title Input */}
             <div className="space-y-1">
               <label className="text-xs text-gray-500">
-                Title <span className="text-red-500">*</span>
+                Tiêu đề <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                placeholder="Title"
+                placeholder="Nhập tiêu đề"
                 {...register("title")}
                 className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#0B9F57]"
               />
@@ -439,7 +439,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
             {/* Rich Text Editor Simulation */}
             <div className="space-y-1">
               <label className="text-xs text-gray-500">
-                Content <span className="text-red-500">*</span>
+                Nội dung <span className="text-red-500">*</span>
               </label>
               <div className="border border-gray-200 rounded-lg overflow-hidden flex flex-col h-[400px]">
                 {/* Toolbar */}
@@ -484,7 +484,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
                         >
                           <img
                             src={img.preview}
-                            alt="preview"
+                            alt="Ảnh xem trước"
                             className="w-full h-full object-cover"
                           />
 
@@ -503,7 +503,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
                   {/* Textarea */}
                   <textarea
                     className="flex-1 text-sm focus:outline-none resize-none"
-                    placeholder="Type your content here..."
+                    placeholder="Nhập nội dung tại đây..."
                     {...register("content")}
                   />
                   {errors.content && (
@@ -524,7 +524,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
               </h3>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600">
-                  Category <span className="text-red-500">*</span>
+                  Danh mục <span className="text-red-500">*</span>
                 </span>
                 <Controller
                   name="category"
@@ -560,10 +560,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
             type="submit"
             className="flex items-center gap-2 px-6 py-2 bg-[#0B9F57] text-white rounded font-semibold text-sm hover:bg-green-700 transition-colors"
           >
-            <Save size={16} /> Create Announcement
-          </button>
-          <button className="flex items-center gap-2 px-6 py-2 bg-[#2ECC71] text-white rounded font-semibold text-sm hover:bg-green-500 transition-colors">
-            <Save size={16} /> Saved at page
+            <Save size={16} /> Tạo thông báo
           </button>
           <button
             onClick={() => reset()}
@@ -575,7 +572,7 @@ function CreateAnnouncementView({ onBack }: { onBack: () => void }) {
             onClick={onBack}
             className="flex items-center gap-2 px-6 py-2 bg-[#E74C3C] text-white rounded font-semibold text-sm hover:bg-red-600 transition-colors"
           >
-            <LogOut size={16} /> Exit
+            <LogOut size={16} /> Thoát
           </button>
         </div>
       </form>

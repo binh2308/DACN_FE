@@ -186,8 +186,7 @@ export default function SupportPage() {
 									<SelectItem value="all">Tất cả trạng thái</SelectItem>
 									<SelectItem value="OPEN">Chờ xử lý</SelectItem>
 									<SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
-									<SelectItem value="RESOLVED">Đã giải quyết</SelectItem>
-									<SelectItem value="DEFERRED">Tạm hoãn</SelectItem>
+									<SelectItem value="CLOSED">Đã giải quyết</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>

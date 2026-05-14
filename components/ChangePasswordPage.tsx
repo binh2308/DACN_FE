@@ -19,7 +19,7 @@ function getApiBaseUrl() {
 
 async function verifyOldPassword(email: string, password: string) {
   const baseUrl = getApiBaseUrl();
-  if (!baseUrl) throw new Error("Missing NEXT_PUBLIC_API_ENDPOINT");
+  if (!baseUrl) throw new Error("Thiếu cấu hình NEXT_PUBLIC_API_ENDPOINT");
 
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: "POST",
@@ -30,7 +30,7 @@ async function verifyOldPassword(email: string, password: string) {
   if (res.ok) return;
 
   // Keep the message stable/user-friendly; backend messages vary.
-  throw new Error("Old password is incorrect.");
+  throw new Error("Mật khẩu hiện tại không đúng.");
 }
 
 type ChangePasswordPageProps = {
@@ -64,12 +64,12 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
           setProfileEmail(res.data.email);
         } else {
           setProfileEmail(null);
-          setError("Unable to load profile. Please log in again.");
+          setError("Không thể tải thông tin tài khoản. Vui lòng đăng nhập lại.");
         }
       } catch {
         if (!cancelled) {
           setProfileEmail(null);
-          setError("Unable to load profile. Please log in again.");
+          setError("Không thể tải thông tin tài khoản. Vui lòng đăng nhập lại.");
         }
       } finally {
         if (!cancelled) setLoadingProfile(false);
@@ -93,17 +93,23 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
     const confirmPw = confirmNewPassword;
 
     if (!oldPw.trim() || !newPw.trim() || !confirmPw.trim()) {
-      setError("Please fill in all fields.");
+      setError("Vui lòng nhập đầy đủ các trường.");
       return;
     }
 
     if (newPw !== confirmPw) {
-      setError("New password and confirmation do not match.");
+      setError("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      return;
+    }
+
+    // LOGIC THÊM VÀO: Kiểm tra mật khẩu mới không được trùng mật khẩu cũ
+    if (oldPw === newPw) {
+      setError("Mật khẩu mới không được giống với mật khẩu cũ.");
       return;
     }
 
     if (!profileEmail) {
-      setError("Unable to determine your account email. Please log in again.");
+      setError("Không xác định được email tài khoản. Vui lòng đăng nhập lại.");
       return;
     }
 
@@ -131,13 +137,13 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
       setOldPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-      setSuccess("Password changed successfully. Redirecting to login...");
+      setSuccess("Đổi mật khẩu thành công. Đang chuyển về trang đăng nhập...");
       router.replace("/login");
     } catch (err) {
       const message =
         (err as any)?.response?.data?.message ||
         (err as any)?.message ||
-        "Change password failed.";
+        "Đổi mật khẩu thất bại.";
       setError(Array.isArray(message) ? message.join(", ") : String(message));
     } finally {
       setSubmitting(false);
@@ -147,30 +153,30 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
   const content = (
     <Card>
       <CardHeader>
-        <CardTitle>Change Password</CardTitle>
+        <CardTitle>Đổi mật khẩu</CardTitle>
         <CardDescription>
-          Enter your current password to confirm, then set a new password.
+          Nhập mật khẩu hiện tại để xác nhận, sau đó đặt mật khẩu mới.
         </CardDescription>
       </CardHeader>
 
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Unable to change password</AlertTitle>
+            <AlertTitle>Không thể đổi mật khẩu</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {success && (
           <Alert className="mb-4">
-            <AlertTitle>Success</AlertTitle>
+            <AlertTitle>Thành công</AlertTitle>
             <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="oldPassword">Old Password</Label>
+            <Label htmlFor="oldPassword">Mật khẩu hiện tại</Label>
             <Input
               id="oldPassword"
               type="password"
@@ -182,7 +188,7 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword">Mật khẩu mới</Label>
             <Input
               id="newPassword"
               type="password"
@@ -194,7 +200,7 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmNewPassword">Xác nhận mật khẩu mới</Label>
             <Input
               id="confirmNewPassword"
               type="password"
@@ -207,7 +213,7 @@ export default function ChangePasswordPage({ embedded = false }: ChangePasswordP
 
           <div className="pt-2">
             <Button type="submit" className="w-full" disabled={submitting || loadingProfile}>
-              {submitting ? "Changing..." : "Change Password"}
+              {submitting ? "Đang đổi…" : "Đổi mật khẩu"}
             </Button>
           </div>
         </form>

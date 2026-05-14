@@ -103,7 +103,7 @@ export default function Index() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-  const monthLabel = now.toLocaleString("en-US", { month: "long" });
+  const monthLabel = `Tháng ${month}`;
 
   const yearStartStr = `${year}-01-01`;
   const yearEndStr = `${year}-12-31`;
@@ -208,7 +208,7 @@ export default function Index() {
       const content = String((it as any)?.content ?? "").trim();
       return {
         id: String((it as any)?.id ?? title),
-        title: title || "(No title)",
+        title: title || "(Không có tiêu đề)",
         description: content || undefined,
         highlighted: Boolean((it as any)?.pinned),
       };
@@ -231,16 +231,16 @@ export default function Index() {
   const quickActions = React.useMemo(
     () =>
       [
-        { id: "leave", label: "Apply for Leave", href: "/user/request" },
+        { id: "leave", label: "Xin nghỉ phép", href: "/user/request" },
         {
           id: "meetings",
-          label: `Today's Meetings${todayMeetingsCount > 0 ? ` (${todayMeetingsCount})` : ""}`,
+          label: `Lịch họp hôm nay${todayMeetingsCount > 0 ? ` (${todayMeetingsCount})` : ""}`,
           href: "/user/calendar",
         },
-        { id: "report", label: "Write a Report", href: "/user/reports" },
-        { id: "payslip", label: "View Payslip", href: "/user/payroll" },
-        { id: "profile", label: "Update Profile", href: "/user/profile" },
-        { id: "events", label: "Events", href: "/user/forum" },
+        { id: "report", label: "Viết báo cáo", href: "/user/reports" },
+        { id: "payslip", label: "Xem bảng lương", href: "/user/payroll" },
+        { id: "profile", label: "Hồ sơ cá nhân", href: "/user/profile" },
+        { id: "events", label: "Sự kiện", href: "/user/forum" },
       ] as const,
     [todayMeetingsCount],
   );
@@ -301,7 +301,7 @@ export default function Index() {
     <div className="p-4 space-y-5">
       <section>
         <h2 className="text-base font-semibold text-grey-900 mb-2">
-          Quick Actions
+          Thao tác nhanh
         </h2>
         <div className="flex flex-wrap gap-2">
           {quickActions.map((action) => (
@@ -320,14 +320,14 @@ export default function Index() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
           <h3 className="text-lg font-semibold text-grey-900 mb-3">
-            Available Leave Days
+            Số ngày nghỉ phép hiện có
           </h3>
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-grey-900">Annual Leave</span>
+                <span className="text-sm text-grey-900">Nghỉ phép năm</span>
                 <span className="text-sm text-muted-foreground">
-                  {leaveUsed.annual} of {leaveQuota.annual} day(s)
+                  Đã dùng {leaveUsed.annual} trên {leaveQuota.annual} ngày
                 </span>
               </div>
               <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
@@ -350,9 +350,9 @@ export default function Index() {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-grey-900">Sick Leave</span>
+                <span className="text-sm text-grey-900">Nghỉ ốm</span>
                 <span className="text-sm text-muted-foreground">
-                  {leaveUsed.sick} of {leaveQuota.sick} day(s)
+                  Đã dùng {leaveUsed.sick} trên {leaveQuota.sick} ngày
                 </span>
               </div>
               <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
@@ -376,10 +376,10 @@ export default function Index() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm text-grey-900">
-                  Compassionate Leave
+                  Nghỉ việc gia đình
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {leaveUsed.compassionate} of {leaveQuota.compassionate} day(s)
+                  Đã dùng {leaveUsed.compassionate} trên {leaveQuota.compassionate} ngày
                 </span>
               </div>
               <div className="w-full h-1.5 bg-neutral-bar rounded-full overflow-hidden">
@@ -404,7 +404,7 @@ export default function Index() {
 
             {leaveStats.pending > 0 ? (
               <div className="text-xs text-muted-foreground">
-                Pending requests: {leaveStats.pending}
+                Yêu cầu đang chờ duyệt: {leaveStats.pending}
               </div>
             ) : null}
           </div>
@@ -419,31 +419,31 @@ export default function Index() {
               attendanceRows ?? [
                 {
                   title: "Thứ 6, 17/04",
-                  subtitle: "In: 07:58 — Out: 17:05",
+                  subtitle: "Vào: 07:58 — Ra: 17:05",
                   status: "Đúng giờ",
                   type: "success",
                 },
                 {
                   title: "Thứ 5, 16/04",
-                  subtitle: "In: 08:15 — Out: 17:00",
+                  subtitle: "Vào: 08:15 — Ra: 17:00",
                   status: "Đi muộn",
                   type: "warning",
                 },
                 {
                   title: "Thứ 4, 15/04",
-                  subtitle: "In: 07:50 — Out: 17:30",
+                  subtitle: "Vào: 07:50 — Ra: 17:30",
                   status: "Đúng giờ",
                   type: "success",
                 },
                 {
                   title: "Thứ 3, 14/04",
-                  subtitle: "In: 08:00 — Out: 17:00",
+                  subtitle: "Vào: 08:00 — Ra: 17:00",
                   status: "Đúng giờ",
                   type: "success",
                 },
                 {
                   title: "Thứ 2, 13/04",
-                  subtitle: "In: --:-- — Out: --:--",
+                  subtitle: "Vào: --:-- — Ra: --:--",
                   status: "Nghỉ phép",
                   type: "neutral",
                 },
@@ -481,9 +481,8 @@ export default function Index() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:h-60">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50">
           <h3 className="text-lg font-semibold text-grey-900 mb-2">
-            Announcement(s)
+            Thông báo
           </h3>
-          {/* Thêm pb-2 để tránh việc đổ bóng của phần tử cuối cùng bị cắt mất do overflow */}
           <div className="space-y-3 max-h-40 overflow-y-auto pr-2 pb-2">
             {announcementsForWidget.map((announcement) => {
               const isExpanded = expandedAnnouncementId === announcement.id;
@@ -508,7 +507,6 @@ export default function Index() {
                         {announcement.title}
                       </p>
 
-                      {/* Nội dung chi tiết chỉ hiển thị khi isExpanded = true */}
                       {isExpanded && announcement.description && (
                         <p className="text-sm text-main-600 mt-2">
                           {announcement.description}
@@ -516,7 +514,6 @@ export default function Index() {
                       )}
                     </div>
 
-                    {/* Icon mũi tên sẽ xoay 90 độ cắm xuống dưới khi được mở rộng */}
                     <ChevronRight
                       className={`w-4 h-4 text-grey-900 flex-shrink-0 mt-0.5 transition-transform duration-200 ${
                         isExpanded ? "rotate-90" : ""
@@ -531,29 +528,29 @@ export default function Index() {
 
         <div className="bg-white rounded-lg p-4 shadow-sm border border-grey-50 overflow-hidden flex flex-col">
           <h3 className="text-lg font-semibold text-grey-900 mb-2">
-            {monthLabel} Pay Slip Breakdown
+            Chi tiết phiếu lương {monthLabel}
           </h3>
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-grey-50">
                   <th className="text-left py-2 px-2 font-medium text-grey-900">
-                    Earnings
+                    Khoản thu nhập
                   </th>
                   <th className="text-right py-2 px-2 font-medium text-grey-900">
-                    Amount
+                    Số tiền
                   </th>
                   <th className="text-right py-2 px-2 font-medium text-grey-900">
-                    Deductions
+                    Khoản giảm trừ
                   </th>
                   <th className="text-right py-2 px-2 font-medium text-grey-900">
-                    Total
+                    Tổng cộng
                   </th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-grey-50 bg-neutral-background">
-                  <td className="py-2 px-2 text-grey-900">Basic Wage</td>
+                  <td className="py-2 px-2 text-grey-900">Lương cơ bản</td>
                   <td className="py-2 px-2 text-grey-900 text-right">
                     {payrollComputed
                       ? formatMoney(payrollComputed.basic)
@@ -567,7 +564,7 @@ export default function Index() {
                   </td>
                 </tr>
                 <tr className="border-b border-grey-50">
-                  <td className="py-2 px-2 text-grey-900">Allowance</td>
+                  <td className="py-2 px-2 text-grey-900">Phụ cấp</td>
                   <td className="py-2 px-2 text-grey-900 text-right">
                     {payrollComputed
                       ? formatMoney(payrollComputed.allowance)
@@ -582,7 +579,7 @@ export default function Index() {
                 </tr>
                 <tr className="bg-main-50">
                   <td className="py-2 px-2 font-semibold text-grey-900">
-                    Total Earning
+                    Tổng thu nhập
                   </td>
                   <td className="py-2 px-2 font-semibold text-grey-900 text-right">
                     {payrollComputed

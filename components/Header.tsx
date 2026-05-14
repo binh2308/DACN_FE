@@ -10,7 +10,7 @@ export function Header() {
           <Search size={20} className="text-[#BBC5DC] opacity-50" />
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Tìm kiếm"
             className="flex-1 bg-transparent text-dashboard-text placeholder:text-dashboard-text placeholder:opacity-50 font-poppins text-base outline-none"
           />
         </div>
@@ -20,12 +20,12 @@ export function Header() {
       <div className="flex items-center gap-3">
         <button className="flex items-center gap-2 h-10 px-4 bg-dashboard-blue text-white font-semibold text-sm rounded-lg hover:opacity-90 transition-all font-poppins">
           <Plus size={16} />
-          Add Candidate
+          Thêm ứng viên
         </button>
 
         <button className="flex items-center gap-2 h-10 px-4 bg-dashboard-blue text-white font-semibold text-sm rounded-lg hover:opacity-90 transition-all font-poppins">
           <Plus size={16} />
-          Add Job
+          Thêm công việc
         </button>
 
         {/* User Profile */}
@@ -34,7 +34,7 @@ export function Header() {
             <div className="w-10 h-10 rounded-full bg-[#D9D9D9] bg-cover bg-center" 
                  style={{backgroundImage: "url('https://images.unsplash.com/photo-1494790108755-2616b612b5e5?w=80&h=80&fit=crop&crop=face')"}} />
           </div>
-          <span className="text-dashboard-text font-semibold text-base font-poppins">Jane Doe</span>
+          <span className="text-dashboard-text font-semibold text-base font-poppins">Người dùng</span>
           <ChevronDown size={16} className="text-dashboard-text opacity-50" />
         </div>
       </div>

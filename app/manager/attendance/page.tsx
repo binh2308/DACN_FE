@@ -68,11 +68,11 @@ function shiftYearMonth(base: { year: number; month: number }, deltaMonths: numb
 }
 
 function monthShortLabel(ym: { year: number; month: number }) {
-  return new Date(ym.year, ym.month - 1, 1).toLocaleString("en-US", { month: "short" });
+  return `Tháng ${ym.month}`;
 }
 
 function monthLongLabel(ym: { year: number; month: number }) {
-  return new Date(ym.year, ym.month - 1, 1).toLocaleString("en-US", { month: "long" });
+  return `Tháng ${ym.month}`;
 }
 
 function buildTrendSkeleton(ym: { year: number; month: number }): TrendRow[] {
@@ -92,21 +92,21 @@ function MonthlyTrendChart({ data }: { data: TrendRow[] }) {
     <div className="bg-white rounded-xl p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div className="text-sm font-semibold text-[#21252B] leading-[150%] tracking-[0.08px]">
-          Monthly Attendance Trend
+          Xu hướng điểm danh hàng tháng
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-sm bg-[#1F4FBF]" />
-            <span className="text-xs text-[#21252B] font-medium">Present</span>
+            <span className="text-xs text-[#21252B] font-medium">Có mặt</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-sm bg-[#FF7A7A]" />
-            <span className="text-xs text-[#21252B] font-medium">Absent</span>
+            <span className="text-xs text-[#21252B] font-medium">Vắng mặt</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-sm bg-[#21B099]" />
-            <span className="text-xs text-[#21252B] font-medium">Late</span>
+            <span className="text-xs text-[#21252B] font-medium">Đi muộn</span>
           </div>
         </div>
       </div>
@@ -136,17 +136,17 @@ function MonthlyTrendChart({ data }: { data: TrendRow[] }) {
                   <div 
                     className="w-1/3 bg-[#1F4FBF] rounded-t-[2px] transition-all hover:opacity-90" 
                     style={{ height: `${(row.present / maxVal) * 100}%` }} 
-                    title={`Present: ${row.present}`}
+                    title={`Có mặt: ${row.present}`}
                   />
                   <div 
                     className="w-1/3 bg-[#FF7A7A] rounded-t-[2px] transition-all hover:opacity-90" 
                     style={{ height: `${(row.absent / maxVal) * 100}%` }} 
-                    title={`Absent: ${row.absent}`}
+                    title={`Vắng mặt: ${row.absent}`}
                   />
                   <div 
                     className="w-1/3 bg-[#21B099] rounded-t-[2px] transition-all hover:opacity-90" 
                     style={{ height: `${(row.late / maxVal) * 100}%` }} 
-                    title={`Late: ${row.late}`}
+                    title={`Đi muộn: ${row.late}`}
                   />
                 </div>
               </div>
@@ -281,7 +281,7 @@ export default function ManagerCheckInPage() {
     try {
       const res = await checkIn();
       if (!res?.success) {
-        throw new Error(res?.message || "Check in failed");
+        throw new Error(res?.message || "Check in thất bại");
       }
       
       // Lấy thời gian từ API và sử dụng parseApiDate để xử lý lỗi UTC
@@ -298,10 +298,10 @@ export default function ManagerCheckInPage() {
       } catch {
         // ignore storage errors
       }
-      setApiMessage(res.message || "Checked in successfully");
+      setApiMessage(res.message || "Check in thành công");
       setRefreshKey((k) => k + 1);
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || (error as any)?.message || "Check in failed";
+      const message = (error as any)?.response?.data?.message || (error as any)?.message || "Check in thất bại";
       setApiMessage(String(message));
     } finally {
       setIsCheckingIn(false);
@@ -315,7 +315,7 @@ export default function ManagerCheckInPage() {
     try {
       const res = await checkOut();
       if (!res?.success) {
-        throw new Error(res?.message || "Check out failed");
+        throw new Error(res?.message || "Check out thất bại");
       }
       const timeOutRaw = pickTimeOut(res.data) ?? pickTimeOut((res as any)?.data);
       const timeOut = parseApiDate(timeOutRaw);
@@ -330,13 +330,13 @@ export default function ManagerCheckInPage() {
       }
 
       if (timeOut) {
-        setApiMessage(`${res.message || "Checked out successfully"} (${formatHHmm(timeOut)})`);
+        setApiMessage(`${res.message || "Check out thành công"} (${formatHHmm(timeOut)})`);
       } else {
-        setApiMessage(res.message || "Checked out successfully");
+        setApiMessage(res.message || "Check out thành công");
       }
       setRefreshKey((k) => k + 1);
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || (error as any)?.message || "Check out failed";
+      const message = (error as any)?.response?.data?.message || (error as any)?.message || "Check out thất bại";
       setApiMessage(String(message));
     } finally {
       setIsCheckingOut(false);
@@ -344,7 +344,7 @@ export default function ManagerCheckInPage() {
   };
 
   const summary = (() => {
-    const monthTitle = `${monthLongLabel(currentYm)} ${currentYm.year} Summary`;
+    const monthTitle = `Tổng kết ${monthLongLabel(currentYm)} năm ${currentYm.year}`;
     const present = monthlySummary?.workedDays ?? 0;
     const absent = monthlySummary?.absentDays ?? 0;
     const late = monthlySummary?.lateDays ?? 0;
@@ -360,10 +360,10 @@ export default function ManagerCheckInPage() {
       {/* Title */}
       <div>
         <div className="text-lg font-semibold text-[#21252B] leading-[150%] tracking-[0.08px]">
-          Attendance Tracking
+          Theo dõi chấm công
         </div>
         <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-          Monitor your daily attendance and working hours
+          Quản lý thời gian làm việc và điểm danh hằng ngày
         </div>
       </div>
 
@@ -372,7 +372,7 @@ export default function ManagerCheckInPage() {
         {/* Today's Attendance */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-xs font-semibold text-[#21252B] leading-[150%] tracking-[0.07px]">
-            Today&apos;s Attendance
+            Điểm danh hôm nay
           </div>
 
           <div className="mt-3 text-center">
@@ -380,7 +380,7 @@ export default function ManagerCheckInPage() {
               {currentTime}
             </div>
             <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-              Current time
+              Thời gian hiện tại
             </div>
           </div>
 
@@ -399,7 +399,7 @@ export default function ManagerCheckInPage() {
               </div>
               <div className="text-[10px] font-semibold leading-[140%] tracking-[0.12px]">Check In</div>
               <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
-                {isCheckingIn ? "Đang check in..." : checkedInAt ? formatHHmm(checkedInAt) : "08:00 AM"}
+                {isCheckingIn ? "Đang check in..." : checkedInAt ? formatHHmm(checkedInAt) : "08:00"}
               </div>
             </button>
 
@@ -437,7 +437,7 @@ export default function ManagerCheckInPage() {
 
           <div className="mt-3 flex items-center gap-2 text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">
             <MapPin size={14} />
-            Location: Hall A
+            Vị trí: Sảnh A
           </div>
         </div>
 
@@ -448,10 +448,10 @@ export default function ManagerCheckInPage() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <StatBox value={String(summary.present)} label="Days Present" valueClassName="text-[#0B9F57]" />
-            <StatBox value={String(summary.absent)} label="Days Absent" valueClassName="text-[#FF5A5A]" />
-            <StatBox value={String(summary.late)} label="Late Arrivals" valueClassName="text-[#FF8A00]" />
-            <StatBox value={`${summary.rate.toFixed(1)}%`} label="Attendance Rate" valueClassName="text-[#06B6D4]" />
+            <StatBox value={String(summary.present)} label="Số ngày có mặt" valueClassName="text-[#0B9F57]" />
+            <StatBox value={String(summary.absent)} label="Số ngày vắng mặt" valueClassName="text-[#FF5A5A]" />
+            <StatBox value={String(summary.late)} label="Số lần đi muộn" valueClassName="text-[#FF8A00]" />
+            <StatBox value={`${summary.rate.toFixed(1)}%`} label="Tỷ lệ chuyên cần" valueClassName="text-[#06B6D4]" />
           </div>
         </div>
       </div>

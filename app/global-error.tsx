@@ -4,10 +4,10 @@ import "./globals.css";
 
 export default function GlobalError() {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body>
         <div className="flex flex-col items-center justify-center min-h-screen">
-          <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
+          <h2 className="text-2xl font-bold mb-4">Đã xảy ra lỗi!</h2>
           <button
             onClick={() => {
               // refresh the page
@@ -15,7 +15,7 @@ export default function GlobalError() {
             }}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
-            Refresh
+            Tải lại
           </button>
         </div>
       </body>

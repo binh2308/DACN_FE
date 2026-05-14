@@ -50,17 +50,17 @@ import { Center, Loader } from "@mantine/core";
 const reportSchema = z.object({
   week_starting: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick a week starting date"),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày bắt đầu tuần"),
   progress_percentage: z
     .number()
-    .min(1, "Progress percentage is required")
+    .min(1, "Tiến độ là bắt buộc")
     .max(100),
-  accomplishment: z.string().min(10, "Accomplishment is required").max(500),
+  accomplishment: z.string().min(10, "Công việc đã hoàn thành là bắt buộc").max(500),
   in_progress: z
     .string()
-    .min(10, "In-progress description is required")
+    .min(10, "Công việc đang thực hiện là bắt buộc")
     .max(500),
-  plan: z.string().min(10, "Plan is required").max(500),
+  plan: z.string().min(10, "Kế hoạch là bắt buộc").max(500),
   blocker: z.string().max(500),
   progress_notes: z.string().max(500),
 });
@@ -106,7 +106,7 @@ function clampProgress(n: number) {
 function formatDateShort(ymdOrIso: string) {
   const d = new Date(ymdOrIso);
   if (Number.isNaN(d.getTime())) return ymdOrIso;
-  return d.toLocaleDateString(undefined, {
+  return d.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "2-digit",
@@ -116,11 +116,11 @@ function formatDateShort(ymdOrIso: string) {
 function statusLabel(s: ReportStatus) {
   switch (s) {
     case "SUBMITTED":
-      return "Submitted";
+      return "Đã nộp";
     case "REVIEWED":
-      return "Reviewed";
+      return "Đã duyệt";
     case "DRAFT":
-      return "Draft";
+      return "Bản nháp";
     default:
       return s;
   }
@@ -140,81 +140,9 @@ function statusVariant(
   }
 }
 
-// function seedReports(): WeeklyReport[] {
-//   const now = new Date();
-//   const iso = now.toISOString();
-//   return [
-//     {
-//       id: safeId(),
-//       employeeId: "E-0102",
-//       employeeName: "Nguyen Van A",
-//       department: "Engineering",
-//       weekStart: "2026-01-19",
-//       weekEnd: "2026-01-25",
-//       createdAt: iso,
-//       updatedAt: iso,
-//       progress: 78,
-//       accomplishments:
-//         "- Hoàn thành UI trang Booking\n- Fix lỗi date input bị vỡ layout\n- Review PR của team",
-//       inProgress:
-//         "- Tối ưu performance trang Employee list\n- Chuẩn hoá validation form",
-//       planNextWeek:
-//         "- Hoàn thiện phần Reports\n- Thêm export CSV\n- Viết unit tests cho utils",
-//       blockers: "Chưa có blocker lớn.",
-//       links: "PR: #123\nTicket: DACN-45",
-//       hours: 40,
-//       status: "submitted",
-//       managerComment: "",
-//     },
-//     {
-//       id: safeId(),
-//       employeeId: "E-0220",
-//       employeeName: "Tran Thi B",
-//       department: "HR",
-//       weekStart: "2026-01-19",
-//       weekEnd: "2026-01-25",
-//       createdAt: iso,
-//       updatedAt: iso,
-//       progress: 92,
-//       accomplishments:
-//         "- Tổng hợp dữ liệu chấm công\n- Làm báo cáo lương sơ bộ\n- Update policy nghỉ phép",
-//       inProgress: "- Chuẩn bị onboarding batch mới",
-//       planNextWeek: "- Hoàn tất payroll\n- Audit hồ sơ nhân sự",
-//       blockers: "Đợi dữ liệu từ phòng IT về phân quyền.",
-//       links: "",
-//       hours: 38,
-//       status: "reviewed",
-//       managerComment: "Tốt. Tuần sau ưu tiên payroll trước thứ 4.",
-//     },
-//   ];
-// }
-
-// function readReports(): WeeklyReport[] {
-//   if (typeof window === "undefined") return [];
-//   try {
-//     const raw = localStorage.getItem(STORAGE_KEY);
-//     if (!raw) return seedReports();
-//     const parsed = JSON.parse(raw) as unknown;
-//     if (!Array.isArray(parsed)) return seedReports();
-//     return parsed as WeeklyReport[];
-//   } catch {
-//     return seedReports();
-//   }
-// }
-
-// function writeReports(items: WeeklyReport[]) {
-//   if (typeof window === "undefined") return;
-//   try {
-//     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-//   } catch {
-//     // ignore
-//   }
-// }
-
 type Filters = {
   q: string;
   status: "all" | ReportStatus;
-
   submittedAt: string;
 };
 
@@ -395,17 +323,17 @@ export default function WeeklyReportsPage() {
     try {
       await createReport(newReport);
       notifications.show({
-        title: "Report submitted",
-        message: "Your weekly report has been submitted successfully.",
+        title: "Đã nộp báo cáo",
+        message: "Báo cáo hàng tuần của bạn đã được nộp thành công.",
         color: "green",
       });
       reset();
       setCreateOpen(false);
     } catch (error) {
       notifications.show({
-        title: "Failed to submit report",
+        title: "Nộp báo cáo thất bại",
         message:
-          "An error occurred while submitting your report. Please try again.",
+          "Đã có lỗi xảy ra trong quá trình nộp báo cáo. Vui lòng thử lại.",
         color: "red",
       });
     }
@@ -416,22 +344,22 @@ export default function WeeklyReportsPage() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-xl font-semibold text-foreground">
-            Weekly Reports
+            Báo cáo hàng tuần
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
             Tổng:{" "}
             <span className="font-semibold text-foreground">
               {counts.total}
             </span>{" "}
-            · Submitted{" "}
+            · Đã nộp{" "}
             <span className="font-semibold text-foreground">
               {counts.submitted}
             </span>{" "}
-            · Reviewed{" "}
+            · Đã duyệt{" "}
             <span className="font-semibold text-foreground">
               {counts.reviewed}
             </span>{" "}
-            · Draft{" "}
+            · Bản nháp{" "}
             <span className="font-semibold text-foreground">
               {counts.draft}
             </span>
@@ -443,22 +371,18 @@ export default function WeeklyReportsPage() {
             <DialogTrigger asChild>
               <Button className="rounded-full" type="button">
                 <Plus className="mr-2 h-4 w-4" />
-                New report
+                Báo cáo mới
               </Button>
             </DialogTrigger>
-            {/* Responsive fix: 
-                - max-h-[90vh] & overflow-y-auto: Giúp cuộn khi màn hình nhỏ
-                - w-full: Đảm bảo độ rộng
-            */}
             <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader className="mb-4">
-                <DialogTitle>SUBMIT WEEKLY REPORT</DialogTitle>
+                <DialogTitle>NỘP BÁO CÁO HÀNG TUẦN</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-2">
                   <div>
                     <Label>
-                      Week start date <span className="text-red-500">*</span>
+                      Ngày bắt đầu tuần <span className="text-red-500">*</span>
                     </Label>
                     <Controller
                       control={control}
@@ -491,7 +415,7 @@ export default function WeeklyReportsPage() {
 
                   <div>
                     <Label>
-                      Progress (%) <span className="text-red-500">*</span>
+                      Tiến độ (%) <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       type="number"
@@ -511,7 +435,7 @@ export default function WeeklyReportsPage() {
 
                   <div>
                     <Label>
-                      Accomplishments <span className="text-red-500">*</span>
+                      Công việc đã hoàn thành <span className="text-red-500">*</span>
                     </Label>
                     <Textarea
                       className="mt-1"
@@ -527,7 +451,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div>
                     <Label>
-                      In progress <span className="text-red-500">*</span>
+                      Công việc đang thực hiện <span className="text-red-500">*</span>
                     </Label>
                     <Textarea
                       {...register("in_progress")}
@@ -543,7 +467,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div>
                     <Label>
-                      Plan next week <span className="text-red-500">*</span>
+                      Kế hoạch tuần tới <span className="text-red-500">*</span>
                     </Label>
                     <Textarea
                       {...register("plan")}
@@ -558,7 +482,7 @@ export default function WeeklyReportsPage() {
                     )}
                   </div>
                   <div>
-                    <Label>Blockers</Label>
+                    <Label>Khó khăn / Vướng mắc</Label>
                     <Textarea
                       {...register("blocker")}
                       className="mt-1"
@@ -572,7 +496,7 @@ export default function WeeklyReportsPage() {
                     )}
                   </div>
                   <div className="col-span-2">
-                    <Label>Progress Notes</Label>
+                    <Label>Ghi chú tiến độ</Label>
                     <Input
                       {...register("progress_notes")}
                       className="mt-1"
@@ -587,11 +511,11 @@ export default function WeeklyReportsPage() {
                     onClick={() => setCreateOpen(false)}
                     type="button"
                   >
-                    Cancel
+                    Hủy
                   </Button>
                   <Button type="submit">
                     <Send className="mr-2 h-4 w-4" />
-                    Submit
+                    Nộp báo cáo
                   </Button>
                 </div>
               </form>
@@ -603,7 +527,7 @@ export default function WeeklyReportsPage() {
       <div className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-12">
         <Card className="lg:col-span-5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">My Weekly Reports</CardTitle>
+            <CardTitle className="text-sm">Báo cáo của tôi</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -614,7 +538,7 @@ export default function WeeklyReportsPage() {
                   onChange={(e) =>
                     setFilters((p) => ({ ...p, q: e.target.value }))
                   }
-                  placeholder="Search"
+                  placeholder="Tìm kiếm"
                   className="bg-white pl-10"
                 />
               </div>
@@ -626,13 +550,12 @@ export default function WeeklyReportsPage() {
                   setFilters({
                     q: "",
                     status: "all",
-
                     submittedAt: "",
                   })
                 }
               >
                 <RefreshCcw className="mr-2 h-4 w-4" />
-                Reset
+                Đặt lại
               </Button>
             </div>
 
@@ -648,13 +571,13 @@ export default function WeeklyReportsPage() {
                   }
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="SUBMITTED">Submitted</SelectItem>
-                    <SelectItem value="REVIEWED">Reviewed</SelectItem>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="SUBMITTED">Đã nộp</SelectItem>
+                    <SelectItem value="REVIEWED">Đã duyệt</SelectItem>
+                    <SelectItem value="DRAFT">Bản nháp</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -670,25 +593,13 @@ export default function WeeklyReportsPage() {
                   className="bg-white pl-9 cursor-pointer hover:border-[#4F7D7B] transition-colors"
                 />
               </div>
-
-              {/* <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={filters.weekStart}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, weekStart: e.target.value }))
-                  }
-                  className="bg-white pl-10"
-                />
-              </div> */}
             </div>
 
             <div className="space-y-3">
               {filtered.length === 0 && !loading ? (
                 <EmptyState
-                  title="No weekly reports"
-                  hint="Try adjusting filters or submit a new report."
+                  title="Không có báo cáo hàng tuần"
+                  hint="Hãy thử điều chỉnh bộ lọc hoặc nộp một báo cáo mới."
                 />
               ) : loading ? (
                 <Center style={{ height: "50vh" }}>
@@ -724,7 +635,7 @@ export default function WeeklyReportsPage() {
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
-                            Progress
+                            Tiến độ
                           </span>
                           <span className="font-semibold text-foreground">
                             {clampProgress(r.progress_percentage)}%
@@ -734,7 +645,7 @@ export default function WeeklyReportsPage() {
                       </div>
 
                       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Submitted: {formatDateShort(r.created_at)}</span>
+                        <span>Đã nộp: {formatDateShort(r.created_at)}</span>
                       </div>
                     </button>
                   );
@@ -789,7 +700,7 @@ export default function WeeklyReportsPage() {
               <CardContent className="space-y-5">
                 <div className="rounded-xl border bg-white p-4">
                   <div className="mb-2 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Progress</span>
+                    <span className="text-muted-foreground">Tiến độ</span>
                     <span className="font-semibold text-foreground">
                       {clampProgress(selectedReport.progress_percentage)}%
                     </span>
@@ -805,7 +716,7 @@ export default function WeeklyReportsPage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      Accomplishments
+                      Công việc đã hoàn thành
                     </div>
                     <ReadonlyTextarea
                       value={selectedReport?.accomplishment}
@@ -825,7 +736,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      In progress
+                      Công việc đang thực hiện
                     </div>
                     <ReadonlyTextarea
                       value={selectedReport?.in_progress}
@@ -845,7 +756,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      Plan next week
+                      Kế hoạch tuần tới
                     </div>
                     <ReadonlyTextarea
                       value={selectedReport?.plan}
@@ -865,7 +776,7 @@ export default function WeeklyReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-foreground">
-                      Blockers
+                      Khó khăn / Vướng mắc
                     </div>
                     <ReadonlyTextarea
                       value={selectedReport?.blocker || "—"}
@@ -882,7 +793,7 @@ export default function WeeklyReportsPage() {
 
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-foreground">
-                    Notes
+                    Ghi chú tiến độ
                   </div>
                   <ReadonlyTextarea
                     value={selectedReport?.progress_notes || "—"}
@@ -930,7 +841,7 @@ export default function WeeklyReportsPage() {
               </CardContent>
             </Card>
           ) : (
-            <EmptyState title="Select a report to view details" />
+            <EmptyState title="Chọn một báo cáo để xem chi tiết" />
           )}
         </div>
       </div>

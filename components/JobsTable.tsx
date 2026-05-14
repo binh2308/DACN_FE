@@ -17,8 +17,8 @@ export function JobsTable() {
 
   const jobsData: JobData[] = [
     {
-      title: "Senior Data Analyst",
-      daysAgo: "100 days ago",
+      title: "Chuyên viên phân tích dữ liệu cao cấp",
+      daysAgo: "100 ngày trước",
       positionsLeft: 3,
       applications: 123,
       interviewed: 40,
@@ -27,8 +27,8 @@ export function JobsTable() {
       offered: 2
     },
     {
-      title: "Junior Data Analyst",
-      daysAgo: "78 days ago",
+      title: "Chuyên viên phân tích dữ liệu sơ cấp",
+      daysAgo: "78 ngày trước",
       positionsLeft: 7,
       applications: 567,
       interviewed: 22,
@@ -37,8 +37,8 @@ export function JobsTable() {
       offered: 4
     },
     {
-      title: "Product Designer",
-      daysAgo: "56 days ago",
+      title: "Nhà thiết kế sản phẩm",
+      daysAgo: "56 ngày trước",
       positionsLeft: 2,
       applications: 201,
       interviewed: 32,
@@ -47,8 +47,8 @@ export function JobsTable() {
       offered: 0
     },
     {
-      title: "Java Developer",
-      daysAgo: "46 days ago",
+      title: "Lập trình viên Java",
+      daysAgo: "46 ngày trước",
       positionsLeft: 5,
       applications: 231,
       interviewed: 23,
@@ -57,8 +57,8 @@ export function JobsTable() {
       offered: 3
     },
     {
-      title: "Product Manager",
-      daysAgo: "13 days ago",
+      title: "Quản lý sản phẩm",
+      daysAgo: "13 ngày trước",
       positionsLeft: 3,
       applications: 67,
       interviewed: 41,
@@ -69,19 +69,19 @@ export function JobsTable() {
   ];
 
   const tabs = [
-    { key: 'jobs' as const, label: 'Jobs', active: true },
-    { key: 'candidates' as const, label: 'Candidates', active: false },
-    { key: 'onboardings' as const, label: 'Onboardings', active: false }
+    { key: 'jobs' as const, label: 'Công việc', active: true },
+    { key: 'candidates' as const, label: 'Ứng viên', active: false },
+    { key: 'onboardings' as const, label: 'Tiếp nhận', active: false }
   ];
 
   const columns = [
     { key: 'title', label: '' },
-    { key: 'positionsLeft', label: 'Positions Left' },
-    { key: 'applications', label: 'Applications' },
-    { key: 'interviewed', label: 'Interviewed' },
-    { key: 'rejected', label: 'Rejected' },
-    { key: 'feedbackPending', label: 'Feedback Pending' },
-    { key: 'offered', label: 'Offered' }
+    { key: 'positionsLeft', label: 'Vị trí còn lại' },
+    { key: 'applications', label: 'Hồ sơ ứng tuyển' },
+    { key: 'interviewed', label: 'Đã phỏng vấn' },
+    { key: 'rejected', label: 'Bị từ chối' },
+    { key: 'feedbackPending', label: 'Chờ phản hồi' },
+    { key: 'offered', label: 'Đã đề nghị' }
   ];
 
   return (

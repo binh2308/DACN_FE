@@ -1,5 +1,4 @@
-import { ReactNode, useState } from "react";
-import DashboardSidebar from "@/components/DashboardSidebar";
+import { ReactNode } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import AdminDashboardSidebar from "@/components/AdminDashboardSidebar";
 import FloatingAIButton from "@/components/AIButton";

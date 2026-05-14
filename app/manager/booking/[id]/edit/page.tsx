@@ -253,7 +253,7 @@ export default function EditBookingPage() {
           </div>
           <div className="mt-4">
             <Button asChild variant="outline" type="button">
-              <Link href="/manager/booked-rooms">Back</Link>
+              <Link href="/manager/booked-rooms">Quay lại</Link>
             </Button>
           </div>
         </div>
@@ -295,7 +295,7 @@ export default function EditBookingPage() {
       if (form.recurringPattern !== "NONE") {
         const recurringEndDate = form.recurringEndDate || form.endDate;
         if (!recurringEndDate) {
-          setSubmitError("Vui lòng chọn recurring end date.");
+          setSubmitError("Vui lòng chọn ngày kết thúc định kỳ.");
           return;
         }
 
@@ -335,12 +335,12 @@ export default function EditBookingPage() {
             </div>
           ) : null}
 
-          <div className="mt-5 text-xs font-semibold text-muted-foreground">ROOM</div>
+          <div className="mt-5 text-xs font-semibold text-muted-foreground">PHÒNG</div>
           <div className="mt-2 text-xl font-semibold text-foreground">
-            {room?.name || booking?.room?.name || "Room"}
+            {room?.name || booking?.room?.name || "Phòng"}
           </div>
           <div className="mt-2 text-sm text-muted-foreground">
-            Capacity: <span className="font-medium text-foreground">{room?.capacity ?? booking?.room?.capacity ?? "?"}</span>
+            Sức chứa: <span className="font-medium text-foreground">{room?.capacity ?? booking?.room?.capacity ?? "?"}</span>
           </div>
           {Array.isArray(room?.equipment) && room.equipment.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -358,7 +358,7 @@ export default function EditBookingPage() {
             <form onSubmit={onSubmit} className="space-y-4">
               {submitted ? (
                 <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 ring-1 ring-emerald-200">
-                  Booking updated. Redirecting…
+                  Cập nhật đặt phòng thành công. Đang chuyển hướng…
                 </div>
               ) : null}
 
@@ -369,29 +369,29 @@ export default function EditBookingPage() {
               ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="purpose">Purpose</Label>
+                <Label htmlFor="purpose">Mục đích</Label>
                 <Input
                   id="purpose"
                   value={form.purpose}
                   onChange={onChange("purpose")}
-                  placeholder="Weekly planning"
+                  placeholder="Ví dụ: Họp kế hoạch tuần"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="room">Room :</Label>
+                <Label htmlFor="room">Phòng:</Label>
                 <Input id="room" value={room?.name || booking?.room?.name || ""} disabled />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status">Status :</Label>
+                <Label htmlFor="status">Trạng thái:</Label>
                 <Input id="status" value={status || ""} disabled />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-3">
-                  <Label htmlFor="startDate">Start time</Label>
+                  <Label htmlFor="startDate">Thời gian bắt đầu</Label>
 
                   <div className="relative group">
                     <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
@@ -419,7 +419,7 @@ export default function EditBookingPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="endDate">End time</Label>
+                  <Label htmlFor="endDate">Thời gian kết thúc</Label>
 
                   <div className="relative group">
                     <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
@@ -449,7 +449,7 @@ export default function EditBookingPage() {
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="recurringPattern">Recurring pattern</Label>
+                  <Label htmlFor="recurringPattern">Lặp lại định kỳ</Label>
                   <select
                     id="recurringPattern"
                     value={form.recurringPattern}
@@ -465,15 +465,15 @@ export default function EditBookingPage() {
                     }
                     className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:border-[#4F7D7B] transition-colors"
                   >
-                    <option value="NONE">NONE</option>
-                    <option value="DAILY">DAILY</option>
-                    <option value="WEEKLY">WEEKLY</option>
-                    <option value="MONTHLY">MONTHLY</option>
+                    <option value="NONE">Không lặp lại</option>
+                    <option value="DAILY">Hàng ngày</option>
+                    <option value="WEEKLY">Hàng tuần</option>
+                    <option value="MONTHLY">Hàng tháng</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="recurringEndDate">Recurring end date</Label>
+                  <Label htmlFor="recurringEndDate">Ngày kết thúc định kỳ</Label>
                   <div className="relative group">
                     <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-[#4F7D7B] transition-colors" />
                     <Input
@@ -493,9 +493,9 @@ export default function EditBookingPage() {
               <div className="pt-2">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-foreground">Attendees</div>
+                    <div className="text-sm font-semibold text-foreground">Người tham gia</div>
                     <div className="text-xs text-muted-foreground">
-                      Select the staff members from your department to participate in the meeting.
+                      Chọn nhân viên từ phòng ban của bạn để tham gia cuộc họp.
                     </div>
                   </div>
                   <Button
@@ -505,7 +505,7 @@ export default function EditBookingPage() {
                     onClick={() => refreshEmployees()}
                     disabled={employeesLoading}
                   >
-                    Refresh
+                    Làm mới
                   </Button>
                 </div>
 
@@ -557,20 +557,20 @@ export default function EditBookingPage() {
                   )}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Selected: <span className="font-medium text-foreground">{attendeeIds.length}</span>
+                  Đã chọn: <span className="font-medium text-foreground">{attendeeIds.length}</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <Button asChild variant="outline" type="button">
-                  <Link href="/manager/booked-rooms">Back</Link>
+                  <Link href="/manager/booked-rooms">Quay lại</Link>
                 </Button>
                 <Button
                   type="submit"
                   className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
                   disabled={submitted || submitting}
                 >
-                  {submitting ? "Updating…" : "Update"}
+                  {submitting ? "Đang cập nhật…" : "Cập nhật"}
                 </Button>
               </div>
             </form>
