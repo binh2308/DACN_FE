@@ -7,6 +7,7 @@ type ReadonlyTextareaProps = {
   className?: string;
   readonly?: boolean;
   minRows?: number;
+  onChange?: (value: string) => void;
 };
 
 export function ReadonlyTextarea({
@@ -14,6 +15,7 @@ export function ReadonlyTextarea({
   className = "",
   readonly = true,
   minRows = 1,
+  onChange,
 }: ReadonlyTextareaProps) {
   const ref = React.useRef<HTMLTextAreaElement | null>(null);
 
@@ -36,7 +38,7 @@ export function ReadonlyTextarea({
       rows={minRows}
       value={value ?? "—"}
       onChange={(e) => {
-        value = e.target.value
+        onChange?.(e.target.value);
       }}
       className={`w-full resize-none overflow-hidden whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm text-foreground outline-none ${className}`}
     />
