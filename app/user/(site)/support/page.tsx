@@ -31,7 +31,7 @@ import { formatDate } from "@/lib/utils";
 
 type Filters = {
   status: "all" | TicketStatus;
-  category: "all" | "IT Support";
+  category: "all" | string;
 };
 
 const TicketCreateModal = dynamic(
@@ -74,8 +74,9 @@ function SupportPage() {
     const fetchCategories = async () => {
       try {
         const res = await getTicketCategories();
+        // SỬA LỖI: Thêm optional chaining (?.) vào res.data để tránh lỗi map trên null
         setCategoryData(
-          res?.data.map((item) => ({
+          res?.data?.map((item) => ({
             value: item.id,
             label: item.name,
           })) || [],
@@ -120,6 +121,7 @@ function SupportPage() {
   const filtered = React.useMemo(() => {
     return tickets.filter((t) => {
       if (filters.status !== "all" && t.status !== filters.status) return false;
+      // SỬA LỖI: Thêm optional chaining (?.) để kiểm tra an toàn t.category
       if (filters.category !== "all" && t.category?.name !== filters.category)
         return false;
       return true;
@@ -132,11 +134,11 @@ function SupportPage() {
     <div className="mx-auto w-full max-w-[1400px] px-6 py-6">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">
-          Total:{" "}
+          Tổng số:{" "}
           <span className="font-semibold text-foreground">
             {filtered.length}
           </span>{" "}
-          Tickets
+          Yêu cầu
         </div>
 
         <div className="flex items-center gap-2">
@@ -164,10 +166,10 @@ function SupportPage() {
               <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="CLOSED">Closed</SelectItem>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="OPEN">Mở (Open)</SelectItem>
+              <SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
+              <SelectItem value="CLOSED">Đã đóng</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -183,13 +185,15 @@ function SupportPage() {
             }
           >
             <SelectTrigger className="bg-white">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Danh mục" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              <SelectItem value="IT Support">IT Support</SelectItem>
-              <SelectItem value="technical">Technical</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              <SelectItem value="all">Tất cả danh mục</SelectItem>
+              {categoryData.map((cat) => (
+                <SelectItem key={cat.value} value={cat.label}>
+                  {cat.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -205,7 +209,7 @@ function SupportPage() {
               }`}
               type="button"
             >
-              {tab}
+              {tab === "My Tickets" ? "Yêu cầu của tôi" : "Yêu cầu được giao"}
             </button>
           ))}
         </div>
@@ -232,13 +236,13 @@ function SupportPage() {
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
                     <span className="text-sm font-bold">S</span>
                   </div>
-                  <div className="text-sm font-semibold text-foreground">
+                  <div className="text-sm font-semibold text-foreground line-clamp-1">
                     {t.title}
                   </div>
                 </div>
                 <Badge
                   variant={statusBadgeVariant(t.status)}
-                  className="rounded-full"
+                  className="rounded-full shrink-0"
                 >
                   {formatTicketStatus(t.status)}
                 </Badge>
@@ -246,26 +250,30 @@ function SupportPage() {
 
               <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
                 <div>
-                  <div className="text-muted-foreground">User</div>
-                  <div className="mt-1 font-semibold text-foreground">
-                    {t.employee.email}
+                  <div className="text-muted-foreground">Người gửi</div>
+                  {/* SỬA LỖI: Thêm optional chaining để không crash nếu employee bị null */}
+                  <div className="mt-1 font-semibold text-foreground truncate">
+                    {t.employee?.email || "Không xác định"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Submitted</div>
+                  <div className="text-muted-foreground">Ngày gửi</div>
                   <div className="mt-1 font-semibold text-foreground">
                     {formatDate(t.createdAt, "DD/MM/YYYY")}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Category</div>
-                  <div className="mt-1 font-semibold text-foreground">
-                    {t.category.name}
+                  <div className="text-muted-foreground">Danh mục</div>
+                  {/* SỬA LỖI: Thêm optional chaining để không crash nếu category bị null */}
+                  <div className="mt-1 font-semibold text-foreground truncate">
+                    {t.category?.name || "Chưa phân loại"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Ticket ID</div>
-                  <div className="mt-1 font-semibold text-foreground">{t.id}</div>
+                  <div className="text-muted-foreground">Mã Ticket</div>
+                  <div className="mt-1 font-semibold text-foreground truncate">
+                    {t.id}
+                  </div>
                 </div>
               </div>
             </Link>
