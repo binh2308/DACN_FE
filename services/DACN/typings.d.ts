@@ -9,7 +9,13 @@ export declare namespace DACN {
   type CreateLeaveRequestDto = {
     date_from: string; // ISO date string
     date_to: string;
+    type: string;
     reason: string;
+    description?: string;
+  };
+  type LeaveRequestType = {
+    code: string;
+    name: string;
     description?: string;
   };
   type CreateAssetDto = {

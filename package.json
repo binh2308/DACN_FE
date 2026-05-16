@@ -41,6 +41,9 @@
     "next": "15.3.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.1",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.1.11",
     "zod": "^3.25.76"
   },
@@ -84,6 +87,7 @@
     "@types/node": "^24.2.1",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/three": "^0.176.0",
     "@vitejs/plugin-react-swc": "^4.0.0",
     "autoprefixer": "^10.4.21",
