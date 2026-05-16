@@ -40,6 +40,7 @@ import {
 	getManagementTickets,
 	getManagementTicketCategories,
 	assignManagementTicketCategoriesToDepartment,
+	unassignManagementTicketCategoryFromDepartment,
 	type GetManagementTicketsQuery,
 	type ManagementTicketCategoryDto,
 	type ManagementTicketDto,
@@ -186,13 +187,11 @@ export default function SupportPage() {
 		try {
 			await createManagementTicketCategory({
 				name,
-				// FIX: Đảm bảo luôn gửi string (tránh gửi undefined làm API bắt lỗi validation)
 				description: createCategoryDescription.trim(), 
 			});
 			toast({ title: "Tạo Category thành công", description: name });
 			setCreateCategoryName("");
 			setCreateCategoryDescription("");
-			// FIX: Thêm await để đảm bảo gọi xong danh sách mới render
 			await fetchAllData(); 
 		} catch (e: any) {
 			toast({ variant: "destructive", title: "Lỗi", description: e?.message || "Không thể tạo category" });
@@ -361,15 +360,9 @@ export default function SupportPage() {
 	};
 
 	const handleUnlink = async (catId: string, deptId: string) => {
-		const nextCategoryIds = categories
-			.filter((c) => c.departments?.some((d) => d.id === deptId) && c.id !== catId)
-			.map((c) => c.id);
-
 		const deptName = departments.find((d) => d.id === deptId)?.name;
 		try {
-			await assignManagementTicketCategoriesToDepartment(deptId, {
-				category_ids: nextCategoryIds,
-			});
+			await unassignManagementTicketCategoryFromDepartment(deptId, catId);
 			toast({ title: "Đã huỷ phân công", description: deptName });
 			await fetchAllData();
 		} catch (e: any) {
@@ -474,7 +467,7 @@ export default function SupportPage() {
 							Sơ đồ Phân công Hỗ trợ
 						</h2>
 						<p className="text-sm text-muted-foreground">
-							Kéo thả từ Category sang Phòng ban để thiết lập luồng xử lý. Nhấn vào dấu X trên đường nối để huỷ phân công.
+							Kéo thả từ Category sang Phòng ban để thiết lập luồng xử lý.
 						</p>
 					</div>
 
@@ -523,7 +516,7 @@ export default function SupportPage() {
 							</p>
 							<Button
 								type="button"
-								variant="secondary"
+								// variant="secondary"
 								onClick={handleCreateDepartment}
 								disabled={creatingDepartment || !createDeptName.trim()}
 								className="w-full"
@@ -538,7 +531,7 @@ export default function SupportPage() {
 						className="relative min-h-[400px] flex justify-between gap-10 lg:gap-32 p-4 bg-muted/10 rounded-xl border border-dashed border-border"
 						ref={containerRef}
 					>
-						{/* SVG Dây nối */}
+						{/* SVG Dây nối - Chỉ dùng để vẽ đường cong trực quan */}
 						<svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
 							<defs>
 								<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -556,8 +549,8 @@ export default function SupportPage() {
 										key={`${link.catId}-${link.deptId}`}
 										d={drawLine(pos1.x, pos1.y, pos2.x, pos2.y)} 
 										stroke="hsl(var(--primary))" 
-										strokeOpacity="0.4"
-										strokeWidth="3" 
+										strokeOpacity="0.3"
+										strokeWidth="2.5" 
 										fill="none" 
 										markerEnd="url(#arrowhead)"
 										className="transition-all duration-300"
@@ -582,26 +575,6 @@ export default function SupportPage() {
 							)}
 						</svg>
 
-						{/* Nút Xóa trên đường nối */}
-						{activeLinks.map(link => {
-							const pos1 = nodePositions[`cat-${link.catId}`];
-							const pos2 = nodePositions[`dept-${link.deptId}`];
-							if (!pos1 || !pos2) return null;
-							const midX = (pos1.x + pos2.x) / 2;
-							const midY = (pos1.y + pos2.y) / 2;
-							return (
-								<div 
-									key={`del-${link.catId}-${link.deptId}`}
-									style={{ left: midX, top: midY }} 
-									className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer text-destructive bg-background rounded-full p-1.5 ring-2 ring-border shadow-sm hover:scale-110 hover:bg-destructive hover:text-white transition-all z-20" 
-									onClick={() => handleUnlink(link.catId, link.deptId)}
-									title="Hủy gán phòng ban này"
-								>
-									<X size={14} />
-								</div>
-							);
-						})}
-
 						{/* Cột Trái: Categories */}
 						<div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
 							<h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
@@ -623,6 +596,28 @@ export default function SupportPage() {
 									</div>
 									<div className="text-xs text-muted-foreground line-clamp-2">{c.description || "Chưa có mô tả"}</div>
 									
+									{/* HIỂN THỊ PHÒNG BAN ĐÃ GÁN BẰNG BADGE DỄ XÓA */}
+									{c.departments && c.departments.length > 0 && (
+										<div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-1.5">
+											{c.departments.map(dept => (
+												<div 
+													key={dept.id} 
+													className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-medium text-primary"
+												>
+													<span className="truncate max-w-[120px]">{dept.name}</span>
+													<button
+														type="button"
+														onClick={(e) => { e.stopPropagation(); handleUnlink(c.id, dept.id); }}
+														className="hover:bg-primary/20 hover:text-destructive rounded-full p-0.5 transition-colors"
+														title={`Hủy gán phòng ban: ${dept.name}`}
+													>
+														<X size={10} />
+													</button>
+												</div>
+											))}
+										</div>
+									)}
+
 									{/* Điểm Neo (Connector) */}
 									<div 
 										className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background ring-2 ring-primary rounded-full flex items-center justify-center cursor-grab hover:scale-110 hover:bg-primary/10 transition-transform shadow-md"

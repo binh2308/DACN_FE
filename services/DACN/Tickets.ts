@@ -329,6 +329,33 @@ export async function assignManagementTicketCategoriesToDepartment(
 	});
 }
 
+export type UnassignDepartmentTicketCategoryResponse =
+	| {
+			statusCode?: number;
+			message?: string;
+			data?: unknown;
+	  }
+	| unknown;
+
+// DELETE /management/tickets/departments/{departmentId}/categories/{categoryId}
+// Remove a ticket category from a department
+export async function unassignManagementTicketCategoryFromDepartment(
+	departmentId: string,
+	categoryId: string,
+	options?: { [key: string]: any },
+) {
+	return request<
+		UnassignDepartmentTicketCategoryResponse,
+		UnassignDepartmentTicketCategoryResponse
+	>(
+		`/management/tickets/departments/${departmentId}/categories/${categoryId}`,
+		{
+			method: "DELETE",
+			...(options || {}),
+		},
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Legacy exports (previously in services/DACN/ticket.ts)
 // Keep these to avoid breaking existing call sites.
