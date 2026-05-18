@@ -24,6 +24,7 @@ import {
   AssetCategory,
   AssetType,
   AssetStatus,
+  unassignAsset,
 } from "@/services/DACN/asset";
 import {
   EmployeeDto,
@@ -31,6 +32,7 @@ import {
   DepartmentType,
   getFullName,
 } from "@/services/DACN/employee";
+import { getDepartmentName, getDepartments } from "@/services/DACN/department";
 import { DACN } from "@/services/DACN/typings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { get } from "http";
 
 // --- 1. Cập nhật Type để khớp với ảnh ---
 
@@ -182,16 +185,20 @@ function AssetFormContent({
   watch,
   errors,
   employees,
-  assignRole,
-  setAssignRole,
+  departments,
+  selectedDepartment,
+  setSelectedDepartment,
 }: {
   register: ReturnType<typeof useForm<AssetFormData>>["register"];
   control: ReturnType<typeof useForm<AssetFormData>>["control"];
   watch: ReturnType<typeof useForm<AssetFormData>>["watch"];
   errors: ReturnType<typeof useForm<AssetFormData>>["formState"]["errors"];
   employees: EmployeeDto[];
-  assignRole: RoleType;
-  setAssignRole: React.Dispatch<React.SetStateAction<RoleType>>;
+  departments: DACN.DepartmentDto[];
+  selectedDepartment: DepartmentType | null;
+  setSelectedDepartment: React.Dispatch<
+    React.SetStateAction<DepartmentType | null>
+  >;
 }) {
   //console.log("Draft owner id:", draft.owner?.id);
   return (
@@ -247,17 +254,16 @@ function AssetFormContent({
                 <label className="text-xs font-medium mb-1.5 block text-gray-700">
                   Phòng ban <span className="text-red-500">*</span>
                 </label>
-                <Select
-                  value={assignRole}
-                  defaultValue="EMPLOYEE"
-                  onValueChange={(e) => setAssignRole(e as RoleType)}
-                >
+                <Select onValueChange={(e) => setSelectedDepartment(e as any)}>
                   <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Chọn vai trò" />
+                    <SelectValue placeholder="Chọn phòng ban" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EMPLOYEE">Nhân viên</SelectItem>
-                    <SelectItem value="MANAGER">Quản lý</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.name}>
+                        {getDepartmentName(dept.name)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -277,15 +283,11 @@ function AssetFormContent({
                         <SelectValue placeholder="Chọn nhân viên" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employees
-                          .filter((e) => {
-                            return e.roles === assignRole;
-                          })
-                          .map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {getFullName(employee)} {employee.idCard ?? ""}
-                            </SelectItem>
-                          ))}
+                        {employees.map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id}>
+                            {getFullName(employee)} {employee.idCard ?? ""}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -460,10 +462,15 @@ function AssetFormContent({
 
 export default function AdminAssetsPage() {
   const [items, setItems] = React.useState<Asset[]>([]);
+  const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null);
   const [q, setQ] = React.useState("");
   const [category, setCategory] = React.useState<"all" | AssetCategory>("all");
   const [employees, setEmployees] = React.useState<EmployeeDto[]>([]);
-  const [assignRole, setAssignRole] = React.useState<RoleType>("EMPLOYEE");
+  const [departments, setDepartments] = React.useState<DACN.DepartmentDto[]>(
+    [],
+  );
+  const [selectedDepartment, setSelectedDepartment] =
+    React.useState<DepartmentType | null>(null);
   const [status, setStatus] = React.useState<"all" | AssetStatus>("all");
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
@@ -509,10 +516,21 @@ export default function AdminAssetsPage() {
     getAssetsData();
   }, [createOpen, editOpen, assignOpen]);
   React.useEffect(() => {
+    const getDepartmentsData = async () => {
+      try {
+        const response = await getDepartments();
+        setDepartments(response.data as DACN.DepartmentDto[]);
+      } catch (error) {
+        console.error("Failed to load departments:", error);
+      }
+    };
+    getDepartmentsData();
+  }, []);
+  React.useEffect(() => {
     const getAllEmployeeData = async () => {
       try {
         const response = await getAllEmployees({
-          role: assignRole,
+          department: selectedDepartment ?? null,
         });
         const employeeData = Array.isArray(response.data)
           ? response.data
@@ -524,7 +542,7 @@ export default function AdminAssetsPage() {
       }
     };
     getAllEmployeeData();
-  }, [assignRole]);
+  }, [selectedDepartment]);
 
   React.useEffect(() => {
     if (items.length) writeAssets(items);
@@ -558,7 +576,6 @@ export default function AdminAssetsPage() {
   }, [q, category, status]);
 
   const openCreate = () => {
-    setAssignRole("EMPLOYEE");
     reset({
       name: "",
       assetTag: "",
@@ -575,37 +592,37 @@ export default function AdminAssetsPage() {
   };
 
   const openEdit = (id: string) => {
-    const found = items.find((x) => x.id === id);
-    if (!found) return;
-    console.log("Editing asset:", found);
+    setSelectedAsset(items.find((x) => x.id === id) || null);
+    if (!selectedAsset) return;
     setActiveId(id);
-    setAssignRole(found.owner?.roles ?? "EMPLOYEE");
+    //setAssignRole(found.owner?.roles ?? "EMPLOYEE");
     reset({
-      name: found.name,
-      assetTag: found.assetTag,
-      serialNumber: found.serialNumber,
-      type: found.type,
-      condition: found.condition,
-      location: found.location as
+      name: selectedAsset.name,
+      assetTag: selectedAsset.assetTag,
+      serialNumber: selectedAsset.serialNumber,
+      type: selectedAsset.type,
+      condition: selectedAsset.condition,
+      location: selectedAsset.location as
         | "Kho IT (Tầng 3)"
         | "Kho Tổng"
         | "Phòng Hành Chính"
         | undefined,
-      purchase_date: found.purchase_date?.slice(0, 10),
+      purchase_date: selectedAsset.purchase_date?.slice(0, 10),
       warranty_expiration_date:
-        found.warranty_expiration_date?.slice(0, 10) ?? "",
-      maintenance_schedule: found.maintenance_schedule.slice(0, 10) ?? "",
-      ownerEmployeeId: found.owner?.id ?? "",
+        selectedAsset.warranty_expiration_date?.slice(0, 10) ?? "",
+      maintenance_schedule:
+        selectedAsset.maintenance_schedule.slice(0, 10) ?? "",
+      ownerEmployeeId: selectedAsset.owner?.id ?? null,
     });
     setEditOpen(true);
   };
 
   const openAssign = (id: string) => {
-    const found = items.find((x) => x.id === id);
-    if (!found) return;
+    setSelectedAsset(items.find((x) => x.id === id) || null);
+    if (!selectedAsset) return;
     setActiveId(id);
-    setAssignRole(found.owner?.roles ?? "EMPLOYEE");
-    setAssignId(found.owner?.id ?? null);
+    //setAssignRole(selectedAsset.owner?.roles ?? "EMPLOYEE");
+    setAssignId(selectedAsset.owner?.id ?? null);
     setAssignOpen(true);
   };
 
@@ -662,6 +679,26 @@ export default function AdminAssetsPage() {
       notifications.show({
         title: "Lỗi",
         message: "Đã xảy ra lỗi khi gán tài sản.",
+        color: "red",
+      });
+    }
+  };
+
+  const onRetrieve = async () => {
+    try {
+      await unassignAsset(activeId as string, {
+        returnDate: new Date().toISOString().split("T")[0],
+      });
+      notifications.show({
+        title: "Thành công",
+        message: "Tài sản đã được thu hồi về kho.",
+        color: "green",
+      });
+      setAssignOpen(false);
+    } catch (error) {
+      notifications.show({
+        title: "Lỗi",
+        message: "Đã xảy ra lỗi khi thu hồi tài sản.",
         color: "red",
       });
     }
@@ -1041,7 +1078,13 @@ export default function AdminAssetsPage() {
       </div>
 
       {/* --- CREATE DIALOG --- */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDepartment(null);
+          setCreateOpen(open);
+        }}
+      >
         <DialogContent className="max-w-[800px]">
           {" "}
           {/* Tăng chiều rộng popup */}
@@ -1058,14 +1101,18 @@ export default function AdminAssetsPage() {
               watch={watch}
               errors={errors}
               employees={employees}
-              assignRole={assignRole}
-              setAssignRole={setAssignRole}
+              departments={departments}
+              selectedDepartment={selectedDepartment}
+              setSelectedDepartment={setSelectedDepartment}
             />
             <DialogFooter className="mt-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setCreateOpen(false)}
+                onClick={() => {
+                  setSelectedDepartment(null);
+                  setCreateOpen(false);
+                }}
                 className="h-9"
               >
                 Hủy bỏ
@@ -1082,7 +1129,13 @@ export default function AdminAssetsPage() {
       </Dialog>
 
       {/* --- EDIT DIALOG --- */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDepartment(null);
+          setEditOpen(open);
+        }}
+      >
         <DialogContent className="max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Chỉnh sửa tài sản</DialogTitle>
@@ -1096,14 +1149,18 @@ export default function AdminAssetsPage() {
               watch={watch}
               errors={errors}
               employees={employees}
-              assignRole={assignRole}
-              setAssignRole={setAssignRole}
+              departments={departments}
+              selectedDepartment={selectedDepartment}
+              setSelectedDepartment={setSelectedDepartment}
             />
             <DialogFooter className="mt-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setEditOpen(false)}
+                onClick={() => {
+                  setSelectedDepartment(null);
+                  setEditOpen(false);
+                }}
                 className="h-9"
               >
                 Hủy bỏ
@@ -1120,7 +1177,13 @@ export default function AdminAssetsPage() {
       </Dialog>
 
       {/* --- ASSIGN DIALOG (Giữ nguyên) --- */}
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+      <Dialog
+        open={assignOpen}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDepartment(null);
+          setAssignOpen(open);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Gán tài sản cho nhân viên</DialogTitle>
@@ -1131,16 +1194,18 @@ export default function AdminAssetsPage() {
                 Phòng ban <span className="text-red-500">*</span>
               </label>
               <Select
-                value={assignRole}
-                defaultValue="All"
-                onValueChange={(e) => setAssignRole(e as RoleType)}
+                value={(selectedDepartment as string) ?? undefined}
+                onValueChange={(e) => setSelectedDepartment(e as any)}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="Chọn phòng ban" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EMPLOYEE">Nhân viên</SelectItem>
-                  <SelectItem value="MANAGER">Quản lý</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {getDepartmentName(dept.name)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1149,7 +1214,7 @@ export default function AdminAssetsPage() {
                 Nhân viên
               </label>
               <Select
-                defaultValue={assignId as string}
+                value={assignId as string}
                 onValueChange={(v) => setAssignId(v)}
               >
                 <SelectTrigger className="h-9 text-sm">
@@ -1171,9 +1236,18 @@ export default function AdminAssetsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedDepartment(null);
+                setAssignOpen(false);
+              }}
+            >
               Hủy
             </Button>
+            {selectedAsset?.owner !== null && (
+              <Button onClick={onRetrieve}>Thu hồi</Button>
+            )}
             <Button onClick={onAssign}>Xác nhận</Button>
           </DialogFooter>
         </DialogContent>

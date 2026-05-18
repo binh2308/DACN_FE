@@ -68,3 +68,37 @@ export function updateReport(
     ...(options || {}),
   });
 }
+
+export function submitReport(
+  reportId: string,
+  options?: { [key: string]: any },
+) {
+  return request<DACN.ReportResponseDto>(
+    `/management/reports/${reportId}/submit`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      ...(options || {}),
+    },
+  );
+}
+
+export function reviewReport(
+  reportId: string,
+  data: { review: string },
+  options?: { [key: string]: any },
+) {
+  return request<DACN.ReportResponseDto>(
+    `/management/reports/${reportId}/review`,
+    {
+      method: "PATCH",
+      data,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      ...(options || {}),
+    },
+  );
+}
