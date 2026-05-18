@@ -1,7 +1,7 @@
 "use client";
 
 import { 
-  DollarSign, 
+  Banknote, 
   TrendingUp, 
   Calendar, 
   Wallet, 
@@ -12,11 +12,11 @@ import { useRequest } from "ahooks";
 
 import { getMyPayrollByMonth } from "@/services/DACN/Payroll";
 
-// --- Helper: Format tiền tệ ---
+// --- Helper: Format tiền tệ (Đã chuyển sang VND) ---
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'VND',
     minimumFractionDigits: 0,
   }).format(amount);
 };
@@ -142,7 +142,7 @@ export default function PayrollPage() {
       {
         label: `Lương hiện tại`,
         value: currentMonthPayroll?.net || 0,
-        icon: DollarSign,
+        icon: Banknote,
         iconClassName: "text-emerald-500",
       },
       {
@@ -273,10 +273,10 @@ export default function PayrollPage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">Phòng ban</div>
+                {/* <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">Phòng ban</div>
                 <div className="text-xs font-semibold text-[#21252B] leading-[150%] tracking-[0.07px]">
                   {currentPayslip.department}
-                </div>
+                </div> */}
               </div>
               <div className="space-y-1 sm:text-right">
                 <div className="text-[10px] text-[#B8BDC5] leading-[140%] tracking-[0.12px]">Ngày trả</div>
