@@ -133,18 +133,42 @@ function warrantyLabel(purchaseDate: string, warrantyUntil?: string) {
   return `Còn BH ${months} tháng`;
 }
 
-function statusMeta(ownStatus: string | null) {
-  switch (ownStatus) {
-    case null:
+function conditionMeta(condition: AssetStatus) {
+  switch (condition) {
+    case "NEW":
       return {
-        label: "Trong kho",
+        label: "Mới",
+        badge: "bg-green-100 text-green-700",
+        dot: "bg-green-500",
+      };
+    case "USED":
+      return {
+        label: "Đã sử dụng",
+        badge: "bg-yellow-100 text-yellow-700",
+        dot: "bg-yellow-500",
+      };
+    case "UNDER_MAINTENANCE":
+      return {
+        label: "Bảo trì",
+        badge: "bg-orange-100 text-orange-700",
+        dot: "bg-orange-500",
+      };
+    case "BROKEN":
+      return {
+        label: "Hỏng",
+        badge: "bg-red-100 text-red-700",
+        dot: "bg-red-500",
+      };
+    case "RETIRED":
+      return {
+        label: "Thanh lý",
         badge: "bg-gray-100 text-gray-700",
         dot: "bg-gray-500",
       };
     default:
       return {
-        label: "Đã được cấp",
-        badge: "bg-blue-100 text-blue-700",
+        label: condition,
+        badge: "bg-gray-100 text-gray-700",
         dot: "bg-gray-500",
       };
   }
@@ -350,9 +374,9 @@ function AssetFormContent({
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger className="h-9 text-sm">
                     <div className="flex items-center gap-2">
-                      {/* Hiển thị chấm màu trong select giống ảnh */}
+                      {/* Hiển thị chấm màu theo trạng thái hiện tại */}
                       <div
-                        className={`w-2 h-2 rounded-full ${statusMeta(watch("ownerEmployeeId") ?? null).dot}`}
+                        className={`w-2 h-2 rounded-full ${conditionMeta(watch("condition") ?? "NEW").dot}`}
                       />
                       <SelectValue />
                     </div>
@@ -531,10 +555,14 @@ export default function AdminAssetsPage() {
   }, [items]);
 
   const total = items.length;
-  const countInStock = items.filter((x) => x.condition === "NEW").length;
-  const countInUse = items.filter((x) => x.condition === "USED").length;
   const countMaintenance = items.filter(
     (x) => x.condition === "UNDER_MAINTENANCE",
+  ).length;
+  const countInUse = items.filter(
+    (x) => x.owner && x.condition !== "UNDER_MAINTENANCE",
+  ).length;
+  const countInStock = items.filter(
+    (x) => !x.owner && x.condition !== "UNDER_MAINTENANCE",
   ).length;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 
@@ -591,10 +619,10 @@ export default function AdminAssetsPage() {
         | "Kho Tổng"
         | "Phòng Hành Chính"
         | undefined,
-      purchase_date: found.purchase_date?.slice(0, 10),
+      purchase_date: found.purchase_date?.slice(0, 10) ?? "",
       warranty_expiration_date:
         found.warranty_expiration_date?.slice(0, 10) ?? "",
-      maintenance_schedule: found.maintenance_schedule.slice(0, 10) ?? "",
+      maintenance_schedule: found.maintenance_schedule?.slice(0, 10) ?? "",
       ownerEmployeeId: found.owner?.id ?? "",
     });
     setEditOpen(true);
@@ -919,7 +947,7 @@ export default function AdminAssetsPage() {
             </thead>
             <tbody>
               {pageItems.map((it) => {
-                const sm = statusMeta(it.owner ?? null);
+                const sm = conditionMeta(it.condition);
                 const wLabel = warrantyLabel(
                   it.purchase_date,
                   it.warranty_expiration_date,
