@@ -1,68 +1,29 @@
-
 import { request } from "../service";
+import type { DACN } from "./typings";
+import type { DepartmentType } from "./employee";
 
-export type DepartmentDto = {
-	id: string;
-	name: string;
+export const getDepartmentName = (departmentName: string) => {
+  const departmentMap: any = {
+    Accounting: "Kế toán",
+    Administrator: "Quản trị",
+    "Customer Support": "Chăm sóc khách hàng",
+    Engineering: "Kỹ thuật",
+    Finance: "Tài chính",
+    Marketing: "Marketing",
+    "Nhân sự (HR)": "Nhân sự",
+    Operations: "Vận hành",
+    Sales: "Kinh doanh",
+  };
+
+  return departmentMap[departmentName] || departmentName;
 };
 
-export type GetDepartmentsResponse = {
-	statusCode: number;
-	message?: string;
-	data: DepartmentDto[];
-};
-
-export async function getDepartments(options?: { [key: string]: any }) {
-	return request<GetDepartmentsResponse, GetDepartmentsResponse>("/department", {
-		method: "GET",
-		...(options || {}),
-	});
+export function getDepartments(options?: { [key: string]: any }) {
+  return request<any>("/department", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
 }
-
-export type CreateDepartmentBody = {
-	name: string;
-};
-
-export type CreateDepartmentResponse =
-	| DepartmentDto
-	| {
-			statusCode?: number;
-			message?: string;
-			data?: DepartmentDto;
-	  };
-
-export async function createDepartment(
-	body: CreateDepartmentBody,
-	options?: { [key: string]: any },
-) {
-	return request<CreateDepartmentResponse, CreateDepartmentResponse>(
-		"/department/create",
-		{
-			method: "POST",
-			data: body,
-			...(options || {}),
-		},
-	);
-}
-
-export type DeleteDepartmentResponse =
-	| {
-			statusCode?: number;
-			message?: string;
-			data?: unknown;
-	  }
-	| unknown;
-
-export async function deleteDepartment(
-	id: string,
-	options?: { [key: string]: any },
-) {
-	return request<DeleteDepartmentResponse, DeleteDepartmentResponse>(
-		`/department/${id}`,
-		{
-			method: "DELETE",
-			...(options || {}),
-		},
-	);
-}
-

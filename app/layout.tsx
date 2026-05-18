@@ -9,6 +9,9 @@ import { Notifications } from "@mantine/notifications";
 export const metadata = {
   title: "Hệ thống hỗ trợ nhân viên",
   description: "Giao diện hệ thống hỗ trợ nhân viên",
+  icons: {
+    icon: "/BKOPs_Logo.png",
+  },
 };
 const geistSans = Geist({
   variable: "--font-geist-sans",

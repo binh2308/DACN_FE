@@ -15,7 +15,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { DACN } from "@/services/DACN/typings";
-import { getListReports } from "@/services/DACN/report";
+import { getListReports, reviewReport } from "@/services/DACN/report";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +39,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { MyDatePicker } from "@/components/MyDatePicker";
 import { toDateOnlyUTC } from "@/lib/utils";
 import { Center, Loader } from "@mantine/core";
+import { set } from "react-hook-form";
+import { notifications } from "@mantine/notifications";
 
 type ReportStatus = "SUBMITTED" | "REVIEWED" | "DRAFT";
 
@@ -151,6 +153,9 @@ export default function WeeklyReportsPage() {
     [],
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [review, setReview] = React.useState<string>("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [updated, setUpdated] = React.useState<boolean>(false);
   const [currentPage, setCurrentPage] = React.useState<number>(0);
   const [totalPage, setTotalPage] = React.useState<number>(0);
   const [filters, setFilters] = React.useState<Filters>({
@@ -186,14 +191,17 @@ export default function WeeklyReportsPage() {
           page: 1,
           limit: 10,
         });
-        setReports(res.data?.data);
-        setSelectedId(res.data?.data[0]?.id ?? null);
+        setReports(
+          res.data?.data.filter(
+            (r: DACN.ManagerReportResponseDto) => r.status !== "DRAFT",
+          ) ?? [],
+        );
       } catch (error) {
         console.error("Failed to fetch report:", error);
       }
     };
     fetchReport();
-  }, [createOpen]);
+  }, [createOpen, updated]);
 
   const filtered = React.useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -237,14 +245,28 @@ export default function WeeklyReportsPage() {
     };
   }, [reports]);
 
-  const updateSelected = (patch: Partial<WeeklyReport>) => {
-    if (!selected) return;
-    const updatedAt = new Date().toISOString();
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === selected.id ? { ...r, ...patch, updatedAt } : r,
-      ),
-    );
+  const handleReview = async () => {
+    if (!selectedId) return;
+    if (review.trim().length === 0) {
+      setError("Vui lòng nhập feedback trước khi duyệt báo cáo.");
+      return;
+    }
+    try {
+      await reviewReport(selectedId, { review });
+      notifications.show({
+        title: "Thành công",
+        message: "Báo cáo đã được duyệt thành công.",
+        color: "green",
+      });
+      setError(null);
+      setUpdated(!updated);
+    } catch (error) {
+      notifications.show({
+        title: "Lỗi",
+        message: "Đã có lỗi xảy ra khi duyệt báo cáo. Vui lòng thử lại.",
+        color: "red",
+      });
+    }
   };
 
   const submitDraft = () => {
@@ -559,7 +581,6 @@ export default function WeeklyReportsPage() {
                     <SelectItem value="all">Tất cả</SelectItem>
                     <SelectItem value="SUBMITTED">Đã nộp</SelectItem>
                     <SelectItem value="REVIEWED">Đã duyệt</SelectItem>
-                    <SelectItem value="DRAFT">Bản nháp</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -590,7 +611,10 @@ export default function WeeklyReportsPage() {
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => setSelectedId(r.id)}
+                      onClick={() => {
+                        setSelectedId(r.id);
+                        setReview(r.review || "");
+                      }}
                       className={
                         "w-full rounded-xl border bg-white p-4 text-left transition-shadow hover:shadow-sm " +
                         (active ? "ring-2 ring-emerald-300" : "")
@@ -621,9 +645,7 @@ export default function WeeklyReportsPage() {
 
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            Tiến độ
-                          </span>
+                          <span className="text-muted-foreground">Tiến độ</span>
                           <span className="font-semibold text-foreground">
                             {clampProgress(r.progress_percentage)}%
                           </span>
@@ -702,7 +724,9 @@ export default function WeeklyReportsPage() {
                   </div>
                   <ProgressBar value={selected.progress_percentage} />
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Cập nhật: {formatDateShort(selected.updated_at)}</span>
+                    <span>
+                      Cập nhật: {formatDateShort(selected.updated_at)}
+                    </span>
                   </div>
                 </div>
 
@@ -755,35 +779,28 @@ export default function WeeklyReportsPage() {
                     <div className="text-xs font-semibold text-foreground">
                       Quản lý duyệt
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="rounded-full"
-                        onClick={() => updateSelected({ status: "REVIEWED" })}
-                      >
-                        <ShieldAlert className="mr-2 h-4 w-4" />
-                        Yêu cầu thay đổi
-                      </Button>
-                      <Button
-                        type="button"
-                        className="rounded-full"
-                        onClick={() => updateSelected({ status: "REVIEWED" })}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Đánh dấu đã duyệt
-                      </Button>
-                    </div>
+                    {selected.status !== "REVIEWED" && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          className="rounded-full"
+                          onClick={handleReview}
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Đánh dấu đã duyệt
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   <Textarea
-                    value={""}
-                    onChange={(e) =>
-                      updateSelected({ managerComment: e.target.value })
-                    }
+                    value={review}
+                    onChange={(e) => setReview(e.target.value)}
+                    readOnly={selected.status === "REVIEWED"}
                     rows={4}
                     placeholder="Feedback cho nhân viên..."
                   />
+                  <span className="text-sm text-red-500">{error}</span>
                 </div>
               </CardContent>
             </Card>

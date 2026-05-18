@@ -9,7 +9,13 @@ export declare namespace DACN {
   type CreateLeaveRequestDto = {
     date_from: string; // ISO date string
     date_to: string;
+    type: string;
     reason: string;
+    description?: string;
+  };
+  type LeaveRequestType = {
+    code: string;
+    name: string;
     description?: string;
   };
   type CreateAssetDto = {
@@ -71,6 +77,7 @@ export declare namespace DACN {
     progress_percentage: number;
     progress_notes?: string;
     status: "DRAFT" | "SUBMITTED" | "REVIEWED";
+    review?: string;
     created_at: string;
     updated_at: string;
   };
@@ -115,6 +122,10 @@ export declare namespace DACN {
     commentCount: number;
     likedByMe: boolean;
     comments?: any[];
+  };
+  type DepartmentDto = {
+    id: string;
+    name: string;
   };
   type ChatRequestDto = {
     message: string;

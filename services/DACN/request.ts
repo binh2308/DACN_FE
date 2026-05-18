@@ -16,7 +16,7 @@ export async function myRequests(
 ) {
   return request<any>("/leave-requests/my", {
     method: "GET",
-    params, 
+    params,
     headers: {
       "Content-Type": "application/json",
     },
@@ -96,17 +96,17 @@ export async function getDepartmentLeaveRequests(
   params?: DepartmentLeaveRequestsParams,
   options?: { [key: string]: any },
 ) {
-  return request<DepartmentLeaveRequestsResponse, DepartmentLeaveRequestsResponse>(
-    "/leave-requests/department",
-    {
+  return request<
+    DepartmentLeaveRequestsResponse,
+    DepartmentLeaveRequestsResponse
+  >("/leave-requests/department", {
     method: "GET",
     params,
     headers: {
       "Content-Type": "application/json",
     },
     ...(options || {}),
-    },
-  );
+  });
 }
 
 //Tạo đơn xin nghỉ mới
@@ -121,6 +121,15 @@ export async function createLeaveRequest(
       "Content-Type": "application/json",
     },
     ...(options || {}),
+  });
+}
+
+export function getLeaveTypes() {
+  return request<DACN.LeaveRequestType[]>("/leave-requests/types", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 }
 

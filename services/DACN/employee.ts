@@ -2,13 +2,14 @@ import { request } from "../service";
 
 export type DepartmentType =
   | "All"
-  | "HR"
+  | "Administrator"
+  | "Nhân sự (HR)"
   | "Engineering"
   | "Sales"
   | "Marketing"
   | "Finance"
   | "Operations"
-  | "IT"
+  | "Accounting"
   | "Customer Support";
 
 export type DepartmentDto = {
@@ -44,7 +45,7 @@ export type GetEmployeesParams = {
   page?: number;
   pageSize?: number;
   role?: string;
-  department?: DepartmentType;
+  department?: DepartmentType | null;
   search?: string;
 };
 
@@ -243,17 +244,17 @@ export async function updateEmployeeByAdmin(
 
 // Employee self-service: cập nhật thông tin cá nhân (theo token)
 export async function updateEmployee(
-	body: UpdateEmployeePayload,
-	options?: { [key: string]: any },
+  body: UpdateEmployeePayload,
+  options?: { [key: string]: any },
 ) {
-	return request<UpdateEmployeeResponse>("/employee/update", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		data: body,
-		...(options || {}),
-	});
+  return request<UpdateEmployeeResponse>("/employee/update", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
 }
 
 // Xóa nhân viên

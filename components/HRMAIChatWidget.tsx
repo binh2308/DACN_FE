@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, X, SendHorizontal, UserCircle2 } from "lucide-react";
 import { DACN } from "@/services/DACN/typings";
+import MarkdownRenderer from "./MarkdownRenderer";
 import { getUserProfile } from "@/services/DACN/auth";
 import { buildFullName, safeString, fallbackAvatar } from "./ProfileDropdown";
 import { GetResponseFromAI } from "@/services/DACN/AI";
 import AnimatedBotMessage from "./AnimatedBotMessage";
+import { ms } from "zod/v4/locales";
 
 type Message = {
   id: string;
@@ -271,7 +273,7 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
                           }}
                         />
                       ) : (
-                        msg.content
+                        <MarkdownRenderer content={msg.content} />
                       )}
                     </div>
                   </div>

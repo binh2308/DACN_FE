@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 type AnimatedBotMessageProps = {
   content: string;
@@ -43,7 +44,7 @@ export default function AnimatedBotMessage({
 
   return (
     <span className="whitespace-pre-wrap">
-      {tokens.slice(0, visibleCount).join("")}
+      <MarkdownRenderer content={tokens.slice(0, visibleCount).join("")} />
     </span>
   );
 }

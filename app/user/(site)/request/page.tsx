@@ -21,13 +21,13 @@ import {
   TextInput,
 } from "@mantine/core";
 import { Controller, set, useForm } from "react-hook-form";
-import { DatePickerInput } from "@mantine/dates";
+import { DACN } from "@/services/DACN/typings";
 import { notifications } from "@mantine/notifications";
-import { myRequests, createLeaveRequest } from "@/services/DACN/request";
 import {
-  getMyAttendanceMonthlySummary,
-  type MonthlyAttendanceSummaryDto,
-} from "@/services/DACN/attendance";
+  myRequests,
+  createLeaveRequest,
+  getLeaveTypes,
+} from "@/services/DACN/request";
 import { formatDate } from "@/lib/utils";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +36,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // --- Types & Mock Data ---
 
 // 1. Định nghĩa kiểu cho trạng thái quyết định (Thêm phần này để sửa lỗi)
@@ -43,7 +50,10 @@ const leaveSchema = z.object({
   date_from: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày bắt đầu"),
-  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày kết thúc"),
+  date_to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Vui lòng chọn ngày kết thúc"),
+  type: z.string().min(2, "Loại nghỉ phép là bắt buộc").max(100),
   reason: z.string().min(3, "Lý do là bắt buộc").max(500),
   description: z.string().min(5, "Mô tả là bắt buộc").max(500),
 });
@@ -156,7 +166,9 @@ function LeaveDetailModal({
               <RefreshCw size={32} className="text-gray-800" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Chi tiết nghỉ phép</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                Chi tiết nghỉ phép
+              </h2>
               <p className="text-sm text-gray-500">
                 Xem thông tin chi tiết về yêu cầu nghỉ phép của nhân viên
               </p>
@@ -268,7 +280,7 @@ function LeaveDetailModal({
 export default function LeaveManagementPage() {
   const [activeActionId, setActiveActionId] = useState<number | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
-  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [leaveTypes, setLeaveTypes] = useState<DACN.LeaveRequestType[]>([]);
   const [myLeaves, setMyLeaves] = useState<LeaveRequest[] | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPage, setTotalPage] = useState<number>(0);
@@ -294,9 +306,11 @@ export default function LeaveManagementPage() {
     async function fetchData() {
       try {
         const data = await myRequests();
-        if (data) {
+        const types = await getLeaveTypes();
+        if (data && types) {
           setMyLeaves(data.data.items);
           setTotalPage(Math.ceil(data.data.items.length / 4));
+          setLeaveTypes(types?.data || []);
         }
       } catch (error) {
         console.error("Error fetching requests:", error);
@@ -436,6 +450,38 @@ export default function LeaveManagementPage() {
                 {errors.date_to && (
                   <p className="mt-1 text-sm text-red-500">
                     {errors.date_to.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="col-span-2">
+                <Label>
+                  Loại nghỉ phép <span className="text-red-500">*</span>
+                </Label>
+                <Controller
+                  control={control}
+                  name="type"
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={(value) => field.onChange(value)}
+                      defaultValue=""
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Loại nghỉ phép" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {leaveTypes.map((type) => (
+                          <SelectItem key={type.code} value={type.code}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.type && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.type.message}
                   </p>
                 )}
               </div>

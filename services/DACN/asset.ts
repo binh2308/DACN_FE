@@ -88,8 +88,27 @@ export function deleteAsset(id: string, options?: { [key: string]: any }) {
   });
 }
 
-export function assignAsset(id: string, data: DACN.AssignAssetDto, options?: { [key: string]: any }) {
+export function assignAsset(
+  id: string,
+  data: DACN.AssignAssetDto,
+  options?: { [key: string]: any },
+) {
   return request<any>(`/assets/${id}/assign`, {
+    method: "POST",
+    data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
+}
+
+export function unassignAsset(
+  id: string,
+  data: { returnDate: string },
+  options?: { [key: string]: any },
+) {
+  return request<any>(`/assets/${id}/return`, {
     method: "POST",
     data,
     headers: {
