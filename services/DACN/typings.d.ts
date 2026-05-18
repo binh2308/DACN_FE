@@ -123,6 +123,10 @@ export declare namespace DACN {
     likedByMe: boolean;
     comments?: any[];
   };
+  type DepartmentDto = {
+    id: string;
+    name: string;
+  };
   type ChatRequestDto = {
     message: string;
     sessionId?: string;
