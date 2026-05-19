@@ -224,6 +224,138 @@ export async function getManagementTicketCategoriesAll(
 	);
 }
 
+export type GetManagementTicketCategoriesQuery = {
+	department_id?: string;
+};
+
+export type GetManagementTicketCategoriesResponse =
+	| ManagementTicketCategoryDto[]
+	| {
+		statusCode?: number;
+		message?: string;
+		data: ManagementTicketCategoryDto[];
+	};
+
+// GET /management/tickets/categories?department_id=
+// Some backends return an array directly, others wrap in { statusCode, data }.
+export async function getManagementTicketCategories(
+	params?: GetManagementTicketCategoriesQuery,
+	options?: { [key: string]: any },
+) {
+	return request<
+		GetManagementTicketCategoriesResponse,
+		GetManagementTicketCategoriesResponse
+	>("/management/tickets/categories", {
+		method: "GET",
+		params,
+		...(options || {}),
+	});
+}
+
+export type CreateManagementTicketCategoryBody = {
+	name: string;
+	description?: string | null;
+};
+
+export type CreateManagementTicketCategoryResponse =
+	| ManagementTicketCategoryDto
+	| {
+		statusCode?: number;
+		message?: string;
+		data?: ManagementTicketCategoryDto;
+	};
+
+export async function createManagementTicketCategory(
+	body: CreateManagementTicketCategoryBody,
+	options?: { [key: string]: any },
+) {
+	return request<
+		CreateManagementTicketCategoryResponse,
+		CreateManagementTicketCategoryResponse
+	>("/management/tickets/categories", {
+		method: "POST",
+		data: body,
+		...(options || {}),
+	});
+}
+
+export type DeleteManagementTicketCategoryResponse =
+	| {
+		statusCode?: number;
+		message?: string;
+		data?: unknown;
+	}
+	| unknown;
+
+export async function deleteManagementTicketCategory(
+	id: string,
+	options?: { [key: string]: any },
+) {
+	return request<
+		DeleteManagementTicketCategoryResponse,
+		DeleteManagementTicketCategoryResponse
+	>(`/management/tickets/categories/${id}`, {
+		method: "DELETE",
+		...(options || {}),
+	});
+}
+
+export type AssignDepartmentTicketCategoriesBody = {
+	category_ids: string[];
+};
+
+export type AssignDepartmentTicketCategoriesResponse =
+	| {
+			statusCode?: number;
+			message?: string;
+			data?: unknown;
+	  }
+	| unknown;
+
+// PATCH /management/tickets/departments/{departmentId}/categories
+// Assign ticket categories to a department
+export async function assignManagementTicketCategoriesToDepartment(
+	departmentId: string,
+	body: AssignDepartmentTicketCategoriesBody,
+	options?: { [key: string]: any },
+) {
+	return request<
+		AssignDepartmentTicketCategoriesResponse,
+		AssignDepartmentTicketCategoriesResponse
+	>(`/management/tickets/departments/${departmentId}/categories`, {
+		method: "PATCH",
+		data: body,
+		...(options || {}),
+	});
+}
+
+export type UnassignDepartmentTicketCategoryResponse =
+	| {
+			statusCode?: number;
+			message?: string;
+			data?: unknown;
+	  }
+	| unknown;
+
+// DELETE /management/tickets/departments/{departmentId}/categories/{categoryId}
+// Remove a ticket category from a department
+export async function unassignManagementTicketCategoryFromDepartment(
+	departmentId: string,
+	categoryId: string,
+	options?: { [key: string]: any },
+) {
+	return request<
+		UnassignDepartmentTicketCategoryResponse,
+		UnassignDepartmentTicketCategoryResponse
+	>(
+		`/management/tickets/departments/${departmentId}/categories/${categoryId}`,
+		{
+			method: "DELETE",
+			...(options || {}),
+		},
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Legacy exports (previously in services/DACN/ticket.ts)
 // Keep these to avoid breaking existing call sites.

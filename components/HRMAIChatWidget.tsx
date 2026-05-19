@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, SendHorizontal, UserCircle2 } from "lucide-react";
+import { Sparkles, X, SendHorizontal } from "lucide-react";
 import { DACN } from "@/services/DACN/typings";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { getUserProfile } from "@/services/DACN/auth";
 import { buildFullName, safeString, fallbackAvatar } from "./ProfileDropdown";
 import { GetResponseFromAI } from "@/services/DACN/AI";
 import AnimatedBotMessage from "./AnimatedBotMessage";
-import { ms } from "zod/v4/locales";
 
 type Message = {
   id: string;
@@ -132,16 +131,8 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
       el.style.height = "auto";
     });
     try {
-      const response: any = await GetResponseFromAI(sendMessage);
-
-      if (response?.statusCode !== 201) {
-        throw new Error("Không gọi được API chatbot");
-      }
-
-      const data = response?.data;
-
-      const botReply =
-        data?.reply || "Xin lỗi, hiện tại tôi chưa thể phản hồi.";
+      const response = await GetResponseFromAI(sendMessage);
+      const botReply = response?.reply || "Xin lỗi, hiện tại tôi chưa thể phản hồi.";
 
       setMessages((prev) =>
         prev.map((msg) =>

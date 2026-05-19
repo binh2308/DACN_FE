@@ -1,4 +1,4 @@
-import { forwardRef, useMemo, useRef, useState } from "react";
+import { forwardRef, useMemo, useRef, useState, type ReactNode } from "react";
 import { Popover } from "@mantine/core";
 import { DatePicker, DatePickerProps } from "@mantine/dates";
 import { CalendarDays } from "lucide-react";
@@ -12,9 +12,9 @@ type MyDatePickerProps = Omit<
   value: string | null;
   onChange: (value: string | null) => void;
   onBlur?: () => void;
-  label?: React.ReactNode;
-  description?: React.ReactNode;
-  error?: React.ReactNode;
+  label?: ReactNode;
+  description?: ReactNode;
+  error?: ReactNode;
   placeholder?: string;
   clearable?: boolean;
   className?: string;
@@ -26,7 +26,7 @@ type MyDatePickerProps = Omit<
 };
 
 export const MyDatePicker = forwardRef<HTMLInputElement, MyDatePickerProps>(
-  (
+  function MyDatePicker(
     {
       value,
       onChange,
@@ -44,56 +44,59 @@ export const MyDatePicker = forwardRef<HTMLInputElement, MyDatePickerProps>(
       required,
       ...datePickerProps
     },
-    ref
-  ) => {
-  const [opened, setOpened] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+    ref,
+  ) {
+    const [opened, setOpened] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-  const displayValue = useMemo(() => {
-    return value ? dayjs(value).format("DD/MM/YYYY") : "";
-  }, [value]);
+    const displayValue = useMemo(() => {
+      return value ? dayjs(value).format("DD/MM/YYYY") : "";
+    }, [value]);
 
-  return (
-    <Popover
-      opened={opened}
-      onChange={setOpened}
-      position="bottom-start"
-      withArrow
-      shadow="md"
-      zIndex={9999}
-    >
-      <Popover.Target>
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            value={displayValue}
-            placeholder={placeholder}
-            readOnly
-            disabled={disabled}
-            className={className}
-            onClick={() => !disabled && setOpened(true)}
-            onFocus={() => !disabled && setOpened(true)}
-          />
-          <div className="absolute inset-y-0 right-2 flex items-center gap-1">
-            <CalendarDays size={16} className="text-muted-foreground" />
+    return (
+      <Popover
+        opened={opened}
+        onChange={setOpened}
+        position="bottom-start"
+        withArrow
+        shadow="md"
+        zIndex={9999}
+      >
+        <Popover.Target>
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              value={displayValue}
+              placeholder={placeholder}
+              readOnly
+              disabled={disabled}
+              className={className}
+              onClick={() => !disabled && setOpened(true)}
+              onFocus={() => !disabled && setOpened(true)}
+            />
+            <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+              <CalendarDays size={16} className="text-muted-foreground" />
+            </div>
           </div>
-        </div>
-      </Popover.Target>
+        </Popover.Target>
 
-      <Popover.Dropdown p={0} style={{ pointerEvents: "auto" }}>
-        <DatePicker
-          value={value}
-          onChange={(date) => {
-            onChange(date);
-            if (date) {
-              setOpened(false);
-            }
-          }}
-          allowDeselect
-          minDate={minDate}
-          maxDate={maxDate}
-        />
-      </Popover.Dropdown>
-    </Popover>
-  );
-});
+        <Popover.Dropdown p={0} style={{ pointerEvents: "auto" }}>
+          <DatePicker
+            value={value}
+            onChange={(date) => {
+              onChange(date);
+              if (date) {
+                setOpened(false);
+              }
+            }}
+            allowDeselect
+            minDate={minDate}
+            maxDate={maxDate}
+          />
+        </Popover.Dropdown>
+      </Popover>
+    );
+  },
+);
+
+MyDatePicker.displayName = "MyDatePicker";

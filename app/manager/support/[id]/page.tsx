@@ -412,7 +412,7 @@ export default function TicketDetailPage() {
 															<span>{p.type}</span>
 															{p.note && (
 																<span className="mt-2 block pl-3 border-l-2 border-border text-muted-foreground italic">
-																	"{p.note}"
+																	&quot;{p.note}&quot;
 																</span>
 															)}
 														</div>
@@ -449,7 +449,7 @@ export default function TicketDetailPage() {
 										Duyệt yêu cầu
 									</div>
 									<div className="text-xs text-muted-foreground">
-										Chuyển trạng thái từ "Chờ xử lý" sang "Đang xử lý".
+											Chuyển trạng thái từ &quot;Chờ xử lý&quot; sang &quot;Đang xử lý&quot;.
 									</div>
 									<Textarea
 										value={approveNote}

@@ -9,7 +9,7 @@ import {
   getAssets,
   Asset,
 } from "@/services/DACN/asset";
-import { decodeJwt } from "jose";
+import { decodeJwtPayload } from "@/lib/jwt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,7 +123,7 @@ export default function UserAssetsPage() {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        const payload = decodeJwt(token) as any;
+        const payload = decodeJwtPayload(token) as any;
         const employeeId = payload?.sub;
         if (!employeeId) return;
         const params: GetAssetsParams = {

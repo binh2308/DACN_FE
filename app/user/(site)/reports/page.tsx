@@ -181,7 +181,6 @@ export default function WeeklyReportsPage() {
   const [updated, setUpdated] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState<number>(0);
-  const [totalPage, setTotalPage] = React.useState<number>(0);
   const [filters, setFilters] = React.useState<Filters>({
     q: "",
     status: "all",
@@ -207,14 +206,17 @@ export default function WeeklyReportsPage() {
           limit: 10,
         });
         //console.log("Fetched my report:", res.data?.data);
+        const nextReports = res.data?.data ?? [];
         if (selectedReport) {
           setSelectedReport(
-            res.data?.data.find(
+            nextReports.find(
               (r: DACN.ReportResponseDto) => r.id === selectedReport.id,
             ) ?? null,
           );
+        } else {
+          setSelectedReport(nextReports[0] ?? null);
         }
-        setReports(res.data?.data);
+        setReports(nextReports);
       } catch (error) {
         console.error("Failed to fetch report:", error);
       } finally {
@@ -241,9 +243,7 @@ export default function WeeklyReportsPage() {
   //   return Array.from(set).sort();
   // }, [reports]);
 
-  const filtered = React.useMemo(() => {
-    const q = filters.q.trim().toLowerCase();
-
+  const { pagedReports, totalPage, currentPageSafe } = React.useMemo(() => {
     const filteredReports = reports
       .filter((r) => {
         if (filters.status !== "all" && r.status !== filters.status)
@@ -259,12 +259,15 @@ export default function WeeklyReportsPage() {
         return true;
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    if (!selectedReport) {
-      setSelectedReport(filteredReports[0] ?? null);
-    }
 
-    setTotalPage(Math.ceil(filteredReports.length / 4));
-    return filteredReports.slice(currentPage * 4, currentPage * 4 + 4);
+    const totalPage = Math.ceil(filteredReports.length / 4);
+    const currentPageSafe = Math.min(currentPage, Math.max(totalPage - 1, 0));
+    const pagedReports = filteredReports.slice(
+      currentPageSafe * 4,
+      currentPageSafe * 4 + 4,
+    );
+
+    return { pagedReports, totalPage, currentPageSafe };
   }, [reports, filters, currentPage]);
   const counts = React.useMemo(() => {
     return {
@@ -617,7 +620,7 @@ export default function WeeklyReportsPage() {
             </div>
 
             <div className="space-y-3">
-              {filtered.length === 0 && !loading ? (
+                {pagedReports.length === 0 && !loading ? (
                 <EmptyState
                   title="Không có báo cáo hàng tuần"
                   hint="Hãy thử điều chỉnh bộ lọc hoặc nộp một báo cáo mới."
@@ -627,7 +630,7 @@ export default function WeeklyReportsPage() {
                   <Loader color="green" />
                 </Center>
               ) : (
-                filtered.map((r) => {
+                  pagedReports.map((r) => {
                   const active = r.id === selectedReport?.id;
                   return (
                     <button
@@ -671,22 +674,21 @@ export default function WeeklyReportsPage() {
                 })
               )}
             </div>
-            {filtered.length > 0 && (
+            {pagedReports.length > 0 && (
               <div className="flex justify-end gap-3">
                 <ChevronLeft
                   className="cursor-pointer hover:shadow-md"
                   onClick={() => {
-                    if (currentPage > 0) setCurrentPage(currentPage - 1);
+                    if (currentPageSafe > 0) setCurrentPage(currentPageSafe - 1);
                   }}
                 />
                 <span>
-                  {currentPage + 1} / {totalPage}
+                  {currentPageSafe + 1} / {totalPage}
                 </span>
                 <ChevronRight
                   className="cursor-pointer hover:shadow-md"
                   onClick={() => {
-                    if (currentPage < totalPage - 1)
-                      setCurrentPage(currentPage + 1);
+                    if (currentPageSafe < totalPage - 1) setCurrentPage(currentPageSafe + 1);
                   }}
                 />
               </div>

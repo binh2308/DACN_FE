@@ -10,7 +10,7 @@ export function GetResponseFromAI(
   data: DACN.ChatRequestDto,
   options?: { [key: string]: any },
 ) {
-  return request<DACN.ChatResponseDto>(`/ai/chat`, {
+  return request<DACN.ChatResponseDto, DACN.ChatResponseDto>(`/ai/chat`, {
     method: "POST",
     data,
     headers: {

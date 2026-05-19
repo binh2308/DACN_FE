@@ -80,7 +80,7 @@ const menuSections: MenuSection[] = [
     title: "TỔ CHỨC",
     items: [
       {
-        label: "Request",
+        label: "Đơn xin nghỉ",
         icon: <FileText className="w-5 h-5" />,
         href: "/request",
       },

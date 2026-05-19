@@ -56,7 +56,7 @@ function getMiniCalendarDays(year: number, month: number) {
   endDate.setDate(endDate.getDate() + 6);
 
   const days: Date[] = [];
-  let current = new Date(startDate);
+  const current = new Date(startDate);
   while (current <= endDate) {
     days.push(new Date(current));
     current.setDate(current.getDate() + 1);
@@ -157,8 +157,11 @@ export default function ManagerCalendarPage() {
         const rawTitle = String(it.title ?? it.purpose ?? it.name ?? "").trim();
         const rawSubtitle = String(it.subtitle ?? it.roomName ?? it.room?.name ?? "").trim();
 
+        const providedId = String(it.id ?? "").trim();
+        const derivedId = `${type}-${start.getTime()}-${end.getTime()}-${rawTitle}-${rawSubtitle}`;
+
         return {
-          id: String(it.id ?? Math.random()),
+          id: providedId || derivedId,
           type: type as "BOOKING" | "LEAVE_REQUEST",
           title: rawTitle || (type === "BOOKING" ? "Cuộc họp" : "Nghỉ phép"),
           subtitle: rawSubtitle || undefined,

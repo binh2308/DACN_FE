@@ -58,7 +58,7 @@ export default function Login() {
         <div className="absolute inset-0 flex items-end justify-center p-4 animate-slide-in-right">
           <div className="bg-[rgba(33,37,43,0.5)] rounded-lg px-3 py-4 max-w-sm backdrop-blur-sm">
             <p className="text-[#E9EAEC] text-center text-xs font-semibold leading-[140%] tracking-[0.16px]">
-              "Welcome to Human Resource management system."
+              &quot;Welcome to Human Resource management system.&quot;
             </p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function Login() {
           <div className="mt-4 lg:hidden">
             <div className="bg-[rgba(33,37,43,0.5)] rounded-lg px-4 py-4 backdrop-blur-sm">
               <p className="text-main-600 text-center text-xs font-semibold leading-[140%] tracking-[0.16px]">
-                "Welcome to Human Resource management system."
+                &quot;Welcome to Human Resource management system.&quot;
               </p>
             </div>
           </div>

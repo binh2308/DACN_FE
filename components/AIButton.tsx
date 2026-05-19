@@ -1,13 +1,19 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import HRMAIChatWidget from "./HRMAIChatWidget";
 import { useState } from "react";
+import dynamic from "next/dynamic";
+
+const HRMAIChatWidget = dynamic(() => import("./HRMAIChatWidget"), {
+  ssr: false,
+});
 
 export default function FloatingAIButton() {
   const [open, setOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
 
   const handleClick = () => {
+    setHasOpened(true);
     setOpen(true);
   };
 
@@ -32,7 +38,9 @@ export default function FloatingAIButton() {
       >
         <Sparkles className="h-6 w-6" strokeWidth={2.5} />
       </button>
-      <HRMAIChatWidget open={open} onClose={() => setOpen(false)} />
+      {hasOpened ? (
+        <HRMAIChatWidget open={open} onClose={() => setOpen(false)} />
+      ) : null}
     </>
   );
 }

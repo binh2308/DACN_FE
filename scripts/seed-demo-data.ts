@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+ 
 
 import axios from "axios";
 import { readFile } from "node:fs/promises";
