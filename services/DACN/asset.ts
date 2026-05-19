@@ -2,6 +2,52 @@ import { request } from "../service";
 import { DACN } from "./typings";
 
 export type AssetType = "PUBLIC" | "PRIVATE";
+
+export function typeMeta(type: AssetType) {
+  switch (type) {
+    case "PRIVATE":
+      return { label: "Cá nhân", badge: "bg-indigo-100 text-indigo-700" };
+    case "PUBLIC":
+      return { label: "Công cộng", badge: "bg-blue-100 text-blue-700" };
+    default:
+      return { label: type, badge: "bg-gray-100 text-gray-700" };
+  }
+}
+
+export function conditionMeta(condition: AssetStatus) {
+  switch (condition) {
+    case "NEW":
+      return { label: "Mới", badge: "bg-green-100 text-green-700" };
+    case "USED":
+      return { label: "Đã sử dụng", badge: "bg-yellow-100 text-yellow-700" };
+    case "UNDER_MAINTENANCE":
+      return {
+        label: "Bảo trì",
+        badge: "bg-orange-100 text-orange-700",
+      };
+    case "BROKEN":
+      return { label: "Hỏng", badge: "bg-red-100 text-red-700" };
+    default:
+      return { label: condition, badge: "bg-gray-100 text-gray-700" };
+  }
+}
+
+export const getDepartmentLabel = (departmentName: string) => {
+  const departmentMap: any = {
+    Accounting: "Kế toán",
+    Administrator: "Quản trị",
+    "Customer Support": "Chăm sóc khách hàng",
+    Engineering: "Kỹ thuật",
+    Finance: "Tài chính",
+    Marketing: "Marketing",
+    "Nhân sự (HR)": "Nhân sự",
+    Operations: "Vận hành",
+    Sales: "Kinh doanh",
+  };
+
+  return departmentMap[departmentName] || departmentName;
+};
+
 export type AssetStatus =
   | "NEW"
   | "USED"

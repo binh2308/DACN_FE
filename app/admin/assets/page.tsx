@@ -13,6 +13,7 @@ import {
   Warehouse,
   Users,
   Wrench,
+  Shield,
 } from "lucide-react";
 import {
   getAssets,
@@ -22,7 +23,8 @@ import {
   assignAsset,
   Asset,
   AssetCategory,
-  AssetType,
+  typeMeta,
+  conditionMeta,
   AssetStatus,
   unassignAsset,
 } from "@/services/DACN/asset";
@@ -957,6 +959,7 @@ export default function AdminAssetsPage() {
             <tbody>
               {pageItems.map((it) => {
                 const sm = statusMeta(it.owner ?? null);
+                const tm = typeMeta(it.type);
                 const wLabel = warrantyLabel(
                   it.purchase_date,
                   it.warranty_expiration_date,
@@ -984,8 +987,12 @@ export default function AdminAssetsPage() {
                     <td className="px-4 py-3 text-[11px] text-grey-700 font-medium">
                       {it.serialNumber || "--"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {it.category}
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${tm.badge}`}
+                      >
+                        <Shield className="w-3.5 h-3.5 mr-1" /> {tm.label}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <span
