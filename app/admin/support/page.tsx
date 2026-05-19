@@ -29,11 +29,9 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import {
-	createDepartment,
-	deleteDepartment,
 	getDepartments,
-	type DepartmentDto,
 } from "@/services/DACN/department";
+import { type DepartmentDto } from "@/services/DACN/employee";
 import {
 	createManagementTicketCategory,
 	deleteManagementTicketCategory,
@@ -212,38 +210,17 @@ export default function SupportPage() {
 	};
 
 	const handleCreateDepartment = async () => {
-		const name = createDeptName.trim();
-		if (!name || creatingDepartment) return;
-		setCreatingDepartment(true);
-		try {
-			await createDepartment({ name });
-			toast({ title: "Thêm phòng ban thành công", description: name });
-			setCreateDeptName("");
-			await fetchAllData();
-		} catch (e: any) {
-			toast({
-				variant: "destructive",
-				title: "Không thể thêm phòng ban",
-				description: e?.message || "Vui lòng thử lại.",
-			});
-		} finally {
-			setCreatingDepartment(false);
-		}
+		toast({
+			title: "Chức năng đã tạm ngưng",
+			description: "Quản lý phòng ban hiện không còn được dùng.",
+		});
 	};
 
 	const handleDeleteDepartment = async (id: string) => {
-		if (!confirm("Xoá phòng ban này?")) return;
-		try {
-			await deleteDepartment(id);
-			toast({ title: "Đã xoá Phòng ban" });
-			await fetchAllData();
-		} catch (e: any) {
-			toast({
-				variant: "destructive",
-				title: "Không thể xoá phòng ban",
-				description: e?.message || "Vui lòng thử lại.",
-			});
-		}
+		toast({
+			title: "Chức năng đã tạm ngưng",
+			description: "Không xoá phòng ban trong phiên bản hiện tại.",
+		});
 	};
 
 	// --- 3. Mapping Interactions (Kéo thả nối dây) ---

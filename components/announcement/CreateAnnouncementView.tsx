@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { notifications } from "@mantine/notifications";
 
 import { ImageItem } from "@/lib/utils";
+import type { DACN } from "@/services/DACN/typings";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -100,8 +101,14 @@ export default function CreateAnnouncementView({
 
   const onSubmit = async (data: AnnounceFormData) => {
     try {
-      const res = await createAnnouncement({ ...data } as any);
-      const createdId = (res as any)?.data?.id;
+      const payload: DACN.AnnouncementCreateDto = {
+        title: data.title,
+        content: data.content,
+        category: data.category === "EVENTS" ? "GENERAL" : data.category,
+        pinned: data.pinned,
+      };
+      const res = await createAnnouncement(payload);
+      const createdId = (res as { data?: { id?: string } })?.data?.id;
 
       if (createdId) {
         await handleUploadImages(createdId);

@@ -157,7 +157,6 @@ export default function WeeklyReportsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [updated, setUpdated] = React.useState<boolean>(false);
   const [currentPage, setCurrentPage] = React.useState<number>(0);
-  const [totalPage, setTotalPage] = React.useState<number>(0);
   const [filters, setFilters] = React.useState<Filters>({
     q: "",
     status: "all",
@@ -203,7 +202,7 @@ export default function WeeklyReportsPage() {
     fetchReport();
   }, [createOpen, updated]);
 
-  const filtered = React.useMemo(() => {
+  const { pagedReports, totalPage, currentPageSafe } = React.useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     const filterReports = reports
       .filter((r) => {
@@ -227,8 +226,15 @@ export default function WeeklyReportsPage() {
         return true;
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    setTotalPage(Math.ceil(filterReports.length / 4));
-    return filterReports.slice(currentPage * 4, currentPage * 4 + 4);
+
+    const totalPage = Math.ceil(filterReports.length / 4);
+    const currentPageSafe = Math.min(currentPage, Math.max(totalPage - 1, 0));
+    const pagedReports = filterReports.slice(
+      currentPageSafe * 4,
+      currentPageSafe * 4 + 4,
+    );
+
+    return { pagedReports, totalPage, currentPageSafe };
   }, [reports, filters, currentPage]);
 
   const selected = React.useMemo(
@@ -595,7 +601,7 @@ export default function WeeklyReportsPage() {
             </div>
 
             <div className="space-y-3">
-              {filtered.length === 0 && reports.length > 0 ? (
+              {pagedReports.length === 0 && reports.length > 0 ? (
                 <EmptyState
                   title="Không có báo cáo tuần"
                   hint="Hãy thử điều chỉnh bộ lọc hoặc nộp một báo cáo mới."
@@ -605,7 +611,7 @@ export default function WeeklyReportsPage() {
                   <Loader color="green" />
                 </Center>
               ) : (
-                filtered.map((r) => {
+                pagedReports.map((r) => {
                   const active = r.id === selectedId;
                   return (
                     <button
@@ -661,22 +667,22 @@ export default function WeeklyReportsPage() {
                 })
               )}
             </div>
-            {filtered.length > 0 && (
+            {pagedReports.length > 0 && (
               <div className="p-2 flex justify-end gap-3">
                 <ChevronLeft
                   className="cursor-pointer hover:shadow-md"
                   onClick={() => {
-                    if (currentPage > 0) setCurrentPage(currentPage - 1);
+                    if (currentPageSafe > 0) setCurrentPage(currentPageSafe - 1);
                   }}
                 />
                 <span>
-                  {currentPage + 1} / {totalPage}
+                  {currentPageSafe + 1} / {totalPage}
                 </span>
                 <ChevronRight
                   className="cursor-pointer hover:shadow-md"
                   onClick={() => {
-                    if (currentPage < totalPage - 1)
-                      setCurrentPage(currentPage + 1);
+                    if (currentPageSafe < totalPage - 1)
+                      setCurrentPage(currentPageSafe + 1);
                   }}
                 />
               </div>

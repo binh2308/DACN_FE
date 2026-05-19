@@ -229,8 +229,8 @@ export default function MyTicketDetailPage() {
                   className="w-full max-w-[520px] rounded-full"
                   type="button"
                 >
-                  Choose an assignee and set status to "In Progress" to add
-                  response.
+                  Choose an assignee and set status to &quot;In Progress&quot;
+                  to add response.
                 </Button>
                 <Button
                   variant="outline"

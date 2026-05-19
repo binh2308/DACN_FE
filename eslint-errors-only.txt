@@ -1,0 +1,128 @@
+﻿D:/DACN_FE/app/admin/support/[id]/page.tsx:389:18 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/admin/support/[id]/page.tsx:389:27 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/admin/support/[id]/page.tsx:424:32 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/admin/support/[id]/page.tsx:424:42 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/admin/support/[id]/page.tsx:424:49 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/admin/support/[id]/page.tsx:424:60 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/login/page.tsx:139:17 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/login/page.tsx:139:62 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/login/page.tsx:61:15 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/login/page.tsx:61:60 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/manager/calendar/page.tsx:161:31 react-hooks/purity Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\DACN_FE\app\manager\calendar\page.tsx:161:31
+  159 |
+  160 |         return {
+> 161 |           id: String(it.id ?? Math.random()),
+      |                               ^^^^^^^^^^^^^ Cannot call impure function
+  162 |           type: type as "BOOKING" | "LEAVE_REQUEST",
+  163 |           title: rawTitle || (type === "BOOKING" ? "Cu???c h???p" : "Ngh??? ph??p"),
+  164 |           subtitle: rawSubtitle || undefined,
+D:/DACN_FE/app/manager/payroll/page.tsx:168:28 react-hooks/preserve-manual-memoization Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+D:\DACN_FE\app\manager\payroll\page.tsx:168:28
+  166 |       },
+  167 |     ];
+> 168 |   }, [currentMonthPayroll, cumulativeGross, cumulativeTax, realCurrentYear, realCurrentMonth]);
+      |                            ^^^^^^^^^^^^^^^ This dependency may be modified later
+  169 |
+  170 |   return (
+  171 |     <div className="p-4 space-y-3">
+D:/DACN_FE/app/manager/payroll/page.tsx:168:60 react-hooks/preserve-manual-memoization Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+D:\DACN_FE\app\manager\payroll\page.tsx:168:60
+  166 |       },
+  167 |     ];
+> 168 |   }, [currentMonthPayroll, cumulativeGross, cumulativeTax, realCurrentYear, realCurrentMonth]);
+      |                                                            ^^^^^^^^^^^^^^^ This dependency may be modified later
+  169 |
+  170 |   return (
+  171 |     <div className="p-4 space-y-3">
+D:/DACN_FE/app/manager/reports/page.tsx:230:5 react-hooks/set-state-in-render Error: Calling setState from useMemo may trigger an infinite loop
+
+Each time the memo callback is evaluated it will change state. This can cause a memoization dependency to change, running the memo function again and causing an infinite loop. Instead of setting state in useMemo(), prefer deriving the value during render. (https://react.dev/reference/react/useState).
+
+D:\DACN_FE\app\manager\reports\page.tsx:230:5
+  228 |       })
+  229 |       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+> 230 |     setTotalPage(Math.ceil(filterReports.length / 4));
+      |     ^^^^^^^^^^^^ Found setState() within useMemo()
+  231 |     return filterReports.slice(currentPage * 4, currentPage * 4 + 4);
+  232 |   }, [reports, filters, currentPage]);
+  233 |
+D:/DACN_FE/app/manager/support/[id]/page.tsx:415:18 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/manager/support/[id]/page.tsx:415:27 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/manager/support/[id]/page.tsx:452:32 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/manager/support/[id]/page.tsx:452:42 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/manager/support/[id]/page.tsx:452:49 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/manager/support/[id]/page.tsx:452:60 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/user/(site)/calendar/page.tsx:161:31 react-hooks/purity Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\DACN_FE\app\user\(site)\calendar\page.tsx:161:31
+  159 |
+  160 |         return {
+> 161 |           id: String(it.id ?? Math.random()),
+      |                               ^^^^^^^^^^^^^ Cannot call impure function
+  162 |           type: type as "BOOKING" | "LEAVE_REQUEST",
+  163 |           title: rawTitle || (type === "BOOKING" ? "Cu???c h???p" : "Ngh??? ph??p"),
+  164 |           subtitle: rawSubtitle || undefined,
+D:/DACN_FE/app/user/(site)/payroll/page.tsx:168:28 react-hooks/preserve-manual-memoization Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+D:\DACN_FE\app\user\(site)\payroll\page.tsx:168:28
+  166 |       },
+  167 |     ];
+> 168 |   }, [currentMonthPayroll, cumulativeGross, cumulativeTax, realCurrentYear, realCurrentMonth]);
+      |                            ^^^^^^^^^^^^^^^ This dependency may be modified later
+  169 |
+  170 |   return (
+  171 |     <div className="p-4 space-y-3">
+D:/DACN_FE/app/user/(site)/payroll/page.tsx:168:60 react-hooks/preserve-manual-memoization Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+D:\DACN_FE\app\user\(site)\payroll\page.tsx:168:60
+  166 |       },
+  167 |     ];
+> 168 |   }, [currentMonthPayroll, cumulativeGross, cumulativeTax, realCurrentYear, realCurrentMonth]);
+      |                                                            ^^^^^^^^^^^^^^^ This dependency may be modified later
+  169 |
+  170 |   return (
+  171 |     <div className="p-4 space-y-3">
+D:/DACN_FE/app/user/(site)/reports/page.tsx:263:7 react-hooks/set-state-in-render Error: Calling setState from useMemo may trigger an infinite loop
+
+Each time the memo callback is evaluated it will change state. This can cause a memoization dependency to change, running the memo function again and causing an infinite loop. Instead of setting state in useMemo(), prefer deriving the value during render. (https://react.dev/reference/react/useState).
+
+D:\DACN_FE\app\user\(site)\reports\page.tsx:263:7
+  261 |       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  262 |     if (!selectedReport) {
+> 263 |       setSelectedReport(filteredReports[0] ?? null);
+      |       ^^^^^^^^^^^^^^^^^ Found setState() within useMemo()
+  264 |     }
+  265 |
+  266 |     setTotalPage(Math.ceil(filteredReports.length / 4));
+D:/DACN_FE/app/user/(site)/reports/page.tsx:266:5 react-hooks/set-state-in-render Error: Calling setState from useMemo may trigger an infinite loop
+
+Each time the memo callback is evaluated it will change state. This can cause a memoization dependency to change, running the memo function again and causing an infinite loop. Instead of setting state in useMemo(), prefer deriving the value during render. (https://react.dev/reference/react/useState).
+
+D:\DACN_FE\app\user\(site)\reports\page.tsx:266:5
+  264 |     }
+  265 |
+> 266 |     setTotalPage(Math.ceil(filteredReports.length / 4));
+      |     ^^^^^^^^^^^^ Found setState() within useMemo()
+  267 |     return filteredReports.slice(currentPage * 4, currentPage * 4 + 4);
+  268 |   }, [reports, filters, currentPage]);
+  269 |   const counts = React.useMemo(() => {
+D:/DACN_FE/app/user/(site)/support/assigned-tickets/[id]/page.tsx:247:56 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/user/(site)/support/assigned-tickets/[id]/page.tsx:247:68 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/user/(site)/support/my-tickets/[id]/page.tsx:232:56 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+D:/DACN_FE/app/user/(site)/support/my-tickets/[id]/page.tsx:232:68 react/no-unescaped-entities `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
