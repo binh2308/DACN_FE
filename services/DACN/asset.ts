@@ -62,7 +62,6 @@ export type Asset = {
   assetTag: string;
   serialNumber: string;
   type: AssetType;
-  category?: AssetCategory;
   condition: AssetStatus;
   location?: string;
   owner?: any;

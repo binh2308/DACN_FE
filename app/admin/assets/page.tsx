@@ -22,7 +22,7 @@ import {
   deleteAsset,
   assignAsset,
   Asset,
-  AssetCategory,
+  AssetType,
   typeMeta,
   conditionMeta,
   AssetStatus,
@@ -168,7 +168,7 @@ function writeAssets(items: Asset[]) {
 
 // --- 3. Cập nhật AssetDraft cho Form ---
 
-function assetIcon(category: AssetCategory) {
+function assetIcon(category: any) {
   switch (category) {
     case "Laptop / Máy tính":
       return <Package className="w-4 h-4 text-muted-foreground" />;
@@ -466,7 +466,7 @@ export default function AdminAssetsPage() {
   const [items, setItems] = React.useState<Asset[]>([]);
   const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null);
   const [q, setQ] = React.useState("");
-  const [category, setCategory] = React.useState<"all" | AssetCategory>("all");
+  const [category, setCategory] = React.useState<"all" | AssetType>("all");
   const [employees, setEmployees] = React.useState<EmployeeDto[]>([]);
   const [departments, setDepartments] = React.useState<DACN.DepartmentDto[]>(
     [],
@@ -562,7 +562,7 @@ export default function AdminAssetsPage() {
     const query = q.trim().toLowerCase();
     return items.filter((it) => {
       const matchesQ = !query || it.name.toLowerCase().includes(query);
-      const matchesCat = category === "all" || it.category === category;
+      const matchesCat = category === "all" || it.type === category;
       const matchesStatus = status === "all" || it.condition === status;
       return matchesQ && matchesCat && matchesStatus;
     });
@@ -928,11 +928,8 @@ export default function AdminAssetsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả loại</SelectItem>
-              <SelectItem value="Laptop / Máy tính">
-                Laptop / Máy tính
-              </SelectItem>
-              <SelectItem value="Màn hình">Màn hình</SelectItem>
-              <SelectItem value="Thiết bị VP">Thiết bị VP</SelectItem>
+              <SelectItem value="PUBLIC">Công cộng</SelectItem>
+              <SelectItem value="PRIVATE">Cá nhân</SelectItem>
             </SelectContent>
           </Select>
           {/* Status Select (Giữ nguyên) */}
