@@ -269,7 +269,7 @@ export default function BookingPage() {
 												}`}
 											>
 												<Link 
-													href={`/employee/booking/${room.id}`}
+													href={`/user/booking/${room.id}`}
 													onClick={(e) => {
 														// Chặn không cho bấm nếu phòng đang bận hoặc bảo trì
 														if (statusType === 'maintenance') e.preventDefault();

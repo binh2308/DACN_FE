@@ -271,10 +271,10 @@ export default function RoomDetailPage() {
 									asChild
 									className="rounded-md bg-[#4F7D7B] hover:bg-[#436d6b]"
 								>
-									<Link href={`/employee/booking/${room.id}/book`}>Đặt phòng ngay</Link>
+									<Link href={`/user/booking/${room.id}/book`}>Đặt phòng ngay</Link>
 								</Button>
 								<Button asChild variant="outline" className="rounded-md">
-									<Link href="/employee/booking">Quay lại</Link>
+									<Link href="/user/booking">Quay lại</Link>
 								</Button>
 							</div>
 						</>

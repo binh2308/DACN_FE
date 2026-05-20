@@ -253,7 +253,7 @@ export default function EditBookingPage() {
           </div>
           <div className="mt-4">
             <Button asChild variant="outline" type="button">
-              <Link href="/employee/booked-rooms">Quay lại</Link>
+              <Link href="/user/booked-rooms">Quay lại</Link>
             </Button>
           </div>
         </div>
@@ -306,7 +306,7 @@ export default function EditBookingPage() {
 
       await submitUpdate(bookingId, payload);
       setSubmitted(true);
-      router.push("/employee/booked-rooms");
+      router.push("/user/booked-rooms");
     } catch (err) {
       setSubmitError((err as any)?.message || "Cập nhật booking thất bại.");
     }
@@ -563,7 +563,7 @@ export default function EditBookingPage() {
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <Button asChild variant="outline" type="button">
-                  <Link href="/employee/booked-rooms">Quay lại</Link>
+                  <Link href="/user/booked-rooms">Quay lại</Link>
                 </Button>
                 <Button
                   type="submit"
