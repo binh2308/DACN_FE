@@ -13,7 +13,10 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/EmptyState";
 import {
+  AnnouncementCategory,
+  getAnnouncementCategoryLabel,
   getListAnnouncement,
   togglePinnedAnnouncement,
 } from "@/services/DACN/announcement";
@@ -38,7 +41,12 @@ const CreateAnnouncementView = dynamic(
 
 export default function ForumPage() {
   const [view, setView] = useState<"list" | "create">("list");
-  const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[]>([]);
+  const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[] | null>(
+    null,
+  );
+  const [activeTab, setActiveTab] = useState<AnnouncementCategory | string>(
+    "GENERAL",
+  );
   const [totalPage, setTotalPage] = useState<number>(0);
   // Hàm xử lý lưu bài viết mới
   useEffect(() => {
@@ -47,6 +55,10 @@ export default function ForumPage() {
         const res = await getListAnnouncement({
           page: 1,
           pageSize: 20,
+          category:
+            activeTab === "GENERAL"
+              ? undefined
+              : (activeTab as AnnouncementCategory),
         });
         setPosts(res.data?.items);
         setTotalPage(Math.ceil(res.data?.items.length / 4));
@@ -58,12 +70,14 @@ export default function ForumPage() {
     if (view === "list") {
       fetchAnnouncements();
     }
-  }, [view]);
+  }, [view, activeTab]);
 
   return (
     <div className="bg-white min-h-screen p-6 font-sans">
       {view === "list" ? (
         <ForumListView
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           posts={posts}
           totalPage={totalPage}
           setPosts={setPosts}
@@ -81,30 +95,37 @@ export default function ForumPage() {
 // 1. VIEW DANH SÁCH (Giống ảnh 1)
 // ============================================================================
 function ForumListView({
+  activeTab,
+  setActiveTab,
   posts,
   totalPage,
   setPosts,
   onNavigateCreate,
   setView,
 }: {
-  posts: DACN.AnnouncementResponseDto[];
+  activeTab: AnnouncementCategory | string;
+  setActiveTab: React.Dispatch<
+    React.SetStateAction<AnnouncementCategory | string>
+  >;
+  posts: DACN.AnnouncementResponseDto[] | null;
   totalPage: number;
   setPosts: React.Dispatch<
-    React.SetStateAction<DACN.AnnouncementResponseDto[]>
+    React.SetStateAction<DACN.AnnouncementResponseDto[] | null>
   >;
   onNavigateCreate: () => void;
   setView: (view: "list" | "create") => void;
 }) {
-  const [activeTab, setActiveTab] = useState("General");
-  const tabs = ["General", "HR Updates", "Events"];
+  const tabs = ["GENERAL", "HR_UPDATE", "EVENT"];
   const [currentPage, setCurrentPage] = useState<number>(0);
   const router = useRouter();
   const handleTogglePin = async (id: string) => {
     try {
       setPosts((prev) =>
-        prev.map((post) =>
-          post.id === id ? { ...post, pinned: !post.pinned } : post,
-        ),
+        posts !== null && Array.isArray(posts)
+          ? posts.map((post) =>
+              post.id === id ? { ...post, pinned: !post.pinned } : post,
+            )
+          : null,
       );
       await togglePinnedAnnouncement(id);
     } catch (error) {
@@ -134,7 +155,7 @@ function ForumListView({
                 : "bg-white border-transparent text-gray-500 hover:bg-gray-50"
             }`}
           >
-            {tab}
+            {getAnnouncementCategoryLabel(tab)}
           </button>
         ))}
         <div className="ml-auto">
@@ -151,19 +172,20 @@ function ForumListView({
       {/* Main Content Area */}
       <div className="border border-gray-200 rounded-xl p-6 min-h-[600px] relative flex flex-col">
         <div className="flex justify-end mb-4">
-          <span className="text-sm font-semibold text-gray-600">
-            General Announcement
-          </span>
+          <span className="text-sm font-semibold text-gray-600">Thông báo</span>
         </div>
 
-        {posts.length === 0 && (
-          <Center style={{ height: "50vh" }}>
-            <Loader color="green" />
+        {posts === null ? (
+          <Center className="flex-1">
+            <Loader variant="dots" />
           </Center>
-        )}
+        ) : posts.length === 0 ? (
+          <EmptyState title="Không có thông báo nào" />
+        ) : null}
         {/* List Posts */}
         <div className="space-y-4 flex-1">
-          {posts.length > 0 &&
+          {posts &&
+            posts.length > 0 &&
             posts.slice(currentPage * 4, currentPage * 4 + 4).map((post) => (
               <div
                 key={post.id}
@@ -256,7 +278,7 @@ function ForumListView({
               </div>
             ))}
         </div>
-        {posts.length > 0 && (
+        {posts && posts.length > 0 && (
           <div className="flex justify-center gap-3">
             <ChevronLeft
               className="cursor-pointer hover:shadow-md"

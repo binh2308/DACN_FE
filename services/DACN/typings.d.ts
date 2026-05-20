@@ -106,7 +106,7 @@ export declare namespace DACN {
   type AnnouncementCreateDto = {
     title: string;
     content: string;
-    category: "GENERAL" | "HR" | "IT" | "SALES" | "MARKETING";
+    category?: "GENERAL" | "HR_UPDATE" | "EVENT";
     pinned?: boolean;
   };
   type AnnouncementResponseDto = {

@@ -1,7 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Image as ImageIcon, Link as LinkIcon, Save, RotateCcw, LogOut, X } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Save,
+  RotateCcw,
+  LogOut,
+  X,
+} from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AnnouncementCategory,
+  getAnnouncementCategoryLabel,
   createAnnouncement,
   uploadImageForAnnouncement,
 } from "@/services/DACN/announcement";
@@ -28,7 +37,7 @@ const announceSchema = z.object({
     .string()
     .min(5, "Vui lòng nhập nội dung (tối thiểu 5 ký tự)")
     .max(500),
-  category: z.enum(["GENERAL", "HR", "EVENTS"]),
+  category: z.enum(["GENERAL", "HR_UPDATE", "EVENT"]),
   pinned: z.boolean(),
 });
 
@@ -104,7 +113,7 @@ export default function CreateAnnouncementView({
       const payload: DACN.AnnouncementCreateDto = {
         title: data.title,
         content: data.content,
-        category: data.category === "EVENTS" ? "GENERAL" : data.category,
+        category: data.category as AnnouncementCategory,
         pinned: data.pinned,
       };
       const res = await createAnnouncement(payload);
@@ -172,7 +181,10 @@ export default function CreateAnnouncementView({
                       <ImageIcon size={14} className="text-gray-600" />
                     </button>
 
-                    <button type="button" className="p-1 hover:bg-gray-200 rounded">
+                    <button
+                      type="button"
+                      className="p-1 hover:bg-gray-200 rounded"
+                    >
                       <LinkIcon size={14} className="text-gray-600" />
                     </button>
                   </div>
@@ -223,7 +235,9 @@ export default function CreateAnnouncementView({
                     {...register("content")}
                   />
                   {errors.content && (
-                    <p className="text-sm text-red-500">{errors.content.message}</p>
+                    <p className="text-sm text-red-500">
+                      {errors.content.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -250,20 +264,23 @@ export default function CreateAnnouncementView({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="GENERAL">Chung</SelectItem>
-                        <SelectItem value="HR">HR Updates</SelectItem>
-                        <SelectItem value="EVENTS">Events</SelectItem>
+                        <SelectItem value="HR_UPDATE">HR Updates</SelectItem>
+                        <SelectItem value="EVENT">Sự kiện</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
               </div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between my-4">
                 <span className="text-xs text-gray-600">Pin:</span>
                 <Controller
                   name="pinned"
                   control={control}
                   render={({ field }) => (
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   )}
                 />
               </div>

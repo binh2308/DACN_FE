@@ -12,8 +12,13 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { Center, Loader } from "@mantine/core";
-import { getListAnnouncement } from "@/services/DACN/announcement";
+import {
+  AnnouncementCategory,
+  getAnnouncementCategoryLabel,
+  getListAnnouncement,
+} from "@/services/DACN/announcement";
 
 import { DACN } from "@/services/DACN/typings";
 import dayjs from "dayjs";
@@ -67,14 +72,22 @@ const initialPosts: Post[] = [
 
 export default function ForumPage() {
   const [view, setView] = useState<"list">("list");
-  const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[]>([]);
-
+  const [posts, setPosts] = useState<DACN.AnnouncementResponseDto[] | null>(
+    null,
+  );
+  const [activeTab, setActiveTab] = useState<AnnouncementCategory | string>(
+    "GENERAL",
+  );
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
         const res = await getListAnnouncement({
           page: 1,
           pageSize: 20,
+          category:
+            activeTab === "GENERAL"
+              ? undefined
+              : (activeTab as AnnouncementCategory),
         });
         setPosts(res.data?.items);
       } catch (error) {
@@ -85,11 +98,15 @@ export default function ForumPage() {
     if (view === "list") {
       fetchAnnouncements();
     }
-  }, [view]);
+  }, [view, activeTab]);
 
   return (
     <div className="bg-white min-h-screen p-6 font-sans">
-      <ForumListView posts={posts} />
+      <ForumListView
+        posts={posts}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
     </div>
   );
 }
@@ -97,17 +114,26 @@ export default function ForumPage() {
 // ============================================================================
 // 1. VIEW DANH SÁCH (Giống ảnh 1)
 // ============================================================================
-function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
-  const [activeTab, setActiveTab] = useState("General");
-  const tabs = ["General", "HR Updates", "Events"];
+function ForumListView({
+  posts,
+  activeTab,
+  setActiveTab,
+}: {
+  posts: DACN.AnnouncementResponseDto[] | null;
+  activeTab: AnnouncementCategory | string;
+  setActiveTab: React.Dispatch<
+    React.SetStateAction<AnnouncementCategory | string>
+  >;
+}) {
+  const tabs = ["GENERAL", "HR_UPDATE", "EVENT"];
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPage, setTotalPage] = useState<number>(
-    Math.ceil(posts.length / 4),
+    posts ? Math.ceil(posts.length / 4) : 0,
   );
   useEffect(() => {
-    setTotalPage(Math.ceil(posts.length / 4));
-  }, [posts.length]);
+    setTotalPage(posts ? Math.ceil(posts.length / 4) : 0);
+  }, [posts]);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -130,7 +156,7 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
                 : "bg-white border-transparent text-gray-500 hover:bg-gray-50"
             }`}
           >
-            {tab}
+            {getAnnouncementCategoryLabel(tab)}
           </button>
         ))}
       </div>
@@ -138,19 +164,18 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
       {/* Main Content Area */}
       <div className="border border-gray-200 rounded-xl p-6 min-h-[600px] relative flex flex-col">
         <div className="flex justify-end mb-4">
-          <span className="text-sm font-semibold text-gray-600">
-            General Announcement
-          </span>
+          <span className="text-sm font-semibold text-gray-600">Thông báo</span>
         </div>
-        {posts.length === 0 && (
-          <Center style={{ height: "50vh" }}>
-            <Loader color="green" />
+        {posts === null && (
+          <Center className="flex-1">
+            <Loader variant="dots" />
           </Center>
         )}
+        {posts?.length === 0 && <EmptyState title="Không có thông báo nào" />}
         {/* List Posts */}
         <div className="space-y-4 flex-1">
-          {posts.length !== 0 &&
-            posts.slice(currentPage * 4, currentPage * 4 + 4).map((post) => (
+          {posts?.length !== 0 &&
+            posts?.slice(currentPage * 4, currentPage * 4 + 4).map((post) => (
               <div
                 key={post.id}
                 role="button"
@@ -235,7 +260,7 @@ function ForumListView({ posts }: { posts: DACN.AnnouncementResponseDto[] }) {
                 </div>
               </div>
             ))}
-          {posts.length !== 0 && (
+          {posts !== null && posts.length !== 0 && (
             <div className="flex justify-center gap-3">
               <ChevronLeft
                 className="cursor-pointer hover:shadow-md"

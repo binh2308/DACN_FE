@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { ReadonlyTextarea } from "@/components/ReadonlyTextarea";
+import { EmptyState } from "@/components/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -155,20 +156,6 @@ function ProgressBar({ value }: { value: number }) {
         className="h-2 rounded-full bg-emerald-500"
         style={{ width: `${v}%` }}
       />
-    </div>
-  );
-}
-
-function EmptyState({ title, hint }: { title: string; hint?: string }) {
-  return (
-    <div className="rounded-xl border bg-white p-10 text-center">
-      <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-full bg-muted">
-        <MessageSquareText className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="text-sm font-semibold text-foreground">{title}</div>
-      {hint ? (
-        <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
-      ) : null}
     </div>
   );
 }
@@ -620,7 +607,7 @@ export default function WeeklyReportsPage() {
             </div>
 
             <div className="space-y-3">
-                {pagedReports.length === 0 && !loading ? (
+              {pagedReports.length === 0 && !loading ? (
                 <EmptyState
                   title="Không có báo cáo hàng tuần"
                   hint="Hãy thử điều chỉnh bộ lọc hoặc nộp một báo cáo mới."
@@ -630,7 +617,7 @@ export default function WeeklyReportsPage() {
                   <Loader color="green" />
                 </Center>
               ) : (
-                  pagedReports.map((r) => {
+                pagedReports.map((r) => {
                   const active = r.id === selectedReport?.id;
                   return (
                     <button
@@ -679,7 +666,8 @@ export default function WeeklyReportsPage() {
                 <ChevronLeft
                   className="cursor-pointer hover:shadow-md"
                   onClick={() => {
-                    if (currentPageSafe > 0) setCurrentPage(currentPageSafe - 1);
+                    if (currentPageSafe > 0)
+                      setCurrentPage(currentPageSafe - 1);
                   }}
                 />
                 <span>
@@ -688,7 +676,8 @@ export default function WeeklyReportsPage() {
                 <ChevronRight
                   className="cursor-pointer hover:shadow-md"
                   onClick={() => {
-                    if (currentPageSafe < totalPage - 1) setCurrentPage(currentPageSafe + 1);
+                    if (currentPageSafe < totalPage - 1)
+                      setCurrentPage(currentPageSafe + 1);
                   }}
                 />
               </div>

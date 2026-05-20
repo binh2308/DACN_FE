@@ -2,10 +2,27 @@ import { request } from "../service";
 import { ImageItem } from "@/lib/utils";
 import type { DACN } from "./typings";
 
+export type AnnouncementCategory = "GENERAL" | "HR_UPDATE" | "EVENT";
+
+export function getAnnouncementCategoryLabel(
+  category: AnnouncementCategory | string,
+) {
+  switch (category) {
+    case "GENERAL":
+      return "Chung";
+    case "HR_UPDATE":
+      return "Nhân sự";
+    case "EVENT":
+      return "Sự kiện";
+    default:
+      return category;
+  }
+}
+
 export type AnnouncementParam = {
   page?: number;
   pageSize?: number;
-  category?: "GENERAL" | "HR" | "IT" | "SALES" | "MARKETING";
+  category?: AnnouncementCategory;
   pinned?: boolean;
   search?: string;
 };
