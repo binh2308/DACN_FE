@@ -143,7 +143,7 @@ export default function BookRoomPage() {
 					</div>
 					<div className="mt-4">
 						<Button asChild variant="outline" type="button">
-							<Link href="/employee/booking">Quay lại</Link>
+							<Link href="/user/booking">Quay lại</Link>
 						</Button>
 					</div>
 				</div>
@@ -196,7 +196,7 @@ export default function BookRoomPage() {
 				await submitBooking(payload);
 			}
 			setSubmitted(true);
-			router.push(`/employee/booking/${room.id}`);
+			router.push(`/user/booking/${room.id}`);
 		} catch (err) {
 			setSubmitError((err as any)?.message || "Tạo booking thất bại.");
 		}
@@ -449,7 +449,7 @@ export default function BookRoomPage() {
 
 							<div className="flex items-center justify-end gap-3 pt-2">
 								<Button asChild variant="outline" type="button">
-									<Link href={`/employee/booking/${room.id}`}>Quay lại</Link>
+									<Link href={`/user/booking/${room.id}`}>Quay lại</Link>
 								</Button>
 								<Button
 									type="submit"

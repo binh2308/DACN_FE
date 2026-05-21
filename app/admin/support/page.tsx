@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/select";
 import {
 	getDepartments,
+	createDepartment,
+	deleteDepartment,
 } from "@/services/DACN/department";
 import { type DepartmentDto } from "@/services/DACN/employee";
 import {
@@ -210,17 +212,44 @@ export default function SupportPage() {
 	};
 
 	const handleCreateDepartment = async () => {
-		toast({
-			title: "Chức năng đã tạm ngưng",
-			description: "Quản lý phòng ban hiện không còn được dùng.",
-		});
+		const name = createDeptName.trim();
+		if (!name || creatingDepartment) return;
+		setCreatingDepartment(true);
+		try {
+			await createDepartment({ name });
+			toast({ title: "Thêm phòng ban thành công", description: name });
+			setCreateDeptName("");
+			await fetchAllData();
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Lỗi",
+				description: e?.message || "Không thể thêm phòng ban",
+			});
+		} finally {
+			setCreatingDepartment(false);
+		}
 	};
 
 	const handleDeleteDepartment = async (id: string) => {
-		toast({
-			title: "Chức năng đã tạm ngưng",
-			description: "Không xoá phòng ban trong phiên bản hiện tại.",
-		});
+		const deptName = departments.find((d) => d.id === id)?.name;
+		if (
+			!confirm(
+				`Bạn có chắc chắn muốn xoá phòng ban${deptName ? `: ${deptName}` : ""}?`,
+			)
+		)
+			return;
+		try {
+			await deleteDepartment(id);
+			toast({ title: "Đã xoá phòng ban", description: deptName });
+			await fetchAllData();
+		} catch (e: any) {
+			toast({
+				variant: "destructive",
+				title: "Lỗi",
+				description: e?.message || "Không thể xoá phòng ban",
+			});
+		}
 	};
 
 	// --- 3. Mapping Interactions (Kéo thả nối dây) ---
