@@ -132,7 +132,8 @@ export default function HRMAIChatWidget({ open, onClose }: ChatWidgetProps) {
     });
     try {
       const response = await GetResponseFromAI(sendMessage);
-      const botReply = response?.reply || "Xin lỗi, hiện tại tôi chưa thể phản hồi.";
+      const botReply =
+        response.data?.reply || "Xin lỗi, hiện tại tôi chưa thể phản hồi.";
 
       setMessages((prev) =>
         prev.map((msg) =>

@@ -132,8 +132,8 @@ export declare namespace DACN {
     sessionId?: string;
   };
   type ChatResponseDto = {
-    reply: string;
-    source: string;
-    action?: string;
+    statusCode: number;
+    message: string;
+    data?: any;
   };
 }
