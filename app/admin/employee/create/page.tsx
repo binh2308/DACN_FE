@@ -86,7 +86,6 @@ export default function CreateEmployeePage() {
     married: false,
     children: "",
     childrenDescription: "",
-    salaryGross: "",
     salaryBasic: "",
     phone: "",
     departmentName: "",
@@ -179,7 +178,6 @@ export default function CreateEmployeePage() {
         marriedStatus: Boolean(form.married),
         numberOfChildren: form.children ? Number(form.children) : 0,
         childrenDescription: form.childrenDescription.trim() || null,
-        grossSalary: form.salaryGross !== "" ? Number(form.salaryGross) : undefined,
         basicSalary: form.salaryBasic !== "" ? Number(form.salaryBasic) : undefined,
         signDate: toIsoUtc(form.signDay),
         quitDate: toIsoUtc(form.quitDay),
@@ -364,9 +362,6 @@ export default function CreateEmployeePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <FormRow label="Lương cơ bản">
                     <input type="number" name="salaryBasic" value={form.salaryBasic} onChange={onChange} className={inputBase} placeholder="1400" />
-                  </FormRow>
-                  <FormRow label="Lương Gross">
-                    <input type="number" name="salaryGross" value={form.salaryGross} onChange={onChange} className={inputBase} placeholder="1700" />
                   </FormRow>
                 </div>
               </div>
