@@ -10,13 +10,11 @@ import {
 	PauseCircle,
 	Ticket,
 	MessageSquare,
-	ChevronRight,
-	UserCircle2
+	ChevronRight
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
 	Select,
 	SelectContent,
@@ -38,7 +36,7 @@ type Filters = {
 	sortOrder: TicketSortOrder;
 };
 
-// --- CẤU HÌNH GIAO DIỆN TRẠNG THÁI (Giữ nguyên màu Badge để nổi bật) ---
+// --- CẤU HÌNH GIAO DIỆN TRẠNG THÁI ---
 const STATUS_CONFIG: Record<ManagementTicketStatus, { label: string; color: string; icon: React.ElementType }> = {
 	OPEN: { 
 		label: "Chờ xử lý", 
@@ -72,6 +70,18 @@ const formatDate = (iso: string) => {
 		hour: "2-digit",
 		minute: "2-digit"
 	}).format(d);
+};
+
+// Hàm xử lý tên nhân viên tránh trường hợp bị "ẩn danh"
+const formatPersonName = (person: any) => {
+	if (!person) return "";
+	const direct = String(person?.name ?? "").trim();
+	if (direct) return direct;
+	const parts = [person?.lastName, person?.middleName, person?.firstName]
+		.map((p: any) => String(p ?? "").trim())
+		.filter(Boolean);
+	if (parts.length) return parts.join(" ");
+	return String(person?.email ?? "").trim();
 };
 
 const getInitials = (name?: string) => {
@@ -175,7 +185,7 @@ export default function SupportPage() {
 									<SelectItem value="all">Tất cả trạng thái</SelectItem>
 									<SelectItem value="OPEN">Chờ xử lý</SelectItem>
 									<SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
-									<SelectItem value="CLOSED">Đã giải quyết</SelectItem>
+									<SelectItem value="RESOLVED">Đã giải quyết</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -234,6 +244,9 @@ export default function SupportPage() {
 						{tickets.map((t) => {
 							const statusInfo = STATUS_CONFIG[t.status] || STATUS_CONFIG.OPEN;
 							const StatusIcon = statusInfo.icon;
+							
+							// Xử lý lấy tên nhân viên an toàn
+							const employeeName = formatPersonName(t.employee) || "Nhân viên ẩn danh";
 
 							return (
 								<Link
@@ -245,11 +258,11 @@ export default function SupportPage() {
 									<div className="flex items-start justify-between mb-4 gap-4">
 										<div className="flex items-center gap-3 min-w-0">
 											<div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shadow-sm ring-1 ring-primary/20">
-												{getInitials(t.employee?.name)}
+												{getInitials(employeeName)}
 											</div>
 											<div className="min-w-0">
-												<div className="font-semibold text-foreground truncate">
-													{t.employee?.name ?? "Nhân viên ẩn danh"}
+												<div className="font-semibold text-foreground truncate" title={employeeName}>
+													{employeeName}
 												</div>
 												<div className="text-xs text-muted-foreground mt-0.5">
 													{formatDate(t.created_at)}
