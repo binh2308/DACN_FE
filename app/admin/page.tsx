@@ -112,7 +112,9 @@ function SummaryCard({
               {subtitle}
             </div>
             {hint ? (
-              <div className={`mt-2 text-xs font-medium ${hintClass}`}>{hint}</div>
+              <div className={`mt-2 text-xs font-medium ${hintClass}`}>
+                {hint}
+              </div>
             ) : null}
           </div>
           <div
@@ -246,7 +248,7 @@ function statusBadgeMeta(status: ManagementTicketStatus) {
         label: "Đang xử lý",
         className: "bg-amber-50 text-amber-700 border-amber-200",
       };
-    case "RESOLVED":
+    case "CLOSED":
       return {
         label: "Đã xử lý",
         className: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -264,15 +266,20 @@ export default function AdminDashboardPage() {
   const now = new Date();
   const todayStr = toISODate(now);
 
-  const { data: checkinTodayRes } = useRequest(getDepartmentTodayCheckinStatus, {
-    pollingInterval: 10_000,
-    pollingWhenHidden: false,
-  });
+  const { data: checkinTodayRes } = useRequest(
+    getDepartmentTodayCheckinStatus,
+    {
+      pollingInterval: 10_000,
+      pollingWhenHidden: false,
+    },
+  );
 
   const absences = React.useMemo<AbsenceRow[]>(() => {
     const payload: any = (checkinTodayRes as any)?.data ?? null;
     const deptName = String(payload?.departmentName ?? "").trim();
-    const employees = Array.isArray(payload?.employees) ? payload.employees : [];
+    const employees = Array.isArray(payload?.employees)
+      ? payload.employees
+      : [];
     return employees
       .filter((e: any) => !Boolean(e?.worked))
       .map((e: any) => {
@@ -306,15 +313,21 @@ export default function AdminDashboardPage() {
       ? ((bookingsRes as any).data as BookingByRoom[])
       : [];
 
-  const { data: assetsRes } = useRequest(() => getAssets({ page: 1, pageSize: 5000 }));
+  const { data: assetsRes } = useRequest(() =>
+    getAssets({ page: 1, pageSize: 5000 }),
+  );
   const assetsAll: Asset[] = Array.isArray((assetsRes as any)?.data?.items)
     ? ((assetsRes as any).data.items as Asset[])
     : Array.isArray((assetsRes as any)?.items)
       ? ((assetsRes as any).items as Asset[])
       : [];
 
-  const { data: employeesRes } = useRequest(() => getAllEmployees({ page: 1, pageSize: 5000 }));
-  const employeesAll: EmployeeDto[] = extractEmployeesFromResponseData((employeesRes as any)?.data ?? employeesRes);
+  const { data: employeesRes } = useRequest(() =>
+    getAllEmployees({ page: 1, pageSize: 5000 }),
+  );
+  const employeesAll: EmployeeDto[] = extractEmployeesFromResponseData(
+    (employeesRes as any)?.data ?? employeesRes,
+  );
 
   const { data: leaveTodayRes } = useRequest(() =>
     getDepartmentLeaveRequests({
@@ -343,7 +356,8 @@ export default function AdminDashboardPage() {
   );
 
   const ticketsUnresolved =
-    Number((ticketsOpenRes as any)?.total ?? 0) + Number((ticketsInProgressRes as any)?.total ?? 0);
+    Number((ticketsOpenRes as any)?.total ?? 0) +
+    Number((ticketsInProgressRes as any)?.total ?? 0);
 
   const { data: latestTicketsRes } = useRequest(() =>
     getManagementTickets({
@@ -353,11 +367,13 @@ export default function AdminDashboardPage() {
       sort_order: "DESC",
     }),
   );
-  const latestTicketsPayload: any = (latestTicketsRes as any)?.data ?? latestTicketsRes;
-  const latestTickets: ManagementTicketDto[] = Array.isArray(latestTicketsPayload?.items)
+  const latestTicketsPayload: any =
+    (latestTicketsRes as any)?.data ?? latestTicketsRes;
+  const latestTickets: ManagementTicketDto[] = Array.isArray(
+    latestTicketsPayload?.items,
+  )
     ? (latestTicketsPayload.items as ManagementTicketDto[])
     : [];
-
   const roomsForCards = React.useMemo(() => {
     const byRoomName = new Map<string, BookingByRoom[]>();
     for (const b of bookingsAll) {
@@ -409,7 +425,9 @@ export default function AdminDashboardPage() {
 
       if (next) {
         const start = pickBookingStart(next);
-        const msUntil = start ? start.getTime() - nowMs : Number.POSITIVE_INFINITY;
+        const msUntil = start
+          ? start.getTime() - nowMs
+          : Number.POSITIVE_INFINITY;
         if (msUntil <= upcomingThresholdMs) {
           return {
             name: r.name,
@@ -480,8 +498,12 @@ export default function AdminDashboardPage() {
     const total = assetsAll.length;
     const countNew = assetsAll.filter((x) => x.condition === "NEW").length;
     const countUsed = assetsAll.filter((x) => x.condition === "USED").length;
-    const countBroken = assetsAll.filter((x) => x.condition === "BROKEN").length;
-    const countMaintenance = assetsAll.filter((x) => x.condition === "UNDER_MAINTENANCE").length;
+    const countBroken = assetsAll.filter(
+      (x) => x.condition === "BROKEN",
+    ).length;
+    const countMaintenance = assetsAll.filter(
+      (x) => x.condition === "UNDER_MAINTENANCE",
+    ).length;
     const good = countNew + countUsed;
     const inStock = countNew;
     const bad = countBroken + countMaintenance;
@@ -521,7 +543,8 @@ export default function AdminDashboardPage() {
           assetCounts.needMaintenance > 0
             ? `▲ ${assetCounts.needMaintenance} Cần bảo trì`
             : undefined,
-        hintTone: assetCounts.needMaintenance > 0 ? ("bad" as const) : undefined,
+        hintTone:
+          assetCounts.needMaintenance > 0 ? ("bad" as const) : undefined,
         icon: <Package className="h-4 w-4" />,
       },
       {
@@ -529,7 +552,10 @@ export default function AdminDashboardPage() {
         title: "Nhân sự",
         value: String(employeesAll.length),
         subtitle: "Nhân viên",
-        hint: absentTodayCount > 0 ? `● ${absentTodayCount} Nghỉ phép hôm nay` : undefined,
+        hint:
+          absentTodayCount > 0
+            ? `● ${absentTodayCount} Nghỉ phép hôm nay`
+            : undefined,
         hintTone: absentTodayCount > 0 ? ("warn" as const) : undefined,
         icon: <Users className="h-4 w-4" />,
       },
@@ -542,7 +568,10 @@ export default function AdminDashboardPage() {
           Number((ticketsInProgressRes as any)?.total ?? 0) > 0
             ? `● ${Number((ticketsInProgressRes as any)?.total ?? 0)} Đang xử lý`
             : undefined,
-        hintTone: Number((ticketsInProgressRes as any)?.total ?? 0) > 0 ? ("warn" as const) : undefined,
+        hintTone:
+          Number((ticketsInProgressRes as any)?.total ?? 0) > 0
+            ? ("warn" as const)
+            : undefined,
         icon: <Headphones className="h-4 w-4" />,
       },
     ],
@@ -559,8 +588,12 @@ export default function AdminDashboardPage() {
   const requests = React.useMemo(() => {
     return latestTickets.map((t) => {
       const badge = statusBadgeMeta(t.status);
-      const ownerName = actorDisplayName(t.employee) || (t.employee?.email ?? "");
-      const dept = (t.category as any)?.name ? String((t.category as any).name) : "";
+      //console.log("Badge:", badge);
+      const ownerName =
+        actorDisplayName(t.employee) || (t.employee?.email ?? "");
+      const dept = (t.category as any)?.name
+        ? String((t.category as any).name)
+        : "";
       return {
         id: t.id,
         title: t.title,
@@ -626,7 +659,9 @@ export default function AdminDashboardPage() {
                       <div className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
                     </div>
 
-                    <div className={`mt-3 flex items-center gap-2 text-xs ${meta.statusText}`}>
+                    <div
+                      className={`mt-3 flex items-center gap-2 text-xs ${meta.statusText}`}
+                    >
                       {meta.icon}
                       <span className="font-medium">{r.detail}</span>
                     </div>
@@ -708,7 +743,9 @@ export default function AdminDashboardPage() {
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-grey-900">
                   <div>Hỏng / Đang sửa chữa</div>
-                  <div className="font-medium text-rose-600">{assetCounts.pctBad}%</div>
+                  <div className="font-medium text-rose-600">
+                    {assetCounts.pctBad}%
+                  </div>
                 </div>
                 <ProgressLine percent={assetCounts.pctBad} tone="red" />
               </div>

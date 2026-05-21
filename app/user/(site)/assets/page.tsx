@@ -12,16 +12,9 @@ import {
 import { decodeJwtPayload } from "@/lib/jwt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import {
   Select,
   SelectContent,
@@ -29,21 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { createSupportTicket } from "@/services/DACN/Tickets";
 
-type AssignedAsset = {
-  id: string;
-  name: string;
-  type: AssetType;
-  owner: { id: string; name: string } | null;
-  location: string | null;
-  condition: AssetStatus;
-  purchase_date: string;
-  warranty_expiration_date: string;
-  maintenance_schedule: string;
-};
+// type AssignedAsset = {
+//   id: string;
+//   name: string;
+//   type: AssetType;
+//   owner: { id: string; name: string } | null;
+//   location: string | null;
+//   condition: AssetStatus;
+//   purchase_date: string;
+//   warranty_expiration_date: string;
+//   maintenance_schedule: string;
+// };
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -103,21 +93,20 @@ function conditionMeta(condition: AssetStatus) {
 }
 
 export default function UserAssetsPage() {
-  const { toast } = useToast();
   const [q, setQ] = React.useState("");
   const [myAssets, setMyAssets] = React.useState<Asset[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [type, setType] = React.useState<AssetType>("PRIVATE");
   const [condition, setCondition] = React.useState<AssetStatus | "ALL">("ALL");
   const [page, setPage] = React.useState(1);
-  const [reportOpen, setReportOpen] = React.useState(false);
-  const [reportAsset, setReportAsset] = React.useState<Asset | null>(null);
-  const [reportIssue, setReportIssue] = React.useState("");
-  const [reportError, setReportError] = React.useState<string | null>(null);
-  const [submittingReport, setSubmittingReport] = React.useState(false);
-  const [submittedTicketId, setSubmittedTicketId] = React.useState<
-    string | null
-  >(null);
+  // const [reportOpen, setReportOpen] = React.useState(false);
+  // const [reportAsset, setReportAsset] = React.useState<Asset | null>(null);
+  // const [reportIssue, setReportIssue] = React.useState("");
+  // const [reportError, setReportError] = React.useState<string | null>(null);
+  // const [submittingReport, setSubmittingReport] = React.useState(false);
+  // const [submittedTicketId, setSubmittedTicketId] = React.useState<
+  //   string | null
+  // >(null);
   React.useEffect(() => {
     const fetchMyAssets = async () => {
       try {
@@ -145,94 +134,91 @@ export default function UserAssetsPage() {
     const query = q.trim().toLowerCase();
     return myAssets.filter((it) => {
       const matchesQ = !query || it.name.toLowerCase().includes(query);
-      const matchesType = type === "PRIVATE" || it.type === type;
+
       const matchesCond = condition === "ALL" || it.condition === condition;
-      console.log({ matchesQ, matchesType, matchesCond });
-      return matchesQ && matchesType && matchesCond;
+      //console.log({ matchesQ, matchesCond });
+      return matchesQ && matchesCond;
     });
-  }, [q, type, condition]);
+  }, [myAssets, q, condition]);
   const pageCount = Math.max(
     1,
     Math.ceil(filtered.length ?? myAssets.length / pageSize),
   );
   const currentPage = Math.min(page, pageCount);
   const pageStart = (currentPage - 1) * pageSize;
-  const pageItems =
-    filtered.length !== 0 || condition !== "ALL"
-      ? filtered.slice(pageStart, pageStart + pageSize)
-      : myAssets.slice(pageStart, pageStart + pageSize);
+  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
 
   React.useEffect(() => {
     setPage(1);
   }, [q, type, condition]);
 
-  const openReport = (asset: Asset) => {
-    setReportAsset(asset);
-    setReportIssue("");
-    setReportError(null);
-    setSubmittedTicketId(null);
-    setReportOpen(true);
-  };
+  // const openReport = (asset: Asset) => {
+  //   setReportAsset(asset);
+  //   setReportIssue("");
+  //   setReportError(null);
+  //   setSubmittedTicketId(null);
+  //   setReportOpen(true);
+  // };
 
-  const submitReport = async () => {
-    if (!reportAsset) return;
-    const note = reportIssue.trim();
-    if (!note) {
-      setReportError("Vui lòng nhập mô tả tình trạng / yêu cầu sửa chữa.");
-      return;
-    }
+  // const submitReport = async () => {
+  //   if (!reportAsset) return;
+  //   const note = reportIssue.trim();
+  //   if (!note) {
+  //     setReportError("Vui lòng nhập mô tả tình trạng / yêu cầu sửa chữa.");
+  //     return;
+  //   }
 
-    const tm = typeMeta(reportAsset.type);
-    const cm = conditionMeta(reportAsset.condition);
-    const issue = [
-      `Tài sản: ${reportAsset.name}`,
-      `Mã tài sản: ${reportAsset.id}`,
-      `Loại: ${tm.label}`,
-      `Tình trạng hiện tại: ${cm.label}`,
-      `Vị trí: ${reportAsset.location || "--"}`,
-      "---",
-      note,
-    ].join("\n");
+  //   const tm = typeMeta(reportAsset.type);
+  //   const cm = conditionMeta(reportAsset.condition);
+  //   const issue = [
+  //     `Tài sản: ${reportAsset.name}`,
+  //     `Mã tài sản: ${reportAsset.id}`,
+  //     `Loại: ${tm.label}`,
+  //     `Tình trạng hiện tại: ${cm.label}`,
+  //     `Vị trí: ${reportAsset.location || "--"}`,
+  //     "---",
+  //     note,
+  //   ].join("\n");
 
-    try {
-      setSubmittingReport(true);
-      setReportError(null);
+  //   try {
+  //     setSubmittingReport(true);
+  //     setReportError(null);
 
-      const res: any = await createSupportTicket({
-        category_id: "f19210c3-f8c1-4700-8f7e-048b79e40346",
-        title: "Report an issue of my asset",
-        description: issue,
-      });
+  //     const res: any = await createSupportTicket({
+  //       category_id: "f19210c3-f8c1-4700-8f7e-048b79e40346",
+  //       title: "Report an issue of my asset",
+  //       description: issue,
+  //     });
 
-      const ticketId =
-        res?.data?.id ??
-        res?.id ??
-        res?.data?.data?.id ??
-        res?.data?.ticket?.id ??
-        null;
+  //     const ticketId =
+  //       res?.data?.id ??
+  //       res?.id ??
+  //       res?.data?.data?.id ??
+  //       res?.data?.ticket?.id ??
+  //       null;
 
-      if (!ticketId) {
-        throw new Error("Không nhận được mã ticket từ server.");
-      }
+  //     if (!ticketId) {
+  //       throw new Error("Không nhận được mã ticket từ server.");
+  //     }
 
-      setSubmittedTicketId(String(ticketId));
-      toast({
-        title: "Đã gửi yêu cầu",
-        description: `Mã ticket: ${String(ticketId)}`,
-      });
-    } catch (e: any) {
-      setSubmittedTicketId(null);
-      const msg = e?.message || "Không thể gửi yêu cầu. Vui lòng thử lại.";
-      setReportError(msg);
-      toast({
-        variant: "destructive",
-        title: "Gửi thất bại",
-        description: msg,
-      });
-    } finally {
-      setSubmittingReport(false);
-    }
-  };
+  //     setSubmittedTicketId(String(ticketId));
+  //     toast({
+  //       title: "Đã gửi yêu cầu",
+  //       description: `Mã ticket: ${String(ticketId)}`,
+  //     });
+  //   } catch (e: any) {
+  //     setSubmittedTicketId(null);
+  //     const msg = e?.message || "Không thể gửi yêu cầu. Vui lòng thử lại.";
+  //     setReportError(msg);
+  //     toast({
+  //       variant: "destructive",
+  //       title: "Gửi thất bại",
+  //       description: msg,
+  //     });
+  //   } finally {
+  //     setSubmittingReport(false);
+  //   }
+  // };
 
   return (
     <div className="p-6 bg-background min-h-screen">
@@ -242,7 +228,7 @@ export default function UserAssetsPage() {
             Tài sản được cấp
           </div>
           <Badge variant="secondary" className="text-[11px] font-medium">
-            Tổng: {filtered.length.toLocaleString("vi-VN")} thiết bị
+            Tổng: {myAssets.length.toLocaleString("vi-VN")} thiết bị
           </Badge>
         </div>
       </div>
@@ -298,9 +284,6 @@ export default function UserAssetsPage() {
                 <th className="px-4 py-3 font-semibold">Vị trí</th>
                 <th className="px-4 py-3 font-semibold">Ngày mua / BH</th>
                 <th className="px-4 py-3 font-semibold">Lịch bảo trì</th>
-                <th className="px-4 py-3 font-semibold text-right">
-                  Hành động
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -363,7 +346,7 @@ export default function UserAssetsPage() {
                         {formatDateViFromIso(it.maintenance_schedule)}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    {/* <td className="px-4 py-3 text-right">
                       <Button
                         type="button"
                         variant="outline"
@@ -372,7 +355,7 @@ export default function UserAssetsPage() {
                       >
                         Báo cáo
                       </Button>
-                    </td>
+                    </td> */}
                   </tr>
                 );
               })}
@@ -402,7 +385,7 @@ export default function UserAssetsPage() {
 
         <div className="px-4 py-3 border-t border-grey-50 flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
-            Hiển thị {filtered.length ? pageStart + 1 : 0} -{" "}
+            Hiển thị {filtered.length !== 0 ? pageStart + 1 : 0} -{" "}
             {Math.min(pageStart + pageSize, filtered.length)} trên{" "}
             {filtered.length}
           </div>
@@ -429,7 +412,7 @@ export default function UserAssetsPage() {
         </div>
       </div>
 
-      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+      {/* <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Báo cáo tình trạng tài sản</DialogTitle>
@@ -488,7 +471,7 @@ export default function UserAssetsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

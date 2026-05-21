@@ -1,359 +1,355 @@
 import { request } from "../service";
 import type { DACN } from "./typings";
 
-export type ManagementTicketStatus =
-	| "OPEN"
-	| "IN_PROGRESS"
-	| "RESOLVED"
-	| "DEFERRED";
+export type ManagementTicketStatus = "OPEN" | "IN_PROGRESS" | "CLOSED" | "DEFERRED";
 
 export type TicketSortBy = "created_at" | "updated_at";
 export type TicketSortOrder = "ASC" | "DESC";
 
 export type TicketActorDto = {
-	id: string;
-	// Some endpoints return a flattened `name`, others return structured name fields.
-	name?: string;
-	firstName?: string;
-	middleName?: string | null;
-	lastName?: string;
-	email?: string;
-	avatarUrl?: string | null;
-	roles?: string;
+  id: string;
+  // Some endpoints return a flattened `name`, others return structured name fields.
+  name?: string;
+  firstName?: string;
+  middleName?: string | null;
+  lastName?: string;
+  email?: string;
+  avatarUrl?: string | null;
+  roles?: string;
 };
 
 export type TicketCategoryDto = {
-	id: string;
-	name: string;
+  id: string;
+  name: string;
 };
 
 export type TicketCategoryDepartmentDto = {
-	id: string;
-	name: string;
+  id: string;
+  name: string;
 };
 
 export type ManagementTicketCategoryDto = {
-	id: string;
-	name: string;
-	description?: string | null;
-	is_active?: boolean;
-	departments: TicketCategoryDepartmentDto[];
+  id: string;
+  name: string;
+  description?: string | null;
+  is_active?: boolean;
+  departments: TicketCategoryDepartmentDto[];
 };
 
 export type TicketProcessDto = {
-	id: string;
-	actor?: TicketActorDto | null;
-	assignee?: TicketActorDto | null;
-	type: string;
-	from_status?: ManagementTicketStatus | null;
-	to_status?: ManagementTicketStatus | null;
-	// Newer backend shape: a single status field on the process entry.
-	status?: ManagementTicketStatus | null;
-	note?: string | null;
-	created_at: string;
+  id: string;
+  actor?: TicketActorDto | null;
+  assignee?: TicketActorDto | null;
+  type: string;
+  from_status?: ManagementTicketStatus | null;
+  to_status?: ManagementTicketStatus | null;
+  // Newer backend shape: a single status field on the process entry.
+  status?: ManagementTicketStatus | null;
+  note?: string | null;
+  created_at: string;
 };
 
 export type ManagementTicketDto = {
-	id: string;
-	employee?: TicketActorDto | null;
-	assignee?: TicketActorDto | null;
-	category?: TicketCategoryDto | null;
-	title: string;
-	description?: string | null;
-	status: ManagementTicketStatus;
-	created_at: string;
-	updated_at?: string | null;
-	processes?: TicketProcessDto[];
+  id: string;
+  employee?: TicketActorDto | null;
+  assignee?: TicketActorDto | null;
+  category?: TicketCategoryDto | null;
+  title: string;
+  description?: string | null;
+  status: ManagementTicketStatus;
+  created_at: string;
+  updated_at?: string | null;
+  processes?: TicketProcessDto[];
 };
 
 export type AssignManagementTicketBody = {
-	assignee_id: string;
-	note?: string;
+  assignee_id: string;
+  note?: string;
 };
 
 export type UpdateManagementTicketStatusBody = {
-	status: ManagementTicketStatus;
-	note?: string;
+  status: ManagementTicketStatus;
+  note?: string;
 };
 
 export type AssignManagementTicketResponse = {
-	statusCode?: number;
-	message?: string;
-	data?: unknown;
+  statusCode?: number;
+  message?: string;
+  data?: unknown;
 };
 
 export type GetManagementTicketProcessesResponse = {
-	statusCode: number;
-	message?: string;
-	data: {
-		processes: TicketProcessDto[];
-		total_activities: number;
-	};
+  statusCode: number;
+  message?: string;
+  data: {
+    processes: TicketProcessDto[];
+    total_activities: number;
+  };
 };
 
 export type GetManagementTicketsQuery = {
-	status?: ManagementTicketStatus;
-	category_id?: string;
-	employee_id?: string;
-	assignee_id?: string;
-	keyword?: string;
-	from_date?: string;
-	to_date?: string;
-	page?: number;
-	limit?: number;
-	sort_by?: TicketSortBy;
-	sort_order?: TicketSortOrder;
+  status?: ManagementTicketStatus;
+  category_id?: string;
+  employee_id?: string;
+  assignee_id?: string;
+  keyword?: string;
+  from_date?: string;
+  to_date?: string;
+  page?: number;
+  limit?: number;
+  sort_by?: TicketSortBy;
+  sort_order?: TicketSortOrder;
 };
 
 export type GetManagementTicketsResponse = {
-	items: ManagementTicketDto[];
-	total: number;
-	page: number;
-	limit: number;
-	total_pages: number;
+  items: ManagementTicketDto[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
 };
 
 export async function getManagementTickets(
-	params: GetManagementTicketsQuery,
-	options?: { [key: string]: any },
+  params: GetManagementTicketsQuery,
+  options?: { [key: string]: any },
 ) {
-	return request<GetManagementTicketsResponse, GetManagementTicketsResponse>(
-		"/management/tickets",
-		{
-		method: "GET",
-		params,
-		...(options || {}),
-		},
-	);
+  return request<GetManagementTicketsResponse, GetManagementTicketsResponse>(
+    "/management/tickets",
+    {
+      method: "GET",
+      params,
+      ...(options || {}),
+    },
+  );
 }
 
 export async function getManagementTicketById(
-	id: string,
-	options?: { [key: string]: any },
+  id: string,
+  options?: { [key: string]: any },
 ) {
-	return request<ManagementTicketDto>(`/management/tickets/${id}`, {
-		method: "GET",
-		...(options || {}),
-	});
+  return request<ManagementTicketDto>(`/management/tickets/${id}`, {
+    method: "GET",
+    ...(options || {}),
+  });
 }
 
 export async function assignManagementTicket(
-	id: string,
-	body: AssignManagementTicketBody,
-	options?: { [key: string]: any },
+  id: string,
+  body: AssignManagementTicketBody,
+  options?: { [key: string]: any },
 ) {
-	return request<AssignManagementTicketResponse>(
-		`/management/tickets/${id}/assign`,
-		{
-			method: "PATCH",
-			data: body,
-			...(options || {}),
-		},
-	);
+  return request<AssignManagementTicketResponse>(
+    `/management/tickets/${id}/assign`,
+    {
+      method: "PATCH",
+      data: body,
+      ...(options || {}),
+    },
+  );
 }
 
 export async function updateManagementTicketStatus(
-	id: string,
-	body: UpdateManagementTicketStatusBody,
-	options?: { [key: string]: any },
+  id: string,
+  body: UpdateManagementTicketStatusBody,
+  options?: { [key: string]: any },
 ) {
-	const attempts: Array<{ url: string; method: "PATCH" | "PUT" }> = [
-		{ url: `/management/tickets/${id}/status`, method: "PATCH" },
-		{ url: `/management/tickets/${id}`, method: "PATCH" },
-		{ url: `/management/tickets/${id}/status`, method: "PUT" },
-		{ url: `/management/tickets/${id}`, method: "PUT" },
-	];
+  const attempts: Array<{ url: string; method: "PATCH" | "PUT" }> = [
+    { url: `/management/tickets/${id}/status`, method: "PATCH" },
+    { url: `/management/tickets/${id}`, method: "PATCH" },
+    { url: `/management/tickets/${id}/status`, method: "PUT" },
+    { url: `/management/tickets/${id}`, method: "PUT" },
+  ];
 
-	let lastError: any;
-	for (const a of attempts) {
-		try {
-			return await request<AssignManagementTicketResponse>(a.url, {
-				method: a.method,
-				data: body,
-				...(options || {}),
-			});
-		} catch (e: any) {
-			lastError = e;
-			const status = e?.response?.status;
-			// Only retry for "route/method not found"-style failures.
-			// If backend returns a business 404 (e.g. employee not found), do NOT fallback.
-			if (status === 404 || status === 405) {
-				const msg = e?.response?.data?.message;
-				const msgText = Array.isArray(msg) ? msg.join(" ") : String(msg ?? "");
-				const looksLikeMissingRoute =
-					/\bCannot\b/i.test(msgText) ||
-					/^Not Found$/i.test(msgText) ||
-					/\broute\b/i.test(msgText);
-				if (looksLikeMissingRoute) continue;
-			}
-			throw e;
-		}
-	}
+  let lastError: any;
+  for (const a of attempts) {
+    try {
+      return await request<AssignManagementTicketResponse>(a.url, {
+        method: a.method,
+        data: body,
+        ...(options || {}),
+      });
+    } catch (e: any) {
+      lastError = e;
+      const status = e?.response?.status;
+      // Only retry for "route/method not found"-style failures.
+      // If backend returns a business 404 (e.g. employee not found), do NOT fallback.
+      if (status === 404 || status === 405) {
+        const msg = e?.response?.data?.message;
+        const msgText = Array.isArray(msg) ? msg.join(" ") : String(msg ?? "");
+        const looksLikeMissingRoute =
+          /\bCannot\b/i.test(msgText) ||
+          /^Not Found$/i.test(msgText) ||
+          /\broute\b/i.test(msgText);
+        if (looksLikeMissingRoute) continue;
+      }
+      throw e;
+    }
+  }
 
-	throw lastError;
+  throw lastError;
 }
 
 export async function getManagementTicketProcesses(
-	id: string,
-	options?: { [key: string]: any },
+  id: string,
+  options?: { [key: string]: any },
 ) {
-	return request<GetManagementTicketProcessesResponse>(
-		`/management/tickets/${id}/processes`,
-		{
-			method: "GET",
-			...(options || {}),
-		},
-	);
+  return request<GetManagementTicketProcessesResponse>(
+    `/management/tickets/${id}/processes`,
+    {
+      method: "GET",
+      ...(options || {}),
+    },
+  );
 }
 
 export type GetManagementTicketCategoriesAllResponse = {
-	statusCode: number;
-	message?: string;
-	data: ManagementTicketCategoryDto[];
+  statusCode: number;
+  message?: string;
+  data: ManagementTicketCategoryDto[];
 };
 
-export async function getManagementTicketCategoriesAll(
-	options?: { [key: string]: any },
-) {
-	return request<GetManagementTicketCategoriesAllResponse>(
-		"/management/tickets/categories/all",
-		{
-			method: "GET",
-			...(options || {}),
-		},
-	);
+export async function getManagementTicketCategoriesAll(options?: {
+  [key: string]: any;
+}) {
+  return request<GetManagementTicketCategoriesAllResponse>(
+    "/management/tickets/categories/all",
+    {
+      method: "GET",
+      ...(options || {}),
+    },
+  );
 }
 
 export type GetManagementTicketCategoriesQuery = {
-	department_id?: string;
+  department_id?: string;
 };
 
 export type GetManagementTicketCategoriesResponse =
-	| ManagementTicketCategoryDto[]
-	| {
-		statusCode?: number;
-		message?: string;
-		data: ManagementTicketCategoryDto[];
-	};
+  | ManagementTicketCategoryDto[]
+  | {
+      statusCode?: number;
+      message?: string;
+      data: ManagementTicketCategoryDto[];
+    };
 
 // GET /management/tickets/categories?department_id=
 // Some backends return an array directly, others wrap in { statusCode, data }.
 export async function getManagementTicketCategories(
-	params?: GetManagementTicketCategoriesQuery,
-	options?: { [key: string]: any },
+  params?: GetManagementTicketCategoriesQuery,
+  options?: { [key: string]: any },
 ) {
-	return request<
-		GetManagementTicketCategoriesResponse,
-		GetManagementTicketCategoriesResponse
-	>("/management/tickets/categories", {
-		method: "GET",
-		params,
-		...(options || {}),
-	});
+  return request<
+    GetManagementTicketCategoriesResponse,
+    GetManagementTicketCategoriesResponse
+  >("/management/tickets/categories", {
+    method: "GET",
+    params,
+    ...(options || {}),
+  });
 }
 
 export type CreateManagementTicketCategoryBody = {
-	name: string;
-	description?: string | null;
+  name: string;
+  description?: string | null;
 };
 
 export type CreateManagementTicketCategoryResponse =
-	| ManagementTicketCategoryDto
-	| {
-		statusCode?: number;
-		message?: string;
-		data?: ManagementTicketCategoryDto;
-	};
+  | ManagementTicketCategoryDto
+  | {
+      statusCode?: number;
+      message?: string;
+      data?: ManagementTicketCategoryDto;
+    };
 
 export async function createManagementTicketCategory(
-	body: CreateManagementTicketCategoryBody,
-	options?: { [key: string]: any },
+  body: CreateManagementTicketCategoryBody,
+  options?: { [key: string]: any },
 ) {
-	return request<
-		CreateManagementTicketCategoryResponse,
-		CreateManagementTicketCategoryResponse
-	>("/management/tickets/categories", {
-		method: "POST",
-		data: body,
-		...(options || {}),
-	});
+  return request<
+    CreateManagementTicketCategoryResponse,
+    CreateManagementTicketCategoryResponse
+  >("/management/tickets/categories", {
+    method: "POST",
+    data: body,
+    ...(options || {}),
+  });
 }
 
 export type DeleteManagementTicketCategoryResponse =
-	| {
-		statusCode?: number;
-		message?: string;
-		data?: unknown;
-	}
-	| unknown;
+  | {
+      statusCode?: number;
+      message?: string;
+      data?: unknown;
+    }
+  | unknown;
 
 export async function deleteManagementTicketCategory(
-	id: string,
-	options?: { [key: string]: any },
+  id: string,
+  options?: { [key: string]: any },
 ) {
-	return request<
-		DeleteManagementTicketCategoryResponse,
-		DeleteManagementTicketCategoryResponse
-	>(`/management/tickets/categories/${id}`, {
-		method: "DELETE",
-		...(options || {}),
-	});
+  return request<
+    DeleteManagementTicketCategoryResponse,
+    DeleteManagementTicketCategoryResponse
+  >(`/management/tickets/categories/${id}`, {
+    method: "DELETE",
+    ...(options || {}),
+  });
 }
 
 export type AssignDepartmentTicketCategoriesBody = {
-	category_ids: string[];
+  category_ids: string[];
 };
 
 export type AssignDepartmentTicketCategoriesResponse =
-	| {
-			statusCode?: number;
-			message?: string;
-			data?: unknown;
-	  }
-	| unknown;
+  | {
+      statusCode?: number;
+      message?: string;
+      data?: unknown;
+    }
+  | unknown;
 
 // PATCH /management/tickets/departments/{departmentId}/categories
 // Assign ticket categories to a department
 export async function assignManagementTicketCategoriesToDepartment(
-	departmentId: string,
-	body: AssignDepartmentTicketCategoriesBody,
-	options?: { [key: string]: any },
+  departmentId: string,
+  body: AssignDepartmentTicketCategoriesBody,
+  options?: { [key: string]: any },
 ) {
-	return request<
-		AssignDepartmentTicketCategoriesResponse,
-		AssignDepartmentTicketCategoriesResponse
-	>(`/management/tickets/departments/${departmentId}/categories`, {
-		method: "PATCH",
-		data: body,
-		...(options || {}),
-	});
+  return request<
+    AssignDepartmentTicketCategoriesResponse,
+    AssignDepartmentTicketCategoriesResponse
+  >(`/management/tickets/departments/${departmentId}/categories`, {
+    method: "PATCH",
+    data: body,
+    ...(options || {}),
+  });
 }
 
 export type UnassignDepartmentTicketCategoryResponse =
-	| {
-			statusCode?: number;
-			message?: string;
-			data?: unknown;
-	  }
-	| unknown;
+  | {
+      statusCode?: number;
+      message?: string;
+      data?: unknown;
+    }
+  | unknown;
 
 // DELETE /management/tickets/departments/{departmentId}/categories/{categoryId}
 // Remove a ticket category from a department
 export async function unassignManagementTicketCategoryFromDepartment(
-	departmentId: string,
-	categoryId: string,
-	options?: { [key: string]: any },
+  departmentId: string,
+  categoryId: string,
+  options?: { [key: string]: any },
 ) {
-	return request<
-		UnassignDepartmentTicketCategoryResponse,
-		UnassignDepartmentTicketCategoryResponse
-	>(
-		`/management/tickets/departments/${departmentId}/categories/${categoryId}`,
-		{
-			method: "DELETE",
-			...(options || {}),
-		},
-	);
+  return request<
+    UnassignDepartmentTicketCategoryResponse,
+    UnassignDepartmentTicketCategoryResponse
+  >(
+    `/management/tickets/departments/${departmentId}/categories/${categoryId}`,
+    {
+      method: "DELETE",
+      ...(options || {}),
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -362,32 +358,32 @@ export async function unassignManagementTicketCategoryFromDepartment(
 // ---------------------------------------------------------------------------
 
 export type TicketParams = {
-	page?: number;
-	limit?: number;
-	status?: "OPEN" | "IN_PROGRESS" | "CLOSED";
-	category_id?: string;
-	employee_id?: string;
-	assignee_id?: string;
-	keyword?: string;
-	from_date?: string;
-	to_date?: string;
-	sort_by?: "created_at" | "updated_at";
-	sort_order?: "ASC" | "DESC";
+  page?: number;
+  limit?: number;
+  status?: "OPEN" | "IN_PROGRESS" | "CLOSED";
+  category_id?: string;
+  employee_id?: string;
+  assignee_id?: string;
+  keyword?: string;
+  from_date?: string;
+  to_date?: string;
+  sort_by?: "created_at" | "updated_at";
+  sort_order?: "ASC" | "DESC";
 };
 
 export type TicketCategoryResponseDto = {
-	id: string;
-	name: string;
-	description?: string;
-	is_active: boolean;
-	departments?: any;
+  id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  departments?: any;
 };
 
 export async function getMyTickets(
-	params?: TicketParams,
-	options?: { [key: string]: any },
+  params?: TicketParams,
+  options?: { [key: string]: any },
 ) {
-	return request<any>("/management/tickets/me", {
+  return request<any>("/management/tickets/me", {
     method: "GET",
     params,
     headers: {
@@ -398,10 +394,10 @@ export async function getMyTickets(
 }
 
 export async function getMyAssignedTickets(
-	params?: TicketParams,
-	options?: { [key: string]: any },
+  params?: TicketParams,
+  options?: { [key: string]: any },
 ) {
-	return request<any>("/management/tickets/assigned/me", {
+  return request<any>("/management/tickets/assigned/me", {
     method: "GET",
     params,
     headers: {
@@ -411,80 +407,76 @@ export async function getMyAssignedTickets(
   });
 }
 
-export async function getTicketById(
-	id: string,
-	options?: { [key: string]: any },
-) {
-	return request<DACN.TicketResponseDto>(`/management/tickets/${id}`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		...(options || {}),
-	});
+export async function getTicketById(id: string, options?: { [key: string]: any }) {
+  return request<DACN.TicketResponseDto>(`/management/tickets/${id}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...(options || {}),
+  });
 }
 
 export async function addCommentToTicket(
-	id: string,
-	data: { note: string },
-	options?: { [key: string]: any },
+  id: string,
+  data: { note: string },
+  options?: { [key: string]: any },
 ) {
-	return request<DACN.TicketResponseDto>(
-		`/management/tickets/${id}/processes`,
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			data,
-			...(options || {}),
-		},
-	);
+  return request<DACN.TicketResponseDto>(
+    `/management/tickets/${id}/processes`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data,
+      ...(options || {}),
+    },
+  );
 }
 
 export async function updateTicketStatus(
-	id: string,
-	data: { status: "OPEN" | "IN_PROGRESS" | "CLOSED"; note?: string },
-	options?: { [key: string]: any },
+  id: string,
+  data: { status: "OPEN" | "IN_PROGRESS" | "CLOSED"; note?: string },
+  options?: { [key: string]: any },
 ) {
-	return request<DACN.TicketResponseDto>(`/management/tickets/${id}/status`, {
-		method: "PATCH",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		data,
-		...(options || {}),
-	});
+  return request<DACN.TicketResponseDto>(`/management/tickets/${id}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data,
+    ...(options || {}),
+  });
 }
 
 export async function createSupportTicket(
-	data: {
-		title: string;
-		description: string;
-		category_id: string;
-	},
-	options?: { [key: string]: any },
+  data: {
+    title: string;
+    description: string;
+    category_id: string;
+  },
+  options?: { [key: string]: any },
 ) {
-	return request<DACN.TicketResponseDto>("/management/tickets", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		data,
-		...(options || {}),
-	});
+  return request<DACN.TicketResponseDto>("/management/tickets", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data,
+    ...(options || {}),
+  });
 }
 
 export async function getTicketCategories(options?: { [key: string]: any }) {
-	return request<TicketCategoryResponseDto[]>(
-		"/management/tickets/categories/all",
-		{
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			...(options || {}),
-		},
-	);
+  return request<TicketCategoryResponseDto[]>(
+    "/management/tickets/categories/all",
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      ...(options || {}),
+    },
+  );
 }
-

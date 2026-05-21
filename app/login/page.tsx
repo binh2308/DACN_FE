@@ -103,17 +103,7 @@ export default function Login() {
                   </Text>
                 )}
 
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <label className="flex items-center gap-1.5 cursor-pointer group">
-                    <Checkbox
-                      label="Remember me"
-                      color="green"
-                      className="text-gray-500 font-medium"
-                      checked={rememberMe}
-                      onChange={() => setRememberMe(!rememberMe)}
-                    />
-                  </label>
-
+                <div className="flex items-center justify-end text-xs">
                   <Link
                     href="/forgot-password"
                     className="text-[#657081] font-medium leading-[150%] tracking-[0.07px] hover:text-primary transition-colors"

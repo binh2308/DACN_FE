@@ -54,29 +54,29 @@ type Filters = {
 };
 
 const STATUS_CONFIG: Record<
-	ManagementTicketStatus,
-	{ label: string; color: string; icon: React.ElementType }
+  ManagementTicketStatus,
+  { label: string; color: string; icon: React.ElementType }
 > = {
-	OPEN: {
-		label: "Chờ xử lý",
-		color: "bg-amber-50 text-amber-700 border-amber-200",
-		icon: AlertCircle,
-	},
-	IN_PROGRESS: {
-		label: "Đang xử lý",
-		color: "bg-blue-50 text-blue-700 border-blue-200",
-		icon: Clock,
-	},
-	RESOLVED: {
-		label: "Đã giải quyết",
-		color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-		icon: CheckCircle2,
-	},
-	DEFERRED: {
-		label: "Tạm hoãn",
-		color: "bg-gray-50 text-gray-600 border-gray-200",
-		icon: PauseCircle,
-	},
+  OPEN: {
+    label: "Chờ xử lý",
+    color: "bg-amber-50 text-amber-700 border-amber-200",
+    icon: AlertCircle,
+  },
+  IN_PROGRESS: {
+    label: "Đang xử lý",
+    color: "bg-blue-50 text-blue-700 border-blue-200",
+    icon: Clock,
+  },
+  CLOSED: {
+    label: "Đã giải quyết",
+    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    icon: CheckCircle2,
+  },
+  DEFERRED: {
+    label: "Tạm hoãn",
+    color: "bg-gray-50 text-gray-600 border-gray-200",
+    icon: PauseCircle,
+  },
 };
 
 // Mảng màu sắc dành cho các Department để phân biệt trực quan
@@ -454,409 +454,481 @@ export default function SupportPage() {
 	const canLoadMore = page < totalPages;
 
 	return (
-		<div className="mx-auto w-full min-h-screen bg-background pb-12">
-			{/* --- HEADER --- */}
-			<div className="bg-card border-b border-border px-6 py-6 sm:py-8 mb-6">
-				<div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-					<div>
-						<h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-							<MessageSquare className="text-primary" /> Dịch vụ hỗ trợ (Admin)
-						</h1>
-						<p className="text-sm text-muted-foreground mt-1">
-							Theo dõi và xử lý các yêu cầu hỗ trợ trong hệ thống.
-						</p>
-					</div>
-					<div className="flex items-center gap-3 bg-primary/10 text-primary px-4 py-2 rounded-lg ring-1 ring-primary/20">
-						<Ticket size={20} />
-						<div>
-							<div className="text-xs font-semibold uppercase tracking-wider opacity-80">
-								Tổng số yêu cầu
-							</div>
-							<div className="text-lg font-bold leading-none">{total}</div>
-						</div>
-					</div>
-				</div>
-			</div>
+    <div className="mx-auto w-full min-h-screen bg-background pb-12">
+      {/* --- HEADER --- */}
+      <div className="bg-card border-b border-border px-6 py-6 sm:py-8 mb-6">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <MessageSquare className="text-primary" /> Dịch vụ hỗ trợ (Admin)
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Theo dõi và xử lý các yêu cầu hỗ trợ trong hệ thống.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 bg-primary/10 text-primary px-4 py-2 rounded-lg ring-1 ring-primary/20">
+            <Ticket size={20} />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider opacity-80">
+                Tổng số yêu cầu
+              </div>
+              <div className="text-lg font-bold leading-none">{total}</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-			<div className="max-w-[1400px] mx-auto px-6">
-				
-				{/* --- VISUAL MAPPING SECTION --- */}
-				<div className="bg-card p-6 rounded-xl shadow-sm ring-1 ring-border mb-8 overflow-hidden">
-					<div className="flex flex-col gap-1 mb-6">
-						<h2 className="text-lg font-semibold text-foreground">
-							Sơ đồ Phân công Hỗ trợ
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Kéo thả từ Category sang Phòng ban để thiết lập luồng xử lý.
-						</p>
-					</div>
+      <div className="max-w-[1400px] mx-auto px-6">
+        {/* --- VISUAL MAPPING SECTION --- */}
+        <div className="bg-card p-6 rounded-xl shadow-sm ring-1 ring-border mb-8 overflow-hidden">
+          <div className="flex flex-col gap-1 mb-6">
+            <h2 className="text-lg font-semibold text-foreground">
+              Sơ đồ Phân công Hỗ trợ
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Kéo thả từ Category sang Phòng ban để thiết lập luồng xử lý.
+            </p>
+          </div>
 
-					{/* Form Thêm mới */}
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 pb-8 border-b border-border">
-						{/* Add Category */}
-						<div className="space-y-3 bg-muted/30 p-4 rounded-lg border border-border/50">
-							<div className="text-sm font-semibold text-foreground flex items-center gap-2">
-								<Plus size={16} className="text-primary"/> Thêm Category mới
-							</div>
-							<Input
-								value={createCategoryName}
-								onChange={(e) => setCreateCategoryName(e.target.value)}
-								placeholder="Tên category (VD: Xin cấp thiết bị)"
-								className="h-10 bg-background"
-							/>
-							<Textarea
-								value={createCategoryDescription}
-								onChange={(e) => setCreateCategoryDescription(e.target.value)}
-								placeholder="Mô tả chi tiết"
-								className="min-h-[80px] bg-background"
-							/>
-							<Button
-								type="button"
-								onClick={handleCreateCategory}
-								disabled={creatingCategory || !createCategoryName.trim()}
-								className="w-full"
-							>
-								{creatingCategory ? "Đang tạo..." : "Tạo Category"}
-							</Button>
-						</div>
+          {/* Form Thêm mới */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 pb-8 border-b border-border">
+            {/* Add Category */}
+            <div className="space-y-3 bg-muted/30 p-4 rounded-lg border border-border/50">
+              <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Plus size={16} className="text-primary" /> Thêm Category mới
+              </div>
+              <Input
+                value={createCategoryName}
+                onChange={(e) => setCreateCategoryName(e.target.value)}
+                placeholder="Tên category (VD: Xin cấp thiết bị)"
+                className="h-10 bg-background"
+              />
+              <Textarea
+                value={createCategoryDescription}
+                onChange={(e) => setCreateCategoryDescription(e.target.value)}
+                placeholder="Mô tả chi tiết"
+                className="min-h-[80px] bg-background"
+              />
+              <Button
+                type="button"
+                onClick={handleCreateCategory}
+                disabled={creatingCategory || !createCategoryName.trim()}
+                className="w-full"
+              >
+                {creatingCategory ? "Đang tạo..." : "Tạo Category"}
+              </Button>
+            </div>
 
-						{/* Add Department */}
-						<div className="space-y-3 bg-muted/30 p-4 rounded-lg border border-border/50">
-							<div className="text-sm font-semibold text-foreground flex items-center gap-2">
-								<Plus size={16} className="text-primary"/> Thêm Phòng ban mới
-							</div>
-							<Input
-								value={createDeptName}
-								onChange={(e) => setCreateDeptName(e.target.value)}
-								placeholder="Tên phòng ban (VD: Phòng IT)"
-								className="h-10 bg-background"
-							/>
-							<p className="text-xs text-muted-foreground">
-								Tạo nhanh phòng ban để cấu hình luồng ticket.
-							</p>
-							<Button
-								type="button"
-								onClick={handleCreateDepartment}
-								disabled={creatingDepartment || !createDeptName.trim()}
-								className="w-full"
-							>
-								{creatingDepartment ? "Đang thêm..." : "Thêm Phòng ban"}
-							</Button>
-						</div>
-					</div>
+            {/* Add Department */}
+            <div className="space-y-3 bg-muted/30 p-4 rounded-lg border border-border/50">
+              <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Plus size={16} className="text-primary" /> Thêm Phòng ban mới
+              </div>
+              <Input
+                value={createDeptName}
+                onChange={(e) => setCreateDeptName(e.target.value)}
+                placeholder="Tên phòng ban (VD: Phòng IT)"
+                className="h-10 bg-background"
+              />
+              <p className="text-xs text-muted-foreground">
+                Tạo nhanh phòng ban để cấu hình luồng ticket.
+              </p>
+              <Button
+                type="button"
+                onClick={handleCreateDepartment}
+                disabled={creatingDepartment || !createDeptName.trim()}
+                className="w-full"
+              >
+                {creatingDepartment ? "Đang thêm..." : "Thêm Phòng ban"}
+              </Button>
+            </div>
+          </div>
 
-					{/* Vùng Vẽ Sơ Đồ */}
-					<div 
-						className="relative min-h-[400px] flex justify-between gap-10 lg:gap-32 p-4 bg-muted/10 rounded-xl border border-dashed border-border"
-						ref={containerRef}
-					>
-						{/* SVG Dây nối - Chỉ dùng để vẽ đường cong trực quan */}
-						<svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
-							<defs>
-								{/* Mũi tên mặc định khi đang kéo */}
-								<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-									<polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--primary))" />
-								</marker>
-								{/* Tạo từng mũi tên với màu tương ứng theo Department */}
-								{departments.map((d, i) => (
-									<marker key={`arrowhead-${d.id}`} id={`arrowhead-${d.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-										<polygon points="0 0, 10 3.5, 0 7" fill={DEPT_COLORS[i % DEPT_COLORS.length]} />
-									</marker>
-								))}
-							</defs>
-							
-							{/* Vẽ các liên kết đã có (Hiển thị màu theo phòng ban) */}
-							{activeLinks.map(link => {
-								const pos1 = nodePositions[`cat-${link.catId}`];
-								const pos2 = nodePositions[`dept-${link.deptId}`];
-								if (!pos1 || !pos2) return null;
-								
-								// Tìm index phòng ban để lấy màu
-								const deptIndex = departments.findIndex(d => d.id === link.deptId);
-								const color = DEPT_COLORS[deptIndex % DEPT_COLORS.length] || "hsl(var(--primary))";
+          {/* Vùng Vẽ Sơ Đồ */}
+          <div
+            className="relative min-h-[400px] flex justify-between gap-10 lg:gap-32 p-4 bg-muted/10 rounded-xl border border-dashed border-border"
+            ref={containerRef}
+          >
+            {/* SVG Dây nối - Chỉ dùng để vẽ đường cong trực quan */}
+            <svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
+              <defs>
+                {/* Mũi tên mặc định khi đang kéo */}
+                <marker
+                  id="arrowhead"
+                  markerWidth="10"
+                  markerHeight="7"
+                  refX="9"
+                  refY="3.5"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 10 3.5, 0 7"
+                    fill="hsl(var(--primary))"
+                  />
+                </marker>
+                {/* Tạo từng mũi tên với màu tương ứng theo Department */}
+                {departments.map((d, i) => (
+                  <marker
+                    key={`arrowhead-${d.id}`}
+                    id={`arrowhead-${d.id}`}
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon
+                      points="0 0, 10 3.5, 0 7"
+                      fill={DEPT_COLORS[i % DEPT_COLORS.length]}
+                    />
+                  </marker>
+                ))}
+              </defs>
 
-								return (
-									<path 
-										key={`${link.catId}-${link.deptId}`}
-										d={drawLine(pos1.x, pos1.y, pos2.x, pos2.y)} 
-										stroke={color} 
-										strokeOpacity="0.55"
-										strokeWidth="2.5" 
-										fill="none" 
-										markerEnd={`url(#arrowhead-${link.deptId})`}
-										className="transition-all duration-300"
-									/>
-								);
-							})}
+              {/* Vẽ các liên kết đã có (Hiển thị màu theo phòng ban) */}
+              {activeLinks.map((link) => {
+                const pos1 = nodePositions[`cat-${link.catId}`];
+                const pos2 = nodePositions[`dept-${link.deptId}`];
+                if (!pos1 || !pos2) return null;
 
-							{/* Vẽ dây đang kéo */}
-							{dragState && nodePositions[`cat-${dragState.sourceId}`] && (
-								<path 
-									d={drawLine(
-										nodePositions[`cat-${dragState.sourceId}`].x, 
-										nodePositions[`cat-${dragState.sourceId}`].y, 
-										dragState.currentX, 
-										dragState.currentY
-									)} 
-									stroke="hsl(var(--primary))" 
-									strokeDasharray="6,6" 
-									strokeWidth="3" 
-									fill="none" 
-									markerEnd="url(#arrowhead)"
-								/>
-							)}
-						</svg>
+                // Tìm index phòng ban để lấy màu
+                const deptIndex = departments.findIndex(
+                  (d) => d.id === link.deptId,
+                );
+                const color =
+                  DEPT_COLORS[deptIndex % DEPT_COLORS.length] ||
+                  "hsl(var(--primary))";
 
-						{/* Cột Trái: Categories */}
-						<div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
-							<h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
-								Loại Yêu Cầu (Category)
-							</h3>
-							{categoriesLoading && <p className="text-sm text-muted-foreground text-center">Đang tải...</p>}
-							{categories.map((c) => (
-								<div 
-									key={c.id}
-									data-node-id={`cat-${c.id}`}
-									data-node-type="category"
-									className="relative bg-background rounded-xl p-4 shadow-sm ring-1 ring-border hover:ring-primary/50 transition-all flex flex-col"
-								>
-									<div className="flex justify-between items-start mb-2">
-										<div className="font-semibold text-foreground truncate pr-2">{c.name}</div>
-										<button onClick={() => handleDeleteCategory(c.id)} className="text-muted-foreground hover:text-destructive shrink-0">
-											<Trash2 size={16} />
-										</button>
-									</div>
-									<div className="text-xs text-muted-foreground line-clamp-2">{c.description || "Chưa có mô tả"}</div>
-									
-									{/* HIỂN THỊ PHÒNG BAN ĐÃ GÁN BẰNG BADGE ĐƯỢC TÔ MÀU THEO DEPARTMENT */}
-									{c.departments && c.departments.length > 0 && (
-										<div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-1.5">
-											{c.departments.map(dept => {
-												const deptIndex = departments.findIndex(d => d.id === dept.id);
-												const color = DEPT_COLORS[deptIndex % DEPT_COLORS.length] || "hsl(var(--primary))";
+                return (
+                  <path
+                    key={`${link.catId}-${link.deptId}`}
+                    d={drawLine(pos1.x, pos1.y, pos2.x, pos2.y)}
+                    stroke={color}
+                    strokeOpacity="0.55"
+                    strokeWidth="2.5"
+                    fill="none"
+                    markerEnd={`url(#arrowhead-${link.deptId})`}
+                    className="transition-all duration-300"
+                  />
+                );
+              })}
 
-												return (
-													<div 
-														key={dept.id} 
-														style={{ backgroundColor: `${color}1A`, borderColor: `${color}33`, color: color }}
-														className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-medium"
-													>
-														<span className="truncate max-w-[120px]">{dept.name}</span>
-														<button
-															type="button"
-															onClick={(e) => { e.stopPropagation(); handleUnlink(c.id, dept.id); }}
-															className="hover:opacity-60 rounded-full p-0.5 transition-opacity"
-															title={`Hủy gán phòng ban: ${dept.name}`}
-														>
-															<X size={10} />
-														</button>
-													</div>
-												)
-											})}
-										</div>
-									)}
+              {/* Vẽ dây đang kéo */}
+              {dragState && nodePositions[`cat-${dragState.sourceId}`] && (
+                <path
+                  d={drawLine(
+                    nodePositions[`cat-${dragState.sourceId}`].x,
+                    nodePositions[`cat-${dragState.sourceId}`].y,
+                    dragState.currentX,
+                    dragState.currentY,
+                  )}
+                  stroke="hsl(var(--primary))"
+                  strokeDasharray="6,6"
+                  strokeWidth="3"
+                  fill="none"
+                  markerEnd="url(#arrowhead)"
+                />
+              )}
+            </svg>
 
-									{/* Điểm Neo (Connector) */}
-									<div 
-										className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background ring-2 ring-primary rounded-full flex items-center justify-center cursor-grab hover:scale-110 hover:bg-primary/10 transition-transform shadow-md"
-										onMouseDown={(e) => startDrag(e, c.id)}
-										title="Kéo để gán vào phòng ban"
-									>
-										<div className="w-2.5 h-2.5 bg-primary rounded-full pointer-events-none" />
-									</div>
-								</div>
-							))}
-						</div>
+            {/* Cột Trái: Categories */}
+            <div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
+              <h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
+                Loại Yêu Cầu (Category)
+              </h3>
+              {categoriesLoading && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Đang tải...
+                </p>
+              )}
+              {categories.map((c) => (
+                <div
+                  key={c.id}
+                  data-node-id={`cat-${c.id}`}
+                  data-node-type="category"
+                  className="relative bg-background rounded-xl p-4 shadow-sm ring-1 ring-border hover:ring-primary/50 transition-all flex flex-col"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-semibold text-foreground truncate pr-2">
+                      {c.name}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteCategory(c.id)}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="text-xs text-muted-foreground line-clamp-2">
+                    {c.description || "Chưa có mô tả"}
+                  </div>
 
-						{/* Cột Phải: Departments */}
-						<div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
-							<h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
-								Phòng Ban Xử Lý
-							</h3>
-							{departmentsLoading && <p className="text-sm text-muted-foreground text-center">Đang tải...</p>}
-							{departments.map((d, i) => {
-								const color = DEPT_COLORS[i % DEPT_COLORS.length];
-								return (
-									<div 
-										key={d.id}
-										data-node-id={`dept-${d.id}`}
-										data-node-type="department"
-										onMouseUp={() => handleDropOnDepartment(d.id)}
-										className={`relative bg-background rounded-xl p-4 shadow-sm transition-all flex items-center justify-between
-											${dragState ? 'border-dashed border-2 bg-primary/5' : 'ring-1 ring-border'}
+                  {/* HIỂN THỊ PHÒNG BAN ĐÃ GÁN BẰNG BADGE ĐƯỢC TÔ MÀU THEO DEPARTMENT */}
+                  {c.departments && c.departments.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-1.5">
+                      {c.departments.map((dept) => {
+                        const deptIndex = departments.findIndex(
+                          (d) => d.id === dept.id,
+                        );
+                        const color =
+                          DEPT_COLORS[deptIndex % DEPT_COLORS.length] ||
+                          "hsl(var(--primary))";
+
+                        return (
+                          <div
+                            key={dept.id}
+                            style={{
+                              backgroundColor: `${color}1A`,
+                              borderColor: `${color}33`,
+                              color: color,
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-medium"
+                          >
+                            <span className="truncate max-w-[120px]">
+                              {dept.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnlink(c.id, dept.id);
+                              }}
+                              className="hover:opacity-60 rounded-full p-0.5 transition-opacity"
+                              title={`Hủy gán phòng ban: ${dept.name}`}
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Điểm Neo (Connector) */}
+                  <div
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background ring-2 ring-primary rounded-full flex items-center justify-center cursor-grab hover:scale-110 hover:bg-primary/10 transition-transform shadow-md"
+                    onMouseDown={(e) => startDrag(e, c.id)}
+                    title="Kéo để gán vào phòng ban"
+                  >
+                    <div className="w-2.5 h-2.5 bg-primary rounded-full pointer-events-none" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Cột Phải: Departments */}
+            <div className="w-1/2 max-w-[320px] flex flex-col gap-4 z-10">
+              <h3 className="text-sm font-bold text-foreground text-center uppercase tracking-widest opacity-60 mb-2">
+                Phòng Ban Xử Lý
+              </h3>
+              {departmentsLoading && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Đang tải...
+                </p>
+              )}
+              {departments.map((d, i) => {
+                const color = DEPT_COLORS[i % DEPT_COLORS.length];
+                return (
+                  <div
+                    key={d.id}
+                    data-node-id={`dept-${d.id}`}
+                    data-node-type="department"
+                    onMouseUp={() => handleDropOnDepartment(d.id)}
+                    className={`relative bg-background rounded-xl p-4 shadow-sm transition-all flex items-center justify-between
+											${dragState ? "border-dashed border-2 bg-primary/5" : "ring-1 ring-border"}
 										`}
-										style={dragState ? { borderColor: color } : {}}
-									>
-										<div className="font-semibold text-foreground truncate pr-2">{d.name}</div>
-										<button onClick={() => handleDeleteDepartment(d.id)} className="text-muted-foreground hover:text-destructive shrink-0">
-											<Trash2 size={16} />
-										</button>
+                    style={dragState ? { borderColor: color } : {}}
+                  >
+                    <div className="font-semibold text-foreground truncate pr-2">
+                      {d.name}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteDepartment(d.id)}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
 
-										{/* Điểm Nhận (Dropzone Connector) */}
-										<div 
-											className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background rounded-full flex items-center justify-center shadow-md"
-											style={{ boxShadow: `0 0 0 2px ${color}` }}
-										>
-											<div 
-												className={`w-2.5 h-2.5 rounded-full transition-colors ${dragState ? 'animate-pulse' : ''}`} 
-												style={{ backgroundColor: color }}
-											/>
-										</div>
-									</div>
-								)
-							})}
-						</div>
-					</div>
-				</div>
+                    {/* Điểm Nhận (Dropzone Connector) */}
+                    <div
+                      className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background rounded-full flex items-center justify-center shadow-md"
+                      style={{ boxShadow: `0 0 0 2px ${color}` }}
+                    >
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full transition-colors ${dragState ? "animate-pulse" : ""}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-				{/* --- TICKET LIST SECTION --- */}
-				<div className="bg-card p-3 rounded-xl shadow-sm ring-1 ring-border mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-					<div className="flex items-center gap-3 w-full sm:w-auto">
-						<div className="w-full sm:w-[200px]">
-							<Select
-								value={filters.status}
-								onValueChange={(v) => setFilters((p) => ({ ...p, status: v as Filters["status"] }))}
-							>
-								<SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
-									<SelectValue placeholder="Trạng thái" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">Tất cả trạng thái</SelectItem>
-									<SelectItem value="OPEN">Chờ xử lý</SelectItem>
-									<SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
-									<SelectItem value="RESOLVED">Đã giải quyết</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
+        {/* --- TICKET LIST SECTION --- */}
+        <div className="bg-card p-3 rounded-xl shadow-sm ring-1 ring-border mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-full sm:w-[200px]">
+              <Select
+                value={filters.status}
+                onValueChange={(v) =>
+                  setFilters((p) => ({ ...p, status: v as Filters["status"] }))
+                }
+              >
+                <SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
+                  <SelectValue placeholder="Trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="OPEN">Chờ xử lý</SelectItem>
+                  <SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
+                  <SelectItem value="CLOSED">Đã giải quyết</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-						<div className="w-full sm:w-[180px]">
-							<Select
-								value={filters.sortOrder}
-								onValueChange={(v) => setFilters((p) => ({ ...p, sortOrder: v as Filters["sortOrder"] }))}
-							>
-								<SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
-									<SelectValue placeholder="Sắp xếp" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="DESC">Mới nhất trước</SelectItem>
-									<SelectItem value="ASC">Cũ nhất trước</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-					</div>
+            <div className="w-full sm:w-[180px]">
+              <Select
+                value={filters.sortOrder}
+                onValueChange={(v) =>
+                  setFilters((p) => ({
+                    ...p,
+                    sortOrder: v as Filters["sortOrder"],
+                  }))
+                }
+              >
+                <SelectTrigger className="bg-muted/30 border-transparent hover:bg-muted/50 transition-colors h-10 text-foreground">
+                  <SelectValue placeholder="Sắp xếp" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DESC">Mới nhất trước</SelectItem>
+                  <SelectItem value="ASC">Cũ nhất trước</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-					<Button variant="outline" className="w-full sm:w-auto text-muted-foreground h-10">
-						<Filter className="mr-2 h-4 w-4" /> Lọc nâng cao
-					</Button>
-				</div>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto text-muted-foreground h-10"
+          >
+            <Filter className="mr-2 h-4 w-4" /> Lọc nâng cao
+          </Button>
+        </div>
 
-				{error ? (
-					<div className="mb-6 rounded-xl bg-destructive/10 p-4 text-sm text-destructive shadow-sm ring-1 ring-destructive/20 flex items-center justify-between">
-						<span>{error}</span>
-						<Button
-							variant="outline"
-							size="sm"
-							className="bg-card ring-1 ring-destructive/20 text-destructive hover:bg-destructive/10"
-							onClick={() => { setTickets([]); setPage(1); }}
-						>
-							Thử lại
-						</Button>
-					</div>
-				) : null}
+        {error ? (
+          <div className="mb-6 rounded-xl bg-destructive/10 p-4 text-sm text-destructive shadow-sm ring-1 ring-destructive/20 flex items-center justify-between">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-card ring-1 ring-destructive/20 text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                setTickets([]);
+                setPage(1);
+              }}
+            >
+              Thử lại
+            </Button>
+          </div>
+        ) : null}
 
-				{tickets.length === 0 && !loading && !error ? (
-					<div className="text-center py-20 bg-card rounded-2xl ring-1 ring-border border-dashed">
-						<div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-							<CheckCircle2 className="w-8 h-8 text-muted-foreground" />
-						</div>
-						<h3 className="text-lg font-semibold text-foreground mb-1">
-							Không có yêu cầu nào
-						</h3>
-						<p className="text-muted-foreground text-sm">
-							Hiện tại không có ticket nào phù hợp với bộ lọc của bạn.
-						</p>
-					</div>
-				) : (
-					<div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-						{tickets.map((t) => {
-							const statusInfo = STATUS_CONFIG[t.status] || STATUS_CONFIG.OPEN;
-							const StatusIcon = statusInfo.icon;
-							const employeeName = formatPersonName(t.employee) || "Nhân viên ẩn danh";
-							return (
-								<Link
-									key={t.id}
-									href={`/admin/support/${t.id}`}
-									className="group flex flex-col bg-card rounded-xl p-5 shadow-sm ring-1 ring-border hover:ring-primary/50 hover:shadow-md transition-all duration-200"
-								>
-									<div className="flex items-start justify-between mb-4 gap-4">
-										<div className="flex items-center gap-3 min-w-0">
-											<div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shadow-sm ring-1 ring-primary/20">
-												{getInitials(employeeName)}
-											</div>
-											<div className="min-w-0">
-												<div className="font-semibold text-foreground truncate">
-													{employeeName}
-												</div>
-												<div className="text-xs text-muted-foreground mt-0.5">
-													{formatDate(t.created_at)}
-												</div>
-											</div>
-										</div>
-										<Badge
-											variant="outline"
-											className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusInfo.color}`}
-										>
-											<StatusIcon className="w-3.5 h-3.5" />
-											{statusInfo.label}
-										</Badge>
-									</div>
+        {tickets.length === 0 && !loading && !error ? (
+          <div className="text-center py-20 bg-card rounded-2xl ring-1 ring-border border-dashed">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              Không có yêu cầu nào
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Hiện tại không có ticket nào phù hợp với bộ lọc của bạn.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {tickets.map((t) => {
+              const statusInfo = STATUS_CONFIG[t.status] || STATUS_CONFIG.OPEN;
+              const StatusIcon = statusInfo.icon;
+              const employeeName =
+                formatPersonName(t.employee) || "Nhân viên ẩn danh";
+              return (
+                <Link
+                  key={t.id}
+                  href={`/admin/support/${t.id}`}
+                  className="group flex flex-col bg-card rounded-xl p-5 shadow-sm ring-1 ring-border hover:ring-primary/50 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-start justify-between mb-4 gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shadow-sm ring-1 ring-primary/20">
+                        {getInitials(employeeName)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-foreground truncate">
+                          {employeeName}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {formatDate(t.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusInfo.color}`}
+                    >
+                      <StatusIcon className="w-3.5 h-3.5" />
+                      {statusInfo.label}
+                    </Badge>
+                  </div>
 
-									<div className="flex-1 min-w-0">
-										<div className="text-base font-bold text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-2">
-											{t.title}
-										</div>
-										<p className="text-sm text-muted-foreground line-clamp-2">
-											{t.description || "Không có mô tả."}
-										</p>
-									</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-bold text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-2">
+                      {t.title}
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {t.description || "Không có mô tả."}
+                    </p>
+                  </div>
 
-									<div className="mt-5 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-										<div>
-											<span className="font-semibold text-foreground">
-												{t.category?.name ?? "-"}
-											</span>
-											<span className="mx-2">•</span>
-											ID: <span className="font-mono">{t.id.slice(0, 8)}...</span>
-										</div>
-										<span className="font-semibold text-primary">
-											Xem chi tiết →
-										</span>
-									</div>
-								</Link>
-							);
-						})}
-					</div>
-				)}
+                  <div className="mt-5 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                    <div>
+                      <span className="font-semibold text-foreground">
+                        {t.category?.name ?? "-"}
+                      </span>
+                      <span className="mx-2">•</span>
+                      ID:{" "}
+                      <span className="font-mono">{t.id.slice(0, 8)}...</span>
+                    </div>
+                    <span className="font-semibold text-primary">
+                      Xem chi tiết →
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
-				{loading ? (
-					<div className="mt-6 text-center text-sm text-muted-foreground">
-						Đang tải...
-					</div>
-				) : null}
+        {loading ? (
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            Đang tải...
+          </div>
+        ) : null}
 
-				<div className="mt-8 flex justify-center">
-					{canLoadMore ? (
-						<Button
-							variant="outline"
-							className="rounded-full"
-							onClick={() => setPage((p) => p + 1)}
-							disabled={loading}
-						>
-							Tải thêm
-						</Button>
-					) : null}
-				</div>
-			</div>
-		</div>
-	);
+        <div className="mt-8 flex justify-center">
+          {canLoadMore ? (
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={loading}
+            >
+              Tải thêm
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 }
