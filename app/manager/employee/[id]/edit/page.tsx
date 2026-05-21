@@ -112,7 +112,6 @@ export default function EmployeeEditPage() {
     married: false,
     children: 0,
     childrenDescription: "",
-    salaryGross: "",
     salaryBasic: "",
     phone: "",
     departmentName: "",
@@ -171,7 +170,6 @@ export default function EmployeeEditPage() {
           married: Boolean(rawFound.marriedStatus),
           children: Number(rawFound.numberOfChildren ?? 0) || 0,
           childrenDescription: rawFound.childrenDescription ?? "",
-          salaryGross: rawFound.grossSalary != null ? String(rawFound.grossSalary) : "",
           salaryBasic: rawFound.basicSalary != null ? String(rawFound.basicSalary) : "",
           phone: rawFound.phone ?? "",
           departmentName: rawFound.department?.name ?? rawFound.departmentName ?? "",
@@ -252,7 +250,6 @@ export default function EmployeeEditPage() {
         roles: form.role,
         phone: form.phone.trim() || null,
         basicSalary: form.salaryBasic !== "" ? Number(form.salaryBasic) : undefined,
-        grossSalary: form.salaryGross !== "" ? Number(form.salaryGross) : undefined,
         signDate: form.signDay || null,
         quitDate: form.quitDay || null,
         idCard: form.idCard.trim() || null,
@@ -479,7 +476,12 @@ export default function EmployeeEditPage() {
               </FormRow>
 
               <FormRow label="Lương Gross">
-                <input type="text" name="salaryGross" value={String(form.salaryGross)} onChange={onChange} className={inputClass} />
+                <input
+                  type="text"
+                  value={employee.grossSalary != null ? String(employee.grossSalary) : ""}
+                  readOnly
+                  className={`${inputClass} bg-gray-50 text-gray-500`}
+                />
               </FormRow>
 
               <FormRow label="Lương cơ bản">

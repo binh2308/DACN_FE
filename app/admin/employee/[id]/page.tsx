@@ -332,7 +332,6 @@ export default function EmployeeDetailPage() {
           roles: String(form.role || "").trim(),
           phone: String(form.phone || "").trim() || null,
           basicSalary: toOptionalNumber(form.basicSalary),
-          grossSalary: toOptionalNumber(form.grossSalary),
           signDate: toIsoUtcFromYmd(String(form.signDay || "")),
           quitDate: toIsoUtcFromYmd(String(form.quitDay || "")),
           idCard: String(form.idCard || "").trim() || null,
@@ -609,7 +608,7 @@ export default function EmployeeDetailPage() {
                     <input type="text" name="basicSalary" value={String(form.basicSalary)} onChange={onChange} className={inputBase} />
                   </FormRow>
                   <FormRow label="Lương Gross">
-                    <input type="text" name="grossSalary" value={String(form.grossSalary)} onChange={onChange} className={inputBase} />
+                    <input type="text" value={String(form.grossSalary)} readOnly className={`${inputBase} bg-gray-50 text-gray-500`} />
                   </FormRow>
                 </div>
               </div>
