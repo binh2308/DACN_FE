@@ -79,6 +79,20 @@ const STATUS_CONFIG: Record<
 	},
 };
 
+// Mảng màu sắc dành cho các Department để phân biệt trực quan
+const DEPT_COLORS = [
+	"#3b82f6", // blue
+	"#10b981", // emerald
+	"#8b5cf6", // violet
+	"#f59e0b", // amber
+	"#ec4899", // pink
+	"#14b8a6", // teal
+	"#ef4444", // red
+	"#6366f1", // indigo
+	"#84cc16", // lime
+	"#06b6d4", // cyan
+];
+
 const formatDate = (iso: string) => {
 	const d = new Date(iso);
 	return new Intl.DateTimeFormat("vi-VN", {
@@ -522,7 +536,6 @@ export default function SupportPage() {
 							</p>
 							<Button
 								type="button"
-								// variant="secondary"
 								onClick={handleCreateDepartment}
 								disabled={creatingDepartment || !createDeptName.trim()}
 								className="w-full"
@@ -540,25 +553,37 @@ export default function SupportPage() {
 						{/* SVG Dây nối - Chỉ dùng để vẽ đường cong trực quan */}
 						<svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
 							<defs>
+								{/* Mũi tên mặc định khi đang kéo */}
 								<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
 									<polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--primary))" />
 								</marker>
+								{/* Tạo từng mũi tên với màu tương ứng theo Department */}
+								{departments.map((d, i) => (
+									<marker key={`arrowhead-${d.id}`} id={`arrowhead-${d.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+										<polygon points="0 0, 10 3.5, 0 7" fill={DEPT_COLORS[i % DEPT_COLORS.length]} />
+									</marker>
+								))}
 							</defs>
 							
-							{/* Vẽ các liên kết đã có */}
+							{/* Vẽ các liên kết đã có (Hiển thị màu theo phòng ban) */}
 							{activeLinks.map(link => {
 								const pos1 = nodePositions[`cat-${link.catId}`];
 								const pos2 = nodePositions[`dept-${link.deptId}`];
 								if (!pos1 || !pos2) return null;
+								
+								// Tìm index phòng ban để lấy màu
+								const deptIndex = departments.findIndex(d => d.id === link.deptId);
+								const color = DEPT_COLORS[deptIndex % DEPT_COLORS.length] || "hsl(var(--primary))";
+
 								return (
 									<path 
 										key={`${link.catId}-${link.deptId}`}
 										d={drawLine(pos1.x, pos1.y, pos2.x, pos2.y)} 
-										stroke="hsl(var(--primary))" 
-										strokeOpacity="0.3"
+										stroke={color} 
+										strokeOpacity="0.55"
 										strokeWidth="2.5" 
 										fill="none" 
-										markerEnd="url(#arrowhead)"
+										markerEnd={`url(#arrowhead-${link.deptId})`}
 										className="transition-all duration-300"
 									/>
 								);
@@ -577,6 +602,7 @@ export default function SupportPage() {
 									strokeDasharray="6,6" 
 									strokeWidth="3" 
 									fill="none" 
+									markerEnd="url(#arrowhead)"
 								/>
 							)}
 						</svg>
@@ -602,25 +628,31 @@ export default function SupportPage() {
 									</div>
 									<div className="text-xs text-muted-foreground line-clamp-2">{c.description || "Chưa có mô tả"}</div>
 									
-									{/* HIỂN THỊ PHÒNG BAN ĐÃ GÁN BẰNG BADGE DỄ XÓA */}
+									{/* HIỂN THỊ PHÒNG BAN ĐÃ GÁN BẰNG BADGE ĐƯỢC TÔ MÀU THEO DEPARTMENT */}
 									{c.departments && c.departments.length > 0 && (
 										<div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-1.5">
-											{c.departments.map(dept => (
-												<div 
-													key={dept.id} 
-													className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-medium text-primary"
-												>
-													<span className="truncate max-w-[120px]">{dept.name}</span>
-													<button
-														type="button"
-														onClick={(e) => { e.stopPropagation(); handleUnlink(c.id, dept.id); }}
-														className="hover:bg-primary/20 hover:text-destructive rounded-full p-0.5 transition-colors"
-														title={`Hủy gán phòng ban: ${dept.name}`}
+											{c.departments.map(dept => {
+												const deptIndex = departments.findIndex(d => d.id === dept.id);
+												const color = DEPT_COLORS[deptIndex % DEPT_COLORS.length] || "hsl(var(--primary))";
+
+												return (
+													<div 
+														key={dept.id} 
+														style={{ backgroundColor: `${color}1A`, borderColor: `${color}33`, color: color }}
+														className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-medium"
 													>
-														<X size={10} />
-													</button>
-												</div>
-											))}
+														<span className="truncate max-w-[120px]">{dept.name}</span>
+														<button
+															type="button"
+															onClick={(e) => { e.stopPropagation(); handleUnlink(c.id, dept.id); }}
+															className="hover:opacity-60 rounded-full p-0.5 transition-opacity"
+															title={`Hủy gán phòng ban: ${dept.name}`}
+														>
+															<X size={10} />
+														</button>
+													</div>
+												)
+											})}
 										</div>
 									)}
 
@@ -642,27 +674,37 @@ export default function SupportPage() {
 								Phòng Ban Xử Lý
 							</h3>
 							{departmentsLoading && <p className="text-sm text-muted-foreground text-center">Đang tải...</p>}
-							{departments.map((d) => (
-								<div 
-									key={d.id}
-									data-node-id={`dept-${d.id}`}
-									data-node-type="department"
-									onMouseUp={() => handleDropOnDepartment(d.id)}
-									className={`relative bg-background rounded-xl p-4 shadow-sm ring-1 transition-all flex items-center justify-between
-										${dragState ? 'ring-primary border-dashed ring-2 bg-primary/5' : 'ring-border'}
-									`}
-								>
-									<div className="font-semibold text-foreground truncate pr-2">{d.name}</div>
-									<button onClick={() => handleDeleteDepartment(d.id)} className="text-muted-foreground hover:text-destructive shrink-0">
-										<Trash2 size={16} />
-									</button>
+							{departments.map((d, i) => {
+								const color = DEPT_COLORS[i % DEPT_COLORS.length];
+								return (
+									<div 
+										key={d.id}
+										data-node-id={`dept-${d.id}`}
+										data-node-type="department"
+										onMouseUp={() => handleDropOnDepartment(d.id)}
+										className={`relative bg-background rounded-xl p-4 shadow-sm transition-all flex items-center justify-between
+											${dragState ? 'border-dashed border-2 bg-primary/5' : 'ring-1 ring-border'}
+										`}
+										style={dragState ? { borderColor: color } : {}}
+									>
+										<div className="font-semibold text-foreground truncate pr-2">{d.name}</div>
+										<button onClick={() => handleDeleteDepartment(d.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+											<Trash2 size={16} />
+										</button>
 
-									{/* Điểm Nhận (Dropzone Connector) */}
-									<div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background ring-2 ring-primary rounded-full flex items-center justify-center shadow-md">
-										<div className={`w-2.5 h-2.5 rounded-full transition-colors ${dragState ? 'bg-primary animate-pulse' : 'bg-primary'}`} />
+										{/* Điểm Nhận (Dropzone Connector) */}
+										<div 
+											className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-background rounded-full flex items-center justify-center shadow-md"
+											style={{ boxShadow: `0 0 0 2px ${color}` }}
+										>
+											<div 
+												className={`w-2.5 h-2.5 rounded-full transition-colors ${dragState ? 'animate-pulse' : ''}`} 
+												style={{ backgroundColor: color }}
+											/>
+										</div>
 									</div>
-								</div>
-							))}
+								)
+							})}
 						</div>
 					</div>
 				</div>
